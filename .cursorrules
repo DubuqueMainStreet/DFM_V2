@@ -1,0 +1,26 @@
+# Project Context: Dubuque Farmers Market (Custom Map Edition)
+
+## Core Architecture
+- **Platform:** Wix Studio + Velo (Frontend) + Node.js (Backend JSW).
+- **Map Engine:** Custom Leaflet.js implementation hosted in a Wix HTML iFrame (`#mapFrame`).
+- **Data Flow:** 1. CSV Exports from ManageMyMarket -> 
+  2. Processed by `backend/importData.jsw` -> 
+  3. Stored in Wix Collections (`Vendors`, `MarketAttendance`, `StallLayouts`) -> 
+  4. Fetched by Velo -> 
+  5. Sent to iFrame via `postMessage`.
+
+## Map Logic Rules (Leaflet)
+- **Mobile First:** The map is primarily for users walking the street. UI must handle touch events, "Find My Location," and large tap targets.
+- **Stall Logic:** Stalls are GeoJSON polygons. 
+- **Vendor Grouping:** If a vendor occupies contiguous stalls (e.g., 101, 102, 103), they must be grouped into a single "Pill" marker.
+- **Filtering:** Users filter by category (e.g., "Ready to Eat") in Velo; Velo sends a message to Leaflet to highlight specific polygons.
+
+## Data Collections Schema
+- **Vendors:** Static data (Name, Description, Website, DefaultStall).
+- **MarketAttendance:** Dynamic weekly data (Date, VendorRef, AssignedStall, Status).
+- **StallLayouts:** GeoJSON data for every physical stall space.
+
+## Coding Standards
+- **Velo:** Use `async/await`. Handle `postMessage` communication robustly.
+- **Leaflet:** Keep styles in the HTML `<head>`. Use CSS Variables for map colors (e.g., `--fm-parking-color`).
+- **CSV Imports:** The backend must handle CSV parsing to update the `MarketAttendance` collection weekly.

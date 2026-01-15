@@ -1,0 +1,20 @@
+{
+  "marketDate": "2026-05-02",
+  "items": [
+    { "_id": "att1", "vendorId": "v1", "assignedStalls": ["A1", "A3"], "status": "Confirmed" },
+    { "_id": "att2", "vendorId": "v2", "assignedStalls": ["A4", "A5"], "status": "Confirmed" },
+    { "_id": "att3", "vendorId": "v3", "assignedStalls": ["G1"], "status": "Confirmed" },
+    { "_id": "att4", "vendorId": "v4", "assignedStalls": ["A6", "A7"], "status": "Confirmed" },
+    { "_id": "att5", "vendorId": "v5", "assignedStalls": ["B2", "B3"], "status": "Confirmed" },
+    { "_id": "att6", "vendorId": "v6", "assignedStalls": ["K1"], "status": "Confirmed" },
+    { "_id": "att7", "vendorId": "v7", "assignedStalls": ["D1", "D2"], "status": "Confirmed" },
+    { "_id": "att8", "vendorId": "v8", "assignedStalls": ["A10", "A11"], "status": "Confirmed" },
+    { "_id": "att9", "vendorId": "v9", "assignedStalls": ["G5", "G6"], "status": "Confirmed" },
+    { "_id": "att10", "vendorId": "v10", "assignedStalls": ["H1", "H2"], "status": "Confirmed" },
+    { "_id": "att11", "vendorId": "v11", "assignedStalls": ["L1", "L2"], "status": "Confirmed" },
+    { "_id": "att12", "vendorId": "v12", "assignedStalls": ["J1", "J2"], "status": "Confirmed" },
+    { "_id": "att13", "vendorId": "v13", "assignedStalls": ["C1", "C2"], "status": "Confirmed" },
+    { "_id": "att14", "vendorId": "v14", "assignedStalls": ["K6", "K7"], "status": "Confirmed" },
+    { "_id": "att15", "vendorId": "v15", "assignedStalls": ["H10", "H11", "H12"], "status": "Confirmed" }
+  ]
+}
