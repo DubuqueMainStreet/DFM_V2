@@ -29,18 +29,29 @@ export async function emailExists(email) {
 
 /**
  * Gets available market dates for selection
- * @returns {Promise<Array>} - Array of date objects with _id and title
+ * @returns {Promise<Array>} - Array of date objects with _id and formatted date label
  */
 export async function getAvailableDates() {
 	try {
 		const results = await wixData.query('MarketDates2026')
 			.find();
-		return results.items.map(item => ({
-			value: item._id,
-			label: item.title
-		}));
+		return results.items.map(item => {
+			const dateObj = item.date;
+			const label = dateObj ? formatDate(dateObj) : 'Date';
+			return {
+				value: item._id,
+				label: label
+			};
+		});
 	} catch (error) {
 		console.error('Error fetching dates:', error);
 		throw error;
 	}
+}
+
+function formatDate(dateObj) {
+	// Format Date object to readable string (e.g., "May 2, 2026")
+	const date = new Date(dateObj);
+	const options = { year: 'numeric', month: 'long', day: 'numeric' };
+	return date.toLocaleDateString('en-US', options);
 }

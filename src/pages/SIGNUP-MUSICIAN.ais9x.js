@@ -10,25 +10,30 @@ async function populateDateTags() {
 		const results = await wixData.query('MarketDates2026')
 			.find();
 		
-		console.log('Market dates fetched:', results.items);
-		
-		// Try common field names: title, date, name, label, dateTitle
 		const options = results.items.map(item => {
-			const label = item.title || item.date || item.name || item.label || item.dateTitle || 'Date';
-			console.log('Item:', item, 'Label:', label);
+			// Format date field for display (e.g., "May 2, 2026")
+			const dateObj = item.date;
+			const label = dateObj ? formatDate(dateObj) : 'Date';
+			
 			return {
 				value: item._id,
 				label: label
 			};
 		});
 		
-		console.log('Options for selection tags:', options);
 		$w('#dateSelectionTags').options = options;
 	} catch (error) {
 		console.error('Failed to load dates:', error);
 		$w('#msgError').text = 'Failed to load available dates. Please refresh.';
 		$w('#msgError').show();
 	}
+}
+
+function formatDate(dateObj) {
+	// Format Date object to readable string (e.g., "May 2, 2026")
+	const date = new Date(dateObj);
+	const options = { year: 'numeric', month: 'long', day: 'numeric' };
+	return date.toLocaleDateString('en-US', options);
 }
 
 function setupSubmitHandler() {
