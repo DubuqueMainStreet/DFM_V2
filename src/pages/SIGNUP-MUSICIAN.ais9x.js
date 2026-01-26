@@ -1,6 +1,7 @@
 import wixData from 'wix-data';
 
 $w.onReady(function () {
+	populateTypeDropdown();
 	populateDateTags();
 	setupSubmitHandler();
 });
@@ -27,6 +28,16 @@ async function populateDateTags() {
 		$w('#msgError').text = 'Failed to load available dates. Please refresh.';
 		$w('#msgError').show();
 	}
+}
+
+function populateTypeDropdown() {
+	// Set type options for Musician and Non-Profit
+	const typeOptions = [
+		{ value: 'Musician', label: 'Musician' },
+		{ value: 'Non-Profit', label: 'Non-Profit' }
+	];
+	
+	$w('#inputType').options = typeOptions;
 }
 
 function formatDate(dateObj) {
