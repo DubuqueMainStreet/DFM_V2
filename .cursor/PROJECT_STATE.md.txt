@@ -1,0 +1,21 @@
+# 📂 Project State
+*AI Instruction: Read this file at the start of every session to understand context.*
+
+## 🎯 Current Objective
+- [ ] Musician & NFP Application Form implementation
+
+## 🏗️ Active Tech Stack
+- **Platform:** Wix Velo
+- **Repository:** https://github.com/DubuqueMainStreet/DFM_V2.git
+- **Git Integration:** Enabled on Wix site
+- **Key Files:** 
+  - `pages/musician-nfp-form.js` - Frontend form page
+  - `backend/formUtils.web.js` - Backend utility functions
+
+## 📝 Recent Decisions / "Vibe"
+- One-to-Many form pattern: Parent `Specialty_Profiles` → Children `Weekly_Assignments` via `Market_Dates_2026` reference
+- Backend code deployment: Autonomous via Git Integration (commit → push → auto-sync)
+- Form architecture: Validation → Upload → Parent Insert → Child Batch Insert
+
+## ⚠️ Active Bugs
+- None known.
