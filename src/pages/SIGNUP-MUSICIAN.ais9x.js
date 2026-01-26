@@ -1,7 +1,8 @@
 import wixData from 'wix-data';
 
 $w.onReady(function () {
-	populateTypeDropdown();
+	populateMusicianTypeDropdown();
+	populateLocationDropdown();
 	populateDateTags();
 	setupSubmitHandler();
 });
@@ -30,14 +31,31 @@ async function populateDateTags() {
 	}
 }
 
-function populateTypeDropdown() {
-	// Set type options for Musician and Non-Profit
-	const typeOptions = [
-		{ value: 'Musician', label: 'Musician' },
-		{ value: 'Non-Profit', label: 'Non-Profit' }
+function populateMusicianTypeDropdown() {
+	// Set musician type options
+	const musicianTypeOptions = [
+		{ value: 'Solo Acoustic', label: 'Solo Acoustic' },
+		{ value: 'Solo Electric', label: 'Solo Electric' },
+		{ value: 'Duo Acoustic', label: 'Duo Acoustic' },
+		{ value: 'Duo Electric', label: 'Duo Electric' },
+		{ value: 'Small Band (3-4 members)', label: 'Small Band (3-4 members)' },
+		{ value: 'Large Band (5+ members)', label: 'Large Band (5+ members)' },
+		{ value: 'Other', label: 'Other' }
 	];
 	
-	$w('#inputType').options = typeOptions;
+	$w('#inputMusicianType').options = musicianTypeOptions;
+}
+
+function populateLocationDropdown() {
+	// Set performance location options
+	const locationOptions = [
+		{ value: 'Default', label: 'Default (No Preference)' },
+		{ value: 'Location A', label: 'Location A' },
+		{ value: 'Location B', label: 'Location B' },
+		{ value: 'Location C', label: 'Location C' }
+	];
+	
+	$w('#inputLocation').options = locationOptions;
 }
 
 function formatDate(dateObj) {
@@ -63,11 +81,13 @@ async function handleSubmit() {
 		// Validation
 		const name = $w('#inputName').value?.trim();
 		const email = $w('#inputEmail').value?.trim();
-		const type = $w('#inputType').value?.trim();
+		const musicianType = $w('#inputMusicianType').value?.trim();
+		const needsElectric = $w('#inputNeedsElectric').checked || false;
+		const preferredLocation = $w('#inputLocation').value?.trim();
 		const bio = $w('#inputBio').value?.trim();
 		const selectedDates = $w('#dateSelectionTags').selected;
 		
-		if (!name || !email || !type || !bio) {
+		if (!name || !email || !musicianType || !preferredLocation || !bio) {
 			throw new Error('All fields are required.');
 		}
 		
@@ -86,9 +106,12 @@ async function handleSubmit() {
 		
 		// Insert parent record
 		const profileData = {
+			type: 'Musician', // Hardcoded since this is musician-only form
 			name: name,
 			email: email,
-			type: type,
+			musicianType: musicianType,
+			needsElectric: needsElectric,
+			preferredLocation: preferredLocation,
 			bio: bio,
 			fileUrl: fileUrl
 		};
@@ -125,7 +148,9 @@ async function handleSubmit() {
 function resetForm() {
 	$w('#inputName').value = '';
 	$w('#inputEmail').value = '';
-	$w('#inputType').value = '';
+	$w('#inputMusicianType').value = '';
+	$w('#inputNeedsElectric').checked = false;
+	$w('#inputLocation').value = '';
 	$w('#inputBio').value = '';
 	$w('#dateSelectionTags').selected = [];
 	$w('#uploadButton').reset();
