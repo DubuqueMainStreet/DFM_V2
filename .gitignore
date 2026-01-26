@@ -29,6 +29,7 @@ build/
 # Wix specific
 .wix/
 .wix-cli/
+jsconfig.json
 
 # Temporary files
 *.tmp
