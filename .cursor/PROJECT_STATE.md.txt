@@ -2,20 +2,23 @@
 *AI Instruction: Read this file at the start of every session to understand context.*
 
 ## 🎯 Current Objective
-- [ ] Musician & NFP Application Form implementation
+- [ ] Create UI elements for Musician & NFP Application Form
+- [ ] Test form submission flow
 
 ## 🏗️ Active Tech Stack
 - **Platform:** Wix Velo
 - **Repository:** https://github.com/DubuqueMainStreet/DFM_V2.git
-- **Git Integration:** Enabled on Wix site
+- **Git Integration:** ✅ Enabled and syncing automatically
+- **Wix Site ID:** b8f4ee52-de89-4690-9bca-ea948bbea938
 - **Key Files:** 
-  - `pages/musician-nfp-form.js` - Frontend form page
-  - `backend/formUtils.web.js` - Backend utility functions
+  - `src/pages/SIGNUP-MUSICIAN.ais9x.js` - Frontend form page (ready for UI elements)
+  - `src/backend/formUtils.web.js` - Backend utility functions (synced ✅)
 
 ## 📝 Recent Decisions / "Vibe"
 - One-to-Many form pattern: Parent `Specialty_Profiles` → Children `Weekly_Assignments` via `Market_Dates_2026` reference
-- Backend code deployment: Autonomous via Git Integration (commit → push → auto-sync)
+- Backend code deployment: ✅ Autonomous via Git Integration (commit → push → auto-sync) - WORKING
 - Form architecture: Validation → Upload → Parent Insert → Child Batch Insert
+- File structure: Using existing `SIGNUP-MUSICIAN.ais9x.js` page (not creating new page)
 
 ## ⚠️ Active Bugs
 - None known.
