@@ -7,7 +7,7 @@ $w.onReady(function () {
 
 async function populateDateTags() {
 	try {
-		const results = await wixData.query('Market_Dates_2026')
+		const results = await wixData.query('MarketDates2026')
 			.find();
 		
 		const options = results.items.map(item => ({

@@ -33,7 +33,7 @@ export async function emailExists(email) {
  */
 export async function getAvailableDates() {
 	try {
-		const results = await wixData.query('Market_Dates_2026')
+		const results = await wixData.query('MarketDates2026')
 			.find();
 		return results.items.map(item => ({
 			value: item._id,
