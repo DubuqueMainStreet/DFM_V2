@@ -87,11 +87,24 @@ async function handleSubmit() {
 		const bio = $w('#inputBio').value?.trim();
 		const selectedDates = $w('#dateSelectionTags').selected;
 		
+		console.log('Selected dates:', selectedDates);
+		console.log('Selected dates type:', typeof selectedDates);
+		console.log('Selected dates length:', selectedDates?.length);
+		
+		// Handle different return formats from selection tags
+		let dateIds = [];
+		if (Array.isArray(selectedDates)) {
+			dateIds = selectedDates;
+		} else if (selectedDates && typeof selectedDates === 'object') {
+			// If it returns an object with values property
+			dateIds = selectedDates.values || Object.values(selectedDates);
+		}
+		
 		if (!name || !email || !musicianType || !preferredLocation || !bio) {
 			throw new Error('All fields are required.');
 		}
 		
-		if (!selectedDates || selectedDates.length === 0) {
+		if (!dateIds || dateIds.length === 0) {
 			throw new Error('Please select at least one market date.');
 		}
 		
@@ -120,7 +133,7 @@ async function handleSubmit() {
 		const profileId = profileResult._id;
 		
 		// Insert child records
-		const assignmentPromises = selectedDates.map(dateId => 
+		const assignmentPromises = dateIds.map(dateId => 
 			wixData.save('WeeklyAssignments', {
 				profileRef: profileId,
 				dateRef: dateId
