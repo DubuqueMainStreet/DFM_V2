@@ -11,13 +11,13 @@ export function validateEmail(email) {
 }
 
 /**
- * Checks if applicant email already exists in Specialty_Profiles
+ * Checks if applicant email already exists in SpecialtyProfiles
  * @param {string} email - Email to check
  * @returns {Promise<boolean>} - True if email exists
  */
 export async function emailExists(email) {
 	try {
-		const results = await wixData.query('Specialty_Profiles')
+		const results = await wixData.query('SpecialtyProfiles')
 			.eq('email', email)
 			.find();
 		return results.items.length > 0;

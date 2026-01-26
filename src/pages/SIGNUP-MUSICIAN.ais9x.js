@@ -69,12 +69,12 @@ async function handleSubmit() {
 			fileUrl: fileUrl
 		};
 		
-		const profileResult = await wixData.save('Specialty_Profiles', profileData);
+		const profileResult = await wixData.save('SpecialtyProfiles', profileData);
 		const profileId = profileResult._id;
 		
 		// Insert child records
 		const assignmentPromises = selectedDates.map(dateId => 
-			wixData.save('Weekly_Assignments', {
+			wixData.save('WeeklyAssignments', {
 				profileRef: profileId,
 				dateRef: dateId
 			})
