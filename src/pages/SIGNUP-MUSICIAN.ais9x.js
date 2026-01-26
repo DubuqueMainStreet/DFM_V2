@@ -10,11 +10,19 @@ async function populateDateTags() {
 		const results = await wixData.query('MarketDates2026')
 			.find();
 		
-		const options = results.items.map(item => ({
-			value: item._id,
-			label: item.title
-		}));
+		console.log('Market dates fetched:', results.items);
 		
+		// Try common field names: title, date, name, label, dateTitle
+		const options = results.items.map(item => {
+			const label = item.title || item.date || item.name || item.label || item.dateTitle || 'Date';
+			console.log('Item:', item, 'Label:', label);
+			return {
+				value: item._id,
+				label: label
+			};
+		});
+		
+		console.log('Options for selection tags:', options);
 		$w('#dateSelectionTags').options = options;
 	} catch (error) {
 		console.error('Failed to load dates:', error);
