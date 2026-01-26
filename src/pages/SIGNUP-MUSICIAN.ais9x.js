@@ -85,7 +85,21 @@ async function handleSubmit() {
 		const needsElectric = $w('#inputNeedsElectric').checked || false;
 		const preferredLocation = $w('#inputLocation').value?.trim();
 		const bio = $w('#inputBio').value?.trim();
-		const selectedDates = $w('#dateSelectionTags').selected;
+		
+		// Try different properties for selection tags
+		const selectionTags = $w('#dateSelectionTags');
+		
+		// Log all available properties to debug
+		console.log('Selection tags element:', selectionTags);
+		console.log('Selection tags.selected:', selectionTags.selected);
+		console.log('Selection tags.value:', selectionTags.value);
+		console.log('Selection tags.selectedValues:', selectionTags.selectedValues);
+		
+		// Try common selection tags properties
+		let selectedDates = selectionTags.selected || 
+		                   selectionTags.value || 
+		                   selectionTags.selectedValues ||
+		                   (selectionTags.options ? selectionTags.options.filter(opt => opt.selected).map(opt => opt.value) : null);
 		
 		console.log('Selected dates:', selectedDates);
 		console.log('Selected dates type:', typeof selectedDates);
@@ -98,6 +112,9 @@ async function handleSubmit() {
 		} else if (selectedDates && typeof selectedDates === 'object') {
 			// If it returns an object with values property
 			dateIds = selectedDates.values || Object.values(selectedDates);
+		} else if (selectedDates) {
+			// If it's a single value, wrap in array
+			dateIds = [selectedDates];
 		}
 		
 		if (!name || !email || !musicianType || !preferredLocation || !bio) {
