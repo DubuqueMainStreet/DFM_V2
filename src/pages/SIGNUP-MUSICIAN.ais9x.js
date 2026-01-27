@@ -12,15 +12,44 @@ async function populateDateTags() {
 		const results = await wixData.query('MarketDates2026')
 			.find();
 		
-		const options = results.items.map(item => {
-			// Format date field for display (e.g., "May 2, 2026")
-			const dateObj = item.date;
-			const label = dateObj ? formatDate(dateObj) : 'Date';
-			
-			return {
-				value: item._id,
-				label: label
-			};
+		// Process dates: parse, sort chronologically, group by month
+		const dateItems = results.items
+			.map(item => {
+				const dateObj = new Date(item.date);
+				return {
+					_id: item._id,
+					date: dateObj,
+					month: dateObj.getMonth(),
+					year: dateObj.getFullYear(),
+					day: dateObj.getDate(),
+					monthName: dateObj.toLocaleDateString('en-US', { month: 'long' })
+				};
+			})
+			.sort((a, b) => a.date - b.date); // Sort chronologically
+		
+		// Group by month for organization
+		const groupedByMonth = {};
+		dateItems.forEach(item => {
+			const monthKey = `${item.year}-${String(item.month).padStart(2, '0')}`;
+			if (!groupedByMonth[monthKey]) {
+				groupedByMonth[monthKey] = [];
+			}
+			groupedByMonth[monthKey].push(item);
+		});
+		
+		// Build options with month-grouped labels (shorter format: "May 2nd")
+		const options = [];
+		Object.keys(groupedByMonth).sort().forEach(monthKey => {
+			const dates = groupedByMonth[monthKey];
+			dates.forEach(item => {
+				const daySuffix = getDaySuffix(item.day);
+				const label = `${item.monthName} ${item.day}${daySuffix}`;
+				
+				options.push({
+					value: item._id,
+					label: label
+				});
+			});
 		});
 		
 		$w('#dateSelectionTags').options = options;
@@ -58,6 +87,16 @@ function populateLocationDropdown() {
 	$w('#inputLocation').options = locationOptions;
 }
 
+function getDaySuffix(day) {
+	if (day > 3 && day < 21) return 'th';
+	switch (day % 10) {
+		case 1: return 'st';
+		case 2: return 'nd';
+		case 3: return 'rd';
+		default: return 'th';
+	}
+}
+
 function formatDate(dateObj) {
 	// Format Date object to readable string (e.g., "May 2, 2026")
 	const date = new Date(dateObj);
@@ -86,34 +125,17 @@ async function handleSubmit() {
 		const preferredLocation = $w('#inputLocation').value?.trim();
 		const bio = $w('#inputBio').value?.trim();
 		
-		// Try different properties for selection tags
+		// Get selected dates from selection tags component
 		const selectionTags = $w('#dateSelectionTags');
+		let selectedDates = selectionTags.value || selectionTags.selected || selectionTags.selectedValues;
 		
-		// Log all available properties to debug
-		console.log('Selection tags element:', selectionTags);
-		console.log('Selection tags.selected:', selectionTags.selected);
-		console.log('Selection tags.value:', selectionTags.value);
-		console.log('Selection tags.selectedValues:', selectionTags.selectedValues);
-		
-		// Try common selection tags properties
-		let selectedDates = selectionTags.selected || 
-		                   selectionTags.value || 
-		                   selectionTags.selectedValues ||
-		                   (selectionTags.options ? selectionTags.options.filter(opt => opt.selected).map(opt => opt.value) : null);
-		
-		console.log('Selected dates:', selectedDates);
-		console.log('Selected dates type:', typeof selectedDates);
-		console.log('Selected dates length:', selectedDates?.length);
-		
-		// Handle different return formats from selection tags
+		// Handle different return formats
 		let dateIds = [];
 		if (Array.isArray(selectedDates)) {
 			dateIds = selectedDates;
 		} else if (selectedDates && typeof selectedDates === 'object') {
-			// If it returns an object with values property
 			dateIds = selectedDates.values || Object.values(selectedDates);
 		} else if (selectedDates) {
-			// If it's a single value, wrap in array
 			dateIds = [selectedDates];
 		}
 		
