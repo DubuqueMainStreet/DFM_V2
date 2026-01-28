@@ -3,6 +3,8 @@ import wixData from 'wix-data';
 $w.onReady(function () {
 	populateMusicianTypeDropdown();
 	populateLocationDropdown();
+	populateDurationDropdown();
+	populateGenreDropdown();
 	populateDateTags();
 	setupSubmitHandler();
 });
@@ -37,17 +39,32 @@ async function populateDateTags() {
 			groupedByMonth[monthKey].push(item);
 		});
 		
-		// Build options with month-grouped labels (shorter format: "May 2nd")
+		// Build options with month-grouped labels and styling
 		const options = [];
+		const monthColors = {
+			'May': '#4CAF50',      // Green (spring)
+			'June': '#2196F3',     // Blue (summer)
+			'July': '#2196F3',     // Blue (summer)
+			'August': '#2196F3',   // Blue (summer)
+			'September': '#FF9800', // Orange (fall)
+			'October': '#FF9800'    // Orange (fall)
+		};
+		
 		Object.keys(groupedByMonth).sort().forEach(monthKey => {
 			const dates = groupedByMonth[monthKey];
+			const monthName = dates[0].monthName;
+			const monthColor = monthColors[monthName] || '#757575'; // Default gray
+			
 			dates.forEach(item => {
 				const daySuffix = getDaySuffix(item.day);
 				const label = `${item.monthName} ${item.day}${daySuffix}`;
 				
 				options.push({
 					value: item._id,
-					label: label
+					label: label,
+					// Store month info for potential styling
+					month: monthName,
+					color: monthColor
 				});
 			});
 		});
@@ -87,6 +104,37 @@ function populateLocationDropdown() {
 	$w('#inputLocation').options = locationOptions;
 }
 
+function populateDurationDropdown() {
+	// Set performance duration options
+	const durationOptions = [
+		{ value: '30 minutes', label: '30 minutes' },
+		{ value: '1 hour', label: '1 hour' },
+		{ value: '1.5 hours', label: '1.5 hours' },
+		{ value: '2 hours', label: '2 hours' },
+		{ value: 'Flexible', label: 'Flexible' }
+	];
+	
+	$w('#inputDuration').options = durationOptions;
+}
+
+function populateGenreDropdown() {
+	// Set music genre options
+	const genreOptions = [
+		{ value: 'Acoustic/Folk', label: 'Acoustic/Folk' },
+		{ value: 'Country', label: 'Country' },
+		{ value: 'Jazz', label: 'Jazz' },
+		{ value: 'Blues', label: 'Blues' },
+		{ value: 'Rock', label: 'Rock' },
+		{ value: 'Pop', label: 'Pop' },
+		{ value: 'Classical', label: 'Classical' },
+		{ value: 'Bluegrass', label: 'Bluegrass' },
+		{ value: 'World Music', label: 'World Music' },
+		{ value: 'Other', label: 'Other' }
+	];
+	
+	$w('#inputGenre').options = genreOptions;
+}
+
 function getDaySuffix(day) {
 	if (day > 3 && day < 21) return 'th';
 	switch (day % 10) {
@@ -118,12 +166,16 @@ async function handleSubmit() {
 		$w('#btnSubmit').disable();
 		
 		// Validation
-		const name = $w('#inputName').value?.trim();
-		const email = $w('#inputEmail').value?.trim();
+		const organizationName = $w('#inputName').value?.trim(); // Maps to organizationName field
+		const contactEmail = $w('#inputEmail').value?.trim(); // Maps to contactEmail field
+		const contactPhone = $w('#inputPhone').value?.trim(); // Maps to contactPhone field
 		const musicianType = $w('#inputMusicianType').value?.trim();
-		const needsElectric = $w('#inputNeedsElectric').checked || false;
+		const techNeeds = $w('#inputNeedsElectric').checked || false; // Boolean field
 		const preferredLocation = $w('#inputLocation').value?.trim();
 		const bio = $w('#inputBio').value?.trim();
+		const website = $w('#inputWebsite').value?.trim();
+		const duration = $w('#inputDuration').value?.trim();
+		const genre = $w('#inputGenre').value?.trim();
 		
 		// Get selected dates from selection tags component
 		const selectionTags = $w('#dateSelectionTags');
@@ -139,8 +191,8 @@ async function handleSubmit() {
 			dateIds = [selectedDates];
 		}
 		
-		if (!name || !email || !musicianType || !preferredLocation || !bio) {
-			throw new Error('All fields are required.');
+		if (!organizationName || !contactEmail || !contactPhone || !musicianType || !preferredLocation || !bio) {
+			throw new Error('Name, email, phone, musician type, location, and bio are required.');
 		}
 		
 		if (!dateIds || dateIds.length === 0) {
@@ -157,16 +209,24 @@ async function handleSubmit() {
 		}
 		
 		// Insert parent record
+		// Using unified schema Field IDs that work for all signup types
 		const profileData = {
 			type: 'Musician', // Hardcoded since this is musician-only form
-			name: name,
-			email: email,
-			musicianType: musicianType,
-			needsElectric: needsElectric,
-			preferredLocation: preferredLocation,
-			bio: bio,
-			fileUrl: fileUrl
+			title: organizationName, // Title field for reference display (fixes "Untitled" issue)
+			organizationName: organizationName, // Unified field (name/org name)
+			contactEmail: contactEmail, // Unified email field
+			contactPhone: contactPhone, // Unified phone field
+			musicianType: musicianType, // Musician-specific (should be Text field, not Tag)
+			techNeeds: techNeeds, // Boolean field (true/false)
+			preferredLocation: preferredLocation, // Works for all types (should be Text field, not Tag)
+			bio: bio, // Works for all types
+			website: website || null, // Works for all types
+			duration: duration || null, // Musicians and events
+			genre: genre || null // Musician-specific
 		};
+		
+		// Log the data being saved for debugging
+		console.log('Saving profile data:', profileData);
 		
 		const profileResult = await wixData.save('SpecialtyProfiles', profileData);
 		const profileId = profileResult._id;
@@ -200,10 +260,14 @@ async function handleSubmit() {
 function resetForm() {
 	$w('#inputName').value = '';
 	$w('#inputEmail').value = '';
+	$w('#inputPhone').value = '';
 	$w('#inputMusicianType').value = '';
 	$w('#inputNeedsElectric').checked = false;
 	$w('#inputLocation').value = '';
 	$w('#inputBio').value = '';
+	$w('#inputWebsite').value = '';
+	$w('#inputDuration').value = '';
+	$w('#inputGenre').value = '';
 	$w('#dateSelectionTags').selected = [];
 	$w('#uploadButton').reset();
 }

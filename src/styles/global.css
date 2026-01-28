@@ -107,3 +107,84 @@
     border-radius: 0 0 12px 12px;
   }
 }
+
+/* Date Selection Tags Styling */
+/* Target the component directly by ID */
+#dateSelectionTags,
+.date-selection-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+/* Base tag styling - target selection tags component structure */
+#dateSelectionTags .tag-item,
+#dateSelectionTags button,
+#dateSelectionTags [role="button"],
+.date-selection-tags .tag-item,
+.date-selection-tags button,
+.date-selection-tags [role="button"] {
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background-color: #f5f5f5;
+}
+
+/* Month-based color styling using attribute selectors where possible */
+/* Note: CSS :contains() is not standard - using alternative selectors */
+#dateSelectionTags button[aria-label*="May"],
+.date-selection-tags button[aria-label*="May"] {
+  background-color: #E8F5E9 !important;
+  border-color: #4CAF50 !important;
+  color: #2E7D32 !important;
+}
+
+#dateSelectionTags button[aria-label*="June"],
+#dateSelectionTags button[aria-label*="July"],
+#dateSelectionTags button[aria-label*="August"],
+.date-selection-tags button[aria-label*="June"],
+.date-selection-tags button[aria-label*="July"],
+.date-selection-tags button[aria-label*="August"] {
+  background-color: #E3F2FD !important;
+  border-color: #2196F3 !important;
+  color: #1565C0 !important;
+}
+
+#dateSelectionTags button[aria-label*="September"],
+#dateSelectionTags button[aria-label*="October"],
+.date-selection-tags button[aria-label*="September"],
+.date-selection-tags button[aria-label*="October"] {
+  background-color: #FFF3E0 !important;
+  border-color: #FF9800 !important;
+  color: #E65100 !important;
+}
+
+/* Selected state */
+#dateSelectionTags .tag-item.selected,
+#dateSelectionTags button.selected,
+#dateSelectionTags [role="button"].selected,
+#dateSelectionTags .tag-item[aria-selected="true"],
+#dateSelectionTags button[aria-selected="true"],
+.date-selection-tags .tag-item.selected,
+.date-selection-tags button.selected,
+.date-selection-tags [role="button"].selected,
+.date-selection-tags .tag-item[aria-selected="true"],
+.date-selection-tags button[aria-selected="true"] {
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Hover state */
+#dateSelectionTags .tag-item:hover,
+#dateSelectionTags button:hover,
+#dateSelectionTags [role="button"]:hover,
+.date-selection-tags .tag-item:hover,
+.date-selection-tags button:hover,
+.date-selection-tags [role="button"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}

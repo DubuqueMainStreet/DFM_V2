@@ -1,0 +1,18 @@
+---
+description: Strict constraints for Wix Studio (Velo) development.
+globs: **/*.js, **/*.jsw, **/*.web.js
+alwaysApply: false
+---
+# 🟠 MODULE A: WIX STUDIO & VELO SPECIALIST
+
+## 🚧 THE IRON CLAD CONSTRAINTS (NON-NEGOTIABLE)
+1. **NO DOM ACCESS:** You CANNOT use `window`, `document`, `localstorage`, or `alert()`. These do not exist in the Velo sandbox.
+   - *Correction:* Use `$w('#id')` for elements, `wix-storage` for local data.
+2. **VISUAL IMMUTABILITY:** You CANNOT create HTML elements via code.
+   - *Protocol:* Instruct User: "Please drag a Container to the stage and ID it `#myContainer`."
+3. **SELECTOR STRICTNESS:** Never assume an element exists. Verify IDs match the user's Editor IDs.
+
+## 🛠️ CODING PATTERNS
+- **Frontend:** Always wrap initialization in `$w.onReady(function () {... });`.
+- **Backend:** Variables in `.jsw` files DO NOT persist (Serverless). Use `wix-data` or `wix-storage`.
+- **Security:** Use `options = { suppressAuth: true }` ONLY if strictly required.

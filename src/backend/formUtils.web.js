@@ -18,7 +18,7 @@ export function validateEmail(email) {
 export async function emailExists(email) {
 	try {
 		const results = await wixData.query('SpecialtyProfiles')
-			.eq('email', email)
+			.eq('contactEmail', email)
 			.find();
 		return results.items.length > 0;
 	} catch (error) {
