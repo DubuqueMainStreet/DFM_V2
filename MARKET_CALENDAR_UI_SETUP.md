@@ -4,23 +4,34 @@
 
 ### **Page-Level Elements** (Outside Repeater)
 
-1. **`#loadingIndicator`**
+1. **Month Navigation Tabs:**
+   - **`#tabMay`** - Button/Tab - Filter to May dates
+   - **`#tabJune`** - Button/Tab - Filter to June dates
+   - **`#tabJuly`** - Button/Tab - Filter to July dates
+   - **`#tabAugust`** - Button/Tab - Filter to August dates
+   - **`#tabSeptember`** - Button/Tab - Filter to September dates
+   - **`#tabOctober`** - Button/Tab - Filter to October dates
+   - **Purpose:** Navigate between months (shows only dates for selected month)
+   - **Location:** Top of page, above calendar
+   - **Note:** Defaults to May (first market month)
+
+2. **`#loadingIndicator`**
    - **Type:** Any element (Text, Image, Spinner)
    - **Purpose:** Shows loading state while data loads
    - **Initial State:** Hidden
-   - **Location:** Top of page, before repeater
+   - **Location:** Top of page, below month tabs
 
-2. **`#msgError`**
+3. **`#msgError`**
    - **Type:** Text element
    - **Purpose:** Displays error messages
    - **Initial State:** Hidden
    - **Location:** Top of page, below loading indicator
 
-3. **`#calendarRepeater`**
+4. **`#calendarRepeater`**
    - **Type:** Repeater
-   - **Purpose:** Displays all 27 market dates
+   - **Purpose:** Displays dates for selected month (filtered by month tab)
    - **Location:** Main content area
-   - **Note:** This is the main repeater that will show all dates
+   - **Note:** Shows only dates for the currently selected month
 
 ---
 
@@ -94,11 +105,14 @@ These elements go **inside** the repeater item design. Each date will have its o
 ┌─────────────────────────────────────────────────────────────┐
 │  Market Calendar - 2026 Season                             │
 │                                                              │
+│  [Month Tabs: May | June | July | August | September | Oct]│
+│                                                              │
 │  [#loadingIndicator] (hidden initially)                     │
 │  [#msgError] (hidden initially)                             │
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐ │
 │  │ [#calendarRepeater]                                    │ │
+│  │ (Shows only dates for selected month)                  │ │
 │  │                                                         │ │
 │  │  ┌─ Repeater Item 1 ────────────────────────────────┐ │ │
 │  │  │ [#itemDate]              [#itemStatus]           │ │ │
@@ -134,7 +148,16 @@ These elements go **inside** the repeater item design. Each date will have its o
 
 ## 🔧 Step-by-Step Setup Instructions
 
-### **Step 1: Add Page-Level Elements**
+### **Step 1: Add Month Navigation Tabs**
+
+1. **Add Month Tab Buttons:**
+   - Add 6 buttons/tabs for: May, June, July, August, September, October
+   - Set IDs to: `tabMay`, `tabJune`, `tabJuly`, `tabAugust`, `tabSeptember`, `tabOctober`
+   - Position them horizontally at the top of the page
+   - Style them as tabs (you can add active/inactive styling)
+   - **Note:** The code will handle clicking and filtering automatically
+
+### **Step 2: Add Page-Level Elements**
 
 1. **Add Loading Indicator:**
    - Add any element (text, image, or spinner)
@@ -146,14 +169,14 @@ These elements go **inside** the repeater item design. Each date will have its o
    - Set ID to: `msgError`
    - Initially hide it
 
-### **Step 2: Add Main Repeater**
+### **Step 3: Add Main Repeater**
 
 1. **Add Repeater:**
    - Add a Repeater element
    - Set ID to: `calendarRepeater`
    - This will display all 27 dates
 
-### **Step 3: Design Repeater Item**
+### **Step 4: Design Repeater Item**
 
 **Inside the repeater item design, add these elements:**
 
@@ -186,6 +209,12 @@ These elements go **inside** the repeater item design. Each date will have its o
 Use this checklist to verify all IDs are set correctly:
 
 ### **Page Level:**
+- [ ] `#tabMay` - May month tab button
+- [ ] `#tabJune` - June month tab button
+- [ ] `#tabJuly` - July month tab button
+- [ ] `#tabAugust` - August month tab button
+- [ ] `#tabSeptember` - September month tab button
+- [ ] `#tabOctober` - October month tab button
 - [ ] `#loadingIndicator` - Loading indicator element
 - [ ] `#msgError` - Error message text element
 - [ ] `#calendarRepeater` - Main repeater
@@ -244,15 +273,16 @@ The code will automatically set colors, but you can also style in Wix:
 ## 📝 Quick Reference
 
 **Minimum Required Elements:**
-1. `#calendarRepeater` - Repeater (REQUIRED)
-2. `#itemDate` - Text in repeater item (REQUIRED)
-3. `#itemStatus` - Text in repeater item (REQUIRED)
-4. `#itemMusicians` - Text in repeater item (REQUIRED)
-5. `#itemNonProfit` - Text in repeater item (REQUIRED)
-6. `#itemVolunteers` - Text in repeater item (REQUIRED)
-7. `#btnToggleDetails` - Button in repeater item (REQUIRED)
-8. `#detailsContainer` - Collapsible container in repeater item (REQUIRED)
-9. `#detailsContent` - HTML/text component inside container (REQUIRED)
+1. `#tabMay`, `#tabJune`, `#tabJuly`, `#tabAugust`, `#tabSeptember`, `#tabOctober` - Month tab buttons (REQUIRED)
+2. `#calendarRepeater` - Repeater (REQUIRED)
+3. `#itemDate` - Text in repeater item (REQUIRED)
+4. `#itemStatus` - Text in repeater item (REQUIRED)
+5. `#itemMusicians` - Text in repeater item (REQUIRED)
+6. `#itemNonProfit` - Text in repeater item (REQUIRED)
+7. `#itemVolunteers` - Text in repeater item (REQUIRED)
+8. `#btnToggleDetails` - Button in repeater item (REQUIRED)
+9. `#detailsContainer` - Collapsible container in repeater item (REQUIRED)
+10. `#detailsContent` - HTML/text component inside container (REQUIRED)
 
 **Optional but Recommended:**
 - `#loadingIndicator` - Loading indicator

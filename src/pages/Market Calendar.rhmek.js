@@ -3,6 +3,7 @@ import wixData from 'wix-data';
 // Global state
 let marketDates = [];
 let coverageData = [];
+let currentMonth = null; // Current selected month (0-11, where 0 = January)
 
 $w.onReady(function () {
 	initializeCalendar();
@@ -12,11 +13,21 @@ async function initializeCalendar() {
 	try {
 		showLoading(true);
 		
+		// Set up month tab handlers
+		setupMonthTabs();
+		
 		// Load all market dates
 		await loadMarketDates();
 		
 		// Calculate coverage for each date
 		await calculateCoverage();
+		
+		// Set default month to May (first market month)
+		const firstDate = marketDates[0];
+		if (firstDate) {
+			currentMonth = firstDate.date.getMonth();
+			selectMonth(currentMonth);
+		}
 		
 		// Display calendar
 		displayCalendar();
@@ -27,6 +38,55 @@ async function initializeCalendar() {
 	} finally {
 		showLoading(false);
 	}
+}
+
+function setupMonthTabs() {
+	// Month tabs: May (4), June (5), July (6), August (7), September (8), October (9)
+	const monthTabs = [
+		{ month: 4, id: '#tabMay', label: 'May' },
+		{ month: 5, id: '#tabJune', label: 'June' },
+		{ month: 6, id: '#tabJuly', label: 'July' },
+		{ month: 7, id: '#tabAugust', label: 'August' },
+		{ month: 8, id: '#tabSeptember', label: 'September' },
+		{ month: 9, id: '#tabOctober', label: 'October' }
+	];
+	
+	monthTabs.forEach(({ month, id, label }) => {
+		const tab = $w(id);
+		if (tab && typeof tab.onClick === 'function') {
+			tab.onClick(() => {
+				selectMonth(month);
+			});
+		}
+	});
+}
+
+function selectMonth(month) {
+	currentMonth = month;
+	updateActiveMonthTab(month);
+	displayCalendar();
+}
+
+function updateActiveMonthTab(activeMonth) {
+	// Update tab styling - you can customize this
+	const monthTabs = [
+		{ month: 4, id: '#tabMay' },
+		{ month: 5, id: '#tabJune' },
+		{ month: 6, id: '#tabJuly' },
+		{ month: 7, id: '#tabAugust' },
+		{ month: 8, id: '#tabSeptember' },
+		{ month: 9, id: '#tabOctober' }
+	];
+	
+	monthTabs.forEach(({ month, id }) => {
+		const tab = $w(id);
+		if (tab) {
+			// Ensure all tabs are visible
+			tab.show();
+			// You can add custom styling here for active/inactive states
+			// For example: tab.style.borderBottom = (month === activeMonth) ? '2px solid blue' : 'none';
+		}
+	});
 }
 
 async function loadMarketDates() {
@@ -245,8 +305,17 @@ function displayCalendar() {
 		return;
 	}
 	
+	// Filter coverage data by selected month
+	let filteredData = coverageData;
+	if (currentMonth !== null) {
+		filteredData = coverageData.filter(coverage => {
+			const date = new Date(coverage.date);
+			return date.getMonth() === currentMonth;
+		});
+	}
+	
 	// Prepare data for repeater
-	const repeaterData = coverageData.map(coverage => ({
+	const repeaterData = filteredData.map(coverage => ({
 		_id: coverage.dateId,
 		dateTitle: coverage.title,
 		dateValue: coverage.date,
@@ -263,6 +332,8 @@ function displayCalendar() {
 	repeater.onItemReady(($item, itemData) => {
 		setupCalendarItem($item, itemData);
 	});
+	
+	console.log(`Displaying ${repeaterData.length} dates for selected month`);
 }
 
 function getOverallStatus(coverage) {
