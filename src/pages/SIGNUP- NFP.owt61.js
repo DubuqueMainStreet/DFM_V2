@@ -42,19 +42,16 @@ async function populateDateRepeater() {
 			
 			// Non-profits: only 1 per week, so 0 = available, 1+ = full
 			let status = 'available';
-			let statusEmoji = '✓';
 			let borderColor = '#4CAF50'; // Green
 			
 			if (nonProfitCount >= 1) {
 				status = 'full';
-				statusEmoji = '✕';
 				borderColor = '#F44336'; // Red
 			}
 			
 			return {
 				_id: item._id,
 				label: `${item.monthName} ${item.day}${daySuffix}`,
-				emoji: statusEmoji,
 				status: status,
 				borderColor: borderColor,
 				isSelected: false
@@ -66,56 +63,89 @@ async function populateDateRepeater() {
 		
 		// Set up repeater
 		$w('#dateRepeater').onItemReady(($item, itemData, index) => {
-			// Set label text
-			$item('#itemLabel').text = itemData.label;
-			
-			// Set emoji
-			$item('#itemEmoji').text = itemData.emoji;
-			
-			// Apply border color based on status
-			$item('#itemContainer').style.borderColor = itemData.borderColor;
-			$item('#itemContainer').style.borderWidth = '3px';
-			$item('#itemContainer').style.borderStyle = 'solid';
-			
-			// Apply opacity for full dates
-			if (itemData.status === 'full') {
-				$item('#itemContainer').style.opacity = 0.6;
+			try {
+				// Set label text
+				$item('#itemLabel').text = itemData.label;
+				
+				// Get container element
+				const container = $item('#itemContainer');
+				
+				if (!container) {
+					console.error('Container element not found for item:', itemData.label);
+					return;
+				}
+				
+				// Style the container border based on availability status
+				if (container.style) {
+					try {
+						// Ensure borderColor is in correct format (#RRGGBB)
+						const borderColor = itemData.borderColor.startsWith('#') 
+							? itemData.borderColor 
+							: `#${itemData.borderColor}`;
+						
+						// Set border color
+						container.style.borderColor = borderColor;
+						container.style.borderWidth = '3px';
+						container.style.borderStyle = 'solid';
+						
+						// Apply opacity for full dates
+						if (itemData.status === 'full') {
+							container.style.opacity = '0.6';
+						} else {
+							container.style.opacity = '1';
+						}
+						
+						console.log(`✅ Applied border color ${borderColor} (${itemData.status}) to ${itemData.label}`);
+					} catch (e) {
+						console.warn('Failed to set container border:', e);
+					}
+				}
+				
+				// Set initial checkbox state
+				$item('#itemCheckbox').checked = false;
+				
+				// Handle checkbox changes
+				$item('#itemCheckbox').onChange((event) => {
+					const isChecked = event.target.checked;
+					if (isChecked) {
+						if (!selectedDateIds.includes(itemData._id)) {
+							selectedDateIds.push(itemData._id);
+						}
+						container.style.backgroundColor = '#E3F2FD';
+					} else {
+						selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
+						try {
+							container.style.backgroundColor = '';
+						} catch (e) {
+							// Ignore if can't clear background
+						}
+					}
+					console.log('Selected dates:', selectedDateIds);
+				});
+				
+				// Also allow clicking the container to toggle
+				$item('#itemContainer').onClick(() => {
+					const checkbox = $item('#itemCheckbox');
+					checkbox.checked = !checkbox.checked;
+					const isChecked = checkbox.checked;
+					if (isChecked) {
+						if (!selectedDateIds.includes(itemData._id)) {
+							selectedDateIds.push(itemData._id);
+						}
+						container.style.backgroundColor = '#E3F2FD';
+					} else {
+						selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
+						try {
+							container.style.backgroundColor = '';
+						} catch (e) {
+							// Ignore if can't clear background
+						}
+					}
+					console.log('Selected dates:', selectedDateIds);
+				});
+			} catch (error) {
+				console.error('Error setting up repeater item:', error);
 			}
-			
-			// Set initial checkbox state
-			$item('#itemCheckbox').checked = false;
-			
-			// Handle checkbox changes
-			$item('#itemCheckbox').onChange((event) => {
-				const isChecked = event.target.checked;
-				if (isChecked) {
-					if (!selectedDateIds.includes(itemData._id)) {
-						selectedDateIds.push(itemData._id);
-					}
-					$item('#itemContainer').style.backgroundColor = '#E3F2FD';
-				} else {
-					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-					$item('#itemContainer').style.backgroundColor = 'transparent';
-				}
-				console.log('Selected dates:', selectedDateIds);
-			});
-			
-			// Also allow clicking the container to toggle
-			$item('#itemContainer').onClick(() => {
-				const checkbox = $item('#itemCheckbox');
-				checkbox.checked = !checkbox.checked;
-				const isChecked = checkbox.checked;
-				if (isChecked) {
-					if (!selectedDateIds.includes(itemData._id)) {
-						selectedDateIds.push(itemData._id);
-					}
-					$item('#itemContainer').style.backgroundColor = '#E3F2FD';
-				} else {
-					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-					$item('#itemContainer').style.backgroundColor = 'transparent';
-				}
-				console.log('Selected dates:', selectedDateIds);
-			});
 		});
 		
 		// Populate repeater with data
@@ -226,6 +256,10 @@ function resetForm() {
 	// Reset repeater checkboxes and styling
 	$w('#dateRepeater').forEachItem(($item, itemData, index) => {
 		$item('#itemCheckbox').checked = false;
-		$item('#itemContainer').style.backgroundColor = 'transparent';
+		try {
+			$item('#itemContainer').style.backgroundColor = '';
+		} catch (e) {
+			// Ignore if can't clear background
+		}
 	});
 }
