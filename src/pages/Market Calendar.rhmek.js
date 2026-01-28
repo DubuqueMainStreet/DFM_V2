@@ -433,72 +433,90 @@ function setupCalendarItem($item, itemData) {
 }
 
 function populateDetails(container, itemData) {
-	// Clear existing content
-	if (container.html) {
-		container.html = '';
-	}
-	
 	const assignments = itemData.assignments;
-	let html = '<div style="padding: 20px;">';
+	
+	// Build formatted text content (works with Text elements in repeaters)
+	let textContent = '';
 	
 	// Musicians section
-	html += '<h3 style="margin-top: 0;">🎵 Musicians</h3>';
+	textContent += '🎵 MUSICIANS\n';
+	textContent += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+	
 	if (assignments.musicians.approved.length > 0) {
-		html += '<h4>Approved:</h4><ul>';
+		textContent += 'APPROVED:\n';
 		assignments.musicians.approved.forEach(m => {
 			const location = m.location || 'Unassigned';
-			html += `<li><strong>${m.name}</strong> - ${location}${m.genre ? ` (${m.genre})` : ''}</li>`;
+			textContent += `  • ${m.name} - ${location}`;
+			if (m.genre) textContent += ` (${m.genre})`;
+			textContent += '\n';
 		});
-		html += '</ul>';
+		textContent += '\n';
 	}
+	
 	if (assignments.musicians.pending.length > 0) {
-		html += '<h4>Pending:</h4><ul>';
+		textContent += 'PENDING:\n';
 		assignments.musicians.pending.forEach(m => {
-			html += `<li><strong>${m.name}</strong>${m.genre ? ` (${m.genre})` : ''}</li>`;
+			textContent += `  • ${m.name}`;
+			if (m.genre) textContent += ` (${m.genre})`;
+			textContent += '\n';
 		});
-		html += '</ul>';
+		textContent += '\n';
 	}
+	
 	if (assignments.musicians.approved.length === 0 && assignments.musicians.pending.length === 0) {
-		html += '<p>No musicians assigned</p>';
+		textContent += '  No musicians assigned\n\n';
 	}
 	
 	// Non-profit section
-	html += '<h3>🏢 Non-Profit</h3>';
+	textContent += '🏢 NON-PROFIT\n';
+	textContent += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+	
 	if (assignments.nonProfits.approved.length > 0) {
-		html += '<h4>Approved:</h4><ul>';
+		textContent += 'APPROVED:\n';
 		assignments.nonProfits.approved.forEach(np => {
-			html += `<li><strong>${np.name}</strong>${np.nonProfitType ? ` (${np.nonProfitType})` : ''}</li>`;
+			textContent += `  • ${np.name}`;
+			if (np.nonProfitType) textContent += ` (${np.nonProfitType})`;
+			textContent += '\n';
 		});
-		html += '</ul>';
+		textContent += '\n';
 	}
+	
 	if (assignments.nonProfits.pending.length > 0) {
-		html += '<h4>Pending:</h4><ul>';
+		textContent += 'PENDING:\n';
 		assignments.nonProfits.pending.forEach(np => {
-			html += `<li><strong>${np.name}</strong>${np.nonProfitType ? ` (${np.nonProfitType})` : ''}</li>`;
+			textContent += `  • ${np.name}`;
+			if (np.nonProfitType) textContent += ` (${np.nonProfitType})`;
+			textContent += '\n';
 		});
-		html += '</ul>';
+		textContent += '\n';
 	}
+	
 	if (assignments.nonProfits.approved.length === 0 && assignments.nonProfits.pending.length === 0) {
-		html += '<p>No non-profit assigned</p>';
+		textContent += '  No non-profit assigned\n\n';
 	}
 	
 	// Volunteers section
-	html += '<h3>👥 Volunteers</h3>';
+	textContent += '👥 VOLUNTEERS\n';
+	textContent += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+	
 	if (assignments.volunteers.approved.length > 0) {
-		html += '<h4>Approved:</h4><ul>';
+		textContent += 'APPROVED:\n';
 		assignments.volunteers.approved.forEach(v => {
-			const shift = v.shift ? ` (${v.shift})` : '';
-			html += `<li><strong>${v.name}</strong> - ${v.role}${shift}</li>`;
+			textContent += `  • ${v.name} - ${v.role}`;
+			if (v.shift) textContent += ` (${v.shift})`;
+			textContent += '\n';
 		});
-		html += '</ul>';
+		textContent += '\n';
 	}
+	
 	if (assignments.volunteers.pending.length > 0) {
-		html += '<h4>Pending:</h4><ul>';
+		textContent += 'PENDING:\n';
 		assignments.volunteers.pending.forEach(v => {
-			const shift = v.shift ? ` (${v.shift})` : '';
-			html += `<li><strong>${v.name}</strong> - ${v.role}${shift}</li>`;
+			textContent += `  • ${v.name} - ${v.role}`;
+			if (v.shift) textContent += ` (${v.shift})`;
+			textContent += '\n';
 		});
-		html += '</ul>';
+		textContent += '\n';
 	}
 	
 	// Volunteer role breakdown
@@ -516,40 +534,38 @@ function populateDetails(container, itemData) {
 		'Hospitality Support': 2
 	};
 	
-	html += '<h4>Coverage by Role:</h4><ul>';
+	textContent += 'COVERAGE BY ROLE:\n';
 	Object.keys(requirements).forEach(role => {
 		const required = requirements[role];
 		const current = roleCounts[role] || 0;
 		const status = current >= required ? '✅' : current > 0 ? '⚠️' : '❌';
-		html += `<li>${status} ${role}: ${current}/${required}</li>`;
+		textContent += `  ${status} ${role}: ${current}/${required}\n`;
 	});
-	html += '</ul>';
 	
 	if (assignments.volunteers.approved.length === 0 && assignments.volunteers.pending.length === 0) {
-		html += '<p>No volunteers assigned</p>';
+		textContent += '\n  No volunteers assigned\n';
 	}
 	
-	html += '</div>';
-	
-	// Try different methods to set HTML content
-	if (container.html !== undefined) {
-		// HTML Component - has .html property
-		container.html = html;
-	} else if (container.text !== undefined) {
-		// Text element - strip HTML tags for plain text fallback
-		container.text = html.replace(/<[^>]*>/g, '');
+	// Set content - try multiple methods for compatibility
+	if (container.text !== undefined) {
+		// Text element (works in repeaters) - preferred method
+		container.text = textContent;
+	} else if (container.html !== undefined) {
+		// HTML Component - convert text to HTML
+		const htmlContent = textContent
+			.replace(/\n/g, '<br>')
+			.replace(/━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━/g, '<hr>')
+			.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+			.replace(/^([A-Z\s]+)$/gm, '<strong>$1</strong>');
+		container.html = `<div style="padding: 20px; font-family: monospace; white-space: pre-wrap;">${htmlContent}</div>`;
 	} else if (container.src !== undefined) {
 		// Iframe/Embed Code - create data URI
-		const dataUri = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+		const htmlContent = `<div style="padding: 20px; font-family: monospace; white-space: pre-wrap;">${textContent.replace(/\n/g, '<br>')}</div>`;
+		const dataUri = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`;
 		container.src = dataUri;
 	} else {
-		// Last resort: try innerHTML if available
-		console.warn('detailsContent element type not recognized. Trying innerHTML...');
-		if (container.innerHTML !== undefined) {
-			container.innerHTML = html;
-		} else {
-			console.error('Could not set HTML content. Element type:', container);
-		}
+		console.warn('detailsContent element type not recognized. Element:', container);
+		console.warn('Available properties:', Object.keys(container));
 	}
 }
 
