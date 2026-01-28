@@ -431,21 +431,34 @@ function setupCalendarItem($item, itemData) {
 				try {
 					if (!isExpanded) {
 						// Expand: populate content first, then show
+						console.log('Expanding details, populating content...');
 						populateDetails(detailsContent, itemData);
 						
-						// Try multiple methods to expand/show
+						// Ensure content element is visible
+						if (typeof detailsContent.show === 'function') {
+							detailsContent.show();
+						}
+						
+						// Try multiple methods to expand/show container
 						if (typeof detailsContainer.expand === 'function') {
 							detailsContainer.expand();
+							console.log('Container expanded via expand()');
 						} else if (typeof detailsContainer.show === 'function') {
 							detailsContainer.show();
+							console.log('Container shown via show()');
 						} else if (detailsContainer.style) {
 							detailsContainer.style.display = 'block';
+							console.log('Container shown via style.display');
 						}
 						
 						isExpanded = true;
-						toggleButton.text = 'Hide Details';
+						if (typeof toggleButton.text !== 'undefined') {
+							toggleButton.text = 'Hide Details';
+						}
 					} else {
 						// Collapse: hide container
+						console.log('Collapsing details...');
+						
 						if (typeof detailsContainer.collapse === 'function') {
 							detailsContainer.collapse();
 						} else if (typeof detailsContainer.hide === 'function') {
@@ -455,10 +468,13 @@ function setupCalendarItem($item, itemData) {
 						}
 						
 						isExpanded = false;
-						toggleButton.text = 'Show Details';
+						if (typeof toggleButton.text !== 'undefined') {
+							toggleButton.text = 'Show Details';
+						}
 					}
 				} catch (error) {
 					console.error('Error toggling details:', error);
+					console.error('Error details:', error.message, error.stack);
 				}
 			});
 		} else {
@@ -593,9 +609,17 @@ function populateDetails(container, itemData) {
 	}
 	
 	// Set content - try multiple methods for compatibility
+	console.log('Populating details content, length:', textContent.length);
+	
 	if (container.text !== undefined) {
 		// Text element (works in repeaters) - preferred method
 		container.text = textContent;
+		console.log('Content set via .text property');
+		
+		// Ensure element is visible
+		if (typeof container.show === 'function') {
+			container.show();
+		}
 	} else if (container.html !== undefined) {
 		// HTML Component - convert text to HTML
 		const htmlContent = textContent
@@ -604,14 +628,27 @@ function populateDetails(container, itemData) {
 			.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
 			.replace(/^([A-Z\s]+)$/gm, '<strong>$1</strong>');
 		container.html = `<div style="padding: 20px; font-family: monospace; white-space: pre-wrap;">${htmlContent}</div>`;
+		console.log('Content set via .html property');
+		
+		// Ensure element is visible
+		if (typeof container.show === 'function') {
+			container.show();
+		}
 	} else if (container.src !== undefined) {
 		// Iframe/Embed Code - create data URI
 		const htmlContent = `<div style="padding: 20px; font-family: monospace; white-space: pre-wrap;">${textContent.replace(/\n/g, '<br>')}</div>`;
 		const dataUri = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`;
 		container.src = dataUri;
+		console.log('Content set via .src property (iframe)');
 	} else {
 		console.warn('detailsContent element type not recognized. Element:', container);
 		console.warn('Available properties:', Object.keys(container));
+		console.warn('Element type:', typeof container);
+	}
+	
+	// Verify content was set
+	if (container.text) {
+		console.log('Content verified, first 50 chars:', container.text.substring(0, 50));
 	}
 }
 
