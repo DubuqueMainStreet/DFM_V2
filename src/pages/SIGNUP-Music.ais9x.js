@@ -31,33 +31,16 @@ async function populateDateRepeater() {
 		const dateItems = results.items
 			.map(item => {
 				const dateObj = new Date(item.date);
-				// Verify date is a Saturday (for debugging)
-				const dayOfWeek = dateObj.getDay();
-				const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-				
-				if (dayOfWeek !== 6) {
-					console.warn(`⚠️ WARNING: Date ${item.date} parsed as ${dayName} (day ${dayOfWeek}), not Saturday!`);
-				}
-				
 				return {
 					_id: item._id,
 					date: dateObj,
 					month: dateObj.getMonth(),
 					year: dateObj.getFullYear(),
 					day: dateObj.getDate(),
-					monthName: dateObj.toLocaleDateString('en-US', { month: 'long' }),
-					dayOfWeek: dayOfWeek,
-					dayName: dayName
+					monthName: dateObj.toLocaleDateString('en-US', { month: 'long' })
 				};
 			})
 			.sort((a, b) => a.date - b.date);
-		
-		// Log first few dates for verification
-		console.log('First 3 dates parsed:', dateItems.slice(0, 3).map(d => ({
-			date: d.date.toDateString(),
-			day: d.dayName,
-			dayOfWeek: d.dayOfWeek
-		})));
 		
 		// Get selected location (if any)
 		const selectedLocation = $w('#inputLocation').value;

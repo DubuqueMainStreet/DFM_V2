@@ -1,19 +1,10 @@
-import { fixSaturdayDates } from 'backend/fixSaturdayDates.jsw';
+// API Reference: https://www.wix.com/velo/reference/api-overview/introduction
+// "Hello, World!" Example: https://learn-code.wix.com/en/article/hello-world
 
 $w.onReady(function () {
-    // TEMPORARY: Run Saturday date fix script
-    // Remove this after dates are fixed
-    console.log('Running Saturday date fix script...');
-    fixSaturdayDates()
-        .then(result => {
-            console.log('✅ Date fix completed:', result);
-            console.log(`Successfully fixed dates!`);
-            console.log(`- Updated/Created: ${result.updated} records`);
-            console.log(`- Deleted: ${result.deleted} non-Saturday records`);
-            console.log(`- Total Saturdays: ${result.totalSaturdays}`);
-        })
-        .catch(error => {
-            console.error('❌ Date fix failed:', error);
-            console.error('Error details:', error.message);
-        });
+    // Write your JavaScript here
+
+    // To select an element by ID use: $w('#elementID')
+
+    // Click 'Preview' to run your code
 });
