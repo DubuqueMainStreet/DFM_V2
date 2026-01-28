@@ -1,0 +1,263 @@
+# Market Calendar - UI Elements Setup Guide
+
+## 📋 Complete List of Required UI Elements
+
+### **Page-Level Elements** (Outside Repeater)
+
+1. **`#loadingIndicator`**
+   - **Type:** Any element (Text, Image, Spinner)
+   - **Purpose:** Shows loading state while data loads
+   - **Initial State:** Hidden
+   - **Location:** Top of page, before repeater
+
+2. **`#msgError`**
+   - **Type:** Text element
+   - **Purpose:** Displays error messages
+   - **Initial State:** Hidden
+   - **Location:** Top of page, below loading indicator
+
+3. **`#calendarRepeater`**
+   - **Type:** Repeater
+   - **Purpose:** Displays all 27 market dates
+   - **Location:** Main content area
+   - **Note:** This is the main repeater that will show all dates
+
+---
+
+### **Repeater Item Elements** (Inside Each Repeater Item)
+
+These elements go **inside** the repeater item design. Each date will have its own set of these elements.
+
+#### **Main Display Elements:**
+
+4. **`#itemDate`**
+   - **Type:** Text element
+   - **Purpose:** Shows the date (e.g., "May 2nd, 2026")
+   - **Example Text:** "📅 May 2nd, 2026"
+   - **Styling:** Can be larger/bold for emphasis
+
+5. **`#itemStatus`**
+   - **Type:** Text element
+   - **Purpose:** Shows overall status indicator
+   - **Possible Values:**
+     - "✅ Complete" (green)
+     - "⚠️ Needs Attention" (yellow)
+     - "❌ Critical Gaps" (red)
+   - **Styling:** Right-aligned, colored text
+   - **Location:** Same row as `#itemDate`, right-aligned
+
+6. **`#itemMusicians`**
+   - **Type:** Text element
+   - **Purpose:** Shows musician coverage
+   - **Example Text:** "🎵 Musicians: 3/3 approved (2 pending)"
+   - **Location:** Below date/status row
+
+7. **`#itemNonProfit`**
+   - **Type:** Text element
+   - **Purpose:** Shows non-profit coverage
+   - **Example Text:** "🏢 Non-Profit: 1/1 approved"
+   - **Location:** Below musicians
+
+8. **`#itemVolunteers`**
+   - **Type:** Text element
+   - **Purpose:** Shows volunteer coverage
+   - **Example Text:** "👥 Volunteers: 11/11 covered (1 pending)"
+   - **Location:** Below non-profit
+
+#### **Expandable Details Section:**
+
+9. **`#btnToggleDetails`**
+   - **Type:** Button
+   - **Purpose:** Toggles the expandable details section
+   - **Initial Text:** "Show Details"
+   - **Changes To:** "Hide Details" when expanded
+   - **Location:** Below coverage text elements
+
+10. **`#detailsContainer`**
+    - **Type:** Collapsible Container (or Box with collapse/expand)
+    - **Purpose:** Container for the expandable details
+    - **Initial State:** Collapsed/Hidden
+    - **Location:** Below toggle button
+    - **Important:** Must support `.collapse()` and `.expand()` methods
+
+11. **`#detailsContent`**
+    - **Type:** HTML Component (preferred) OR Text element
+    - **Purpose:** Displays detailed assignment information
+    - **Location:** Inside `#detailsContainer`
+    - **Note:** HTML Component is preferred for better formatting
+
+---
+
+## 🎨 Visual Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Market Calendar - 2026 Season                             │
+│                                                              │
+│  [#loadingIndicator] (hidden initially)                     │
+│  [#msgError] (hidden initially)                             │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ [#calendarRepeater]                                    │ │
+│  │                                                         │ │
+│  │  ┌─ Repeater Item 1 ────────────────────────────────┐ │ │
+│  │  │ [#itemDate]              [#itemStatus]           │ │ │
+│  │  │ "May 2nd, 2026"          "✅ Complete"            │ │ │
+│  │  │                                                      │ │ │
+│  │  │ [#itemMusicians]                                   │ │ │
+│  │  │ "🎵 Musicians: 3/3 approved"                      │ │ │
+│  │  │                                                      │ │ │
+│  │  │ [#itemNonProfit]                                   │ │ │
+│  │  │ "🏢 Non-Profit: 1/1 approved"                     │ │ │
+│  │  │                                                      │ │ │
+│  │  │ [#itemVolunteers]                                  │ │ │
+│  │  │ "👥 Volunteers: 11/11 covered"                   │ │ │
+│  │  │                                                      │ │ │
+│  │  │ [#btnToggleDetails]                                │ │ │
+│  │  │ "Show Details"                                      │ │ │
+│  │  │                                                      │ │ │
+│  │  │ [#detailsContainer] (collapsed)                    │ │ │
+│  │  │   └─ [#detailsContent]                             │ │ │
+│  │  │       (HTML content with assignments)               │ │ │
+│  │  └──────────────────────────────────────────────────┘ │ │
+│  │                                                         │ │
+│  │  ┌─ Repeater Item 2 ────────────────────────────────┐ │ │
+│  │  │ (Same structure for next date)                    │ │ │
+│  │  └──────────────────────────────────────────────────┘ │ │
+│  │                                                         │ │
+│  │  ... (all 27 dates)                                    │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔧 Step-by-Step Setup Instructions
+
+### **Step 1: Add Page-Level Elements**
+
+1. **Add Loading Indicator:**
+   - Add any element (text, image, or spinner)
+   - Set ID to: `loadingIndicator`
+   - Initially hide it (or it will auto-hide when data loads)
+
+2. **Add Error Message:**
+   - Add a text element
+   - Set ID to: `msgError`
+   - Initially hide it
+
+### **Step 2: Add Main Repeater**
+
+1. **Add Repeater:**
+   - Add a Repeater element
+   - Set ID to: `calendarRepeater`
+   - This will display all 27 dates
+
+### **Step 3: Design Repeater Item**
+
+**Inside the repeater item design, add these elements:**
+
+1. **Date and Status Row:**
+   - Add a text element → Set ID to: `itemDate`
+   - Add another text element → Set ID to: `itemStatus`
+   - Position them on the same row (date left, status right)
+
+2. **Coverage Text Elements:**
+   - Add text element → Set ID to: `itemMusicians`
+   - Add text element → Set ID to: `itemNonProfit`
+   - Add text element → Set ID to: `itemVolunteers`
+   - Stack them vertically below the date/status row
+
+3. **Toggle Button:**
+   - Add a button → Set ID to: `btnToggleDetails`
+   - Set initial text to: "Show Details"
+
+4. **Expandable Details:**
+   - Add a Collapsible Container (or Box) → Set ID to: `detailsContainer`
+   - **Important:** Make sure it's a collapsible container that supports `.collapse()` and `.expand()`
+   - Initially collapse it
+   - Inside the container, add:
+     - HTML Component (preferred) OR Text element → Set ID to: `detailsContent`
+
+---
+
+## ✅ ID Checklist
+
+Use this checklist to verify all IDs are set correctly:
+
+### **Page Level:**
+- [ ] `#loadingIndicator` - Loading indicator element
+- [ ] `#msgError` - Error message text element
+- [ ] `#calendarRepeater` - Main repeater
+
+### **Repeater Item Level:**
+- [ ] `#itemDate` - Date text element
+- [ ] `#itemStatus` - Status text element
+- [ ] `#itemMusicians` - Musicians coverage text
+- [ ] `#itemNonProfit` - Non-profit coverage text
+- [ ] `#itemVolunteers` - Volunteers coverage text
+- [ ] `#btnToggleDetails` - Toggle details button
+- [ ] `#detailsContainer` - Collapsible container
+- [ ] `#detailsContent` - HTML/text component inside container
+
+---
+
+## 🎨 Styling Recommendations
+
+### **Status Colors:**
+The code will automatically set colors, but you can also style in Wix:
+- **Complete:** Green (#28a745)
+- **Needs Attention:** Yellow (#ffc107)
+- **Critical Gaps:** Red (#dc3545)
+
+### **Layout Tips:**
+- Use cards/boxes for each repeater item for better visual separation
+- Add padding/spacing between elements
+- Make the date text larger/bold for emphasis
+- Right-align the status indicator
+- Style the toggle button to be prominent but not overwhelming
+
+---
+
+## 🐛 Common Issues & Solutions
+
+### **Issue: Details not expanding**
+- **Solution:** Make sure `#detailsContainer` is a Collapsible Container, not a regular Box
+- Verify the container supports `.collapse()` and `.expand()` methods
+
+### **Issue: HTML not rendering in details**
+- **Solution:** Use an HTML Component for `#detailsContent`, not a regular Text element
+- If HTML Component isn't available, the code will fall back to plain text
+
+### **Issue: Status colors not showing**
+- **Solution:** The code sets colors via JavaScript. If colors don't appear, check that the element supports `.style.color`
+- You can also add CSS classes in Wix for styling
+
+### **Issue: Repeater not showing data**
+- **Solution:** 
+  - Verify `#calendarRepeater` ID matches exactly
+  - Check browser console for errors
+  - Ensure `MarketDates2026` collection has data
+
+---
+
+## 📝 Quick Reference
+
+**Minimum Required Elements:**
+1. `#calendarRepeater` - Repeater (REQUIRED)
+2. `#itemDate` - Text in repeater item (REQUIRED)
+3. `#itemStatus` - Text in repeater item (REQUIRED)
+4. `#itemMusicians` - Text in repeater item (REQUIRED)
+5. `#itemNonProfit` - Text in repeater item (REQUIRED)
+6. `#itemVolunteers` - Text in repeater item (REQUIRED)
+7. `#btnToggleDetails` - Button in repeater item (REQUIRED)
+8. `#detailsContainer` - Collapsible container in repeater item (REQUIRED)
+9. `#detailsContent` - HTML/text component inside container (REQUIRED)
+
+**Optional but Recommended:**
+- `#loadingIndicator` - Loading indicator
+- `#msgError` - Error messages
+
+---
+
+**Once all IDs are set, copy the code from `src/pages/Market Calendar.rhmek.js` into your page's code section!**
