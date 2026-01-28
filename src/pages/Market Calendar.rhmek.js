@@ -456,18 +456,8 @@ function setupCalendarItem($item, itemData) {
 						}
 					}
 					
-					// Reset container height constraints BEFORE showing
-					if (detailsContainer.style) {
-						try {
-							detailsContainer.style.height = 'auto';
-							detailsContainer.style.overflow = 'visible';
-							detailsContainer.style.display = 'block';
-						} catch (e) {
-							console.warn('Could not reset container height:', e);
-						}
-					}
-					
 					// Show container - try expand() first if available, then show()
+					// Don't manipulate height - let Wix handle it naturally
 					if (typeof detailsContainer.expand === 'function') {
 						detailsContainer.expand();
 					} else if (typeof detailsContainer.show === 'function') {
@@ -524,33 +514,16 @@ function setupCalendarItem($item, itemData) {
 					// HIDE details
 					console.log('Hiding details...');
 					
-					// Hide content first
-					if (typeof detailsContent.hide === 'function') {
-						detailsContent.hide();
-					}
-					
-					// Hide container - try multiple methods to ensure it collapses properly
+					// Hide container first (this should naturally collapse)
 					if (typeof detailsContainer.collapse === 'function') {
 						detailsContainer.collapse();
 					} else if (typeof detailsContainer.hide === 'function') {
 						detailsContainer.hide();
 					}
 					
-					// Force container to resize by setting height to auto/0
-					if (detailsContainer.style) {
-						try {
-							detailsContainer.style.height = '0';
-							detailsContainer.style.overflow = 'hidden';
-							// Reset after a moment to allow natural sizing
-							setTimeout(() => {
-								if (detailsContainer.style) {
-									detailsContainer.style.height = 'auto';
-									detailsContainer.style.overflow = '';
-								}
-							}, 100);
-						} catch (e) {
-							console.warn('Could not set container height:', e);
-						}
+					// Hide content element
+					if (typeof detailsContent.hide === 'function') {
+						detailsContent.hide();
 					}
 					
 					// Update button text
