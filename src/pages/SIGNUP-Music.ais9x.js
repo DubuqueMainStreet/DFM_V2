@@ -67,16 +67,16 @@ async function populateDateTags() {
 				
 				// Determine status for musicians (0-1 = available, 2 = limited, 3+ = full)
 				let status = 'available';
-				let statusLabel = '';
+				let statusEmoji = '✓';
 				if (musicianCount >= 3) {
 					status = 'full';
-					statusLabel = ' (Full)';
+					statusEmoji = '✕';
 				} else if (musicianCount === 2) {
 					status = 'limited';
-					statusLabel = ' (Limited)';
+					statusEmoji = '⚠';
 				}
 				
-				const label = `${item.monthName} ${item.day}${daySuffix}${statusLabel}`;
+				const label = `${statusEmoji} ${item.monthName} ${item.day}${daySuffix}`;
 				
 				options.push({
 					value: item._id,
@@ -91,8 +91,10 @@ async function populateDateTags() {
 		
 		$w('#dateSelectionTags').options = options;
 		
-		// Apply custom styling based on availability
-		applyAvailabilityStyling(options);
+		// Apply custom styling based on availability after a short delay
+		setTimeout(() => {
+			applyAvailabilityStyling(options);
+		}, 200);
 	} catch (error) {
 		console.error('Failed to load dates:', error);
 		$w('#msgError').text = 'Failed to load available dates. Please refresh.';
@@ -101,17 +103,57 @@ async function populateDateTags() {
 }
 
 function applyAvailabilityStyling(options) {
-	// Wait for DOM to render, then apply classes
+	// Apply styling by finding elements with emoji content and adding inline styles
 	setTimeout(() => {
 		try {
-			const tagElements = $w('#dateSelectionTags');
-			// Note: Wix doesn't provide direct access to individual tag elements
-			// The CSS classes in global.css will handle the visual styling
-			// This function is a placeholder for future enhancements
+			// Use document.querySelector to find tag elements and apply styles directly
+			if (typeof document !== 'undefined') {
+				// Find all clickable elements in the tag component
+				const tagContainer = document.querySelector('[data-testid*="dateSelectionTags"], #dateSelectionTags, [id*="dateSelectionTags"]');
+				if (tagContainer) {
+					const allButtons = tagContainer.querySelectorAll('button, [role="button"], .tag-item, [class*="tag"]');
+					
+					allButtons.forEach(button => {
+						const text = button.textContent || button.innerText || button.getAttribute('aria-label') || '';
+						
+						if (text.includes('✓')) {
+							button.style.borderLeft = '4px solid #4CAF50';
+							button.style.borderLeftWidth = '4px';
+						} else if (text.includes('⚠')) {
+							button.style.borderLeft = '4px solid #FF9800';
+							button.style.borderLeftWidth = '4px';
+						} else if (text.includes('✕')) {
+							button.style.borderLeft = '4px solid #F44336';
+							button.style.borderLeftWidth = '4px';
+							button.style.opacity = '0.7';
+						}
+					});
+				}
+				
+				// Also try a broader search
+				const allPossibleTags = document.querySelectorAll('button, [role="button"]');
+				allPossibleTags.forEach(el => {
+					const text = el.textContent || el.innerText || '';
+					const parent = el.closest('[id*="dateSelection"], [class*="dateSelection"]');
+					if (parent && (text.includes('✓') || text.includes('⚠') || text.includes('✕'))) {
+						if (text.includes('✓')) {
+							el.style.borderLeft = '4px solid #4CAF50';
+							el.style.borderLeftWidth = '4px';
+						} else if (text.includes('⚠')) {
+							el.style.borderLeft = '4px solid #FF9800';
+							el.style.borderLeftWidth = '4px';
+						} else if (text.includes('✕')) {
+							el.style.borderLeft = '4px solid #F44336';
+							el.style.borderLeftWidth = '4px';
+							el.style.opacity = '0.7';
+						}
+					}
+				});
+			}
 		} catch (error) {
 			console.error('Error applying availability styling:', error);
 		}
-	}, 100);
+	}, 500);
 }
 
 function populateMusicianTypeDropdown() {

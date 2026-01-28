@@ -64,13 +64,13 @@ async function populateDateTags() {
 				
 				// Non-profits: only 1 per week, so 0 = available, 1+ = full
 				let status = 'available';
-				let statusLabel = '';
+				let statusEmoji = '✓';
 				if (nonProfitCount >= 1) {
 					status = 'full';
-					statusLabel = ' (Full)';
+					statusEmoji = '✕';
 				}
 				
-				const label = `${item.monthName} ${item.day}${daySuffix}${statusLabel}`;
+				const label = `${statusEmoji} ${item.monthName} ${item.day}${daySuffix}`;
 				
 				options.push({
 					value: item._id,
@@ -84,6 +84,11 @@ async function populateDateTags() {
 		});
 		
 		$w('#dateSelectionTags').options = options;
+		
+		// Apply custom styling based on availability after a short delay
+		setTimeout(() => {
+			applyAvailabilityStyling(options);
+		}, 200);
 	} catch (error) {
 		console.error('Failed to load dates:', error);
 		$w('#msgError').text = 'Failed to load available dates. Please refresh.';
@@ -117,6 +122,57 @@ function getDaySuffix(day) {
 		case 3: return 'rd';
 		default: return 'th';
 	}
+}
+
+function applyAvailabilityStyling(options) {
+	// Apply styling by finding elements with emoji content and adding inline styles
+	setTimeout(() => {
+		try {
+			if (typeof document !== 'undefined') {
+				const tagContainer = document.querySelector('[data-testid*="dateSelectionTags"], #dateSelectionTags, [id*="dateSelectionTags"]');
+				if (tagContainer) {
+					const allButtons = tagContainer.querySelectorAll('button, [role="button"], .tag-item, [class*="tag"]');
+					
+					allButtons.forEach(button => {
+						const text = button.textContent || button.innerText || button.getAttribute('aria-label') || '';
+						
+						if (text.includes('✓')) {
+							button.style.borderLeft = '4px solid #4CAF50';
+							button.style.borderLeftWidth = '4px';
+						} else if (text.includes('⚠')) {
+							button.style.borderLeft = '4px solid #FF9800';
+							button.style.borderLeftWidth = '4px';
+						} else if (text.includes('✕')) {
+							button.style.borderLeft = '4px solid #F44336';
+							button.style.borderLeftWidth = '4px';
+							button.style.opacity = '0.7';
+						}
+					});
+				}
+				
+				const allPossibleTags = document.querySelectorAll('button, [role="button"]');
+				allPossibleTags.forEach(el => {
+					const text = el.textContent || el.innerText || '';
+					const parent = el.closest('[id*="dateSelection"], [class*="dateSelection"]');
+					if (parent && (text.includes('✓') || text.includes('⚠') || text.includes('✕'))) {
+						if (text.includes('✓')) {
+							el.style.borderLeft = '4px solid #4CAF50';
+							el.style.borderLeftWidth = '4px';
+						} else if (text.includes('⚠')) {
+							el.style.borderLeft = '4px solid #FF9800';
+							el.style.borderLeftWidth = '4px';
+						} else if (text.includes('✕')) {
+							el.style.borderLeft = '4px solid #F44336';
+							el.style.borderLeftWidth = '4px';
+							el.style.opacity = '0.7';
+						}
+					}
+				});
+			}
+		} catch (error) {
+			console.error('Error applying availability styling:', error);
+		}
+	}, 500);
 }
 
 function setupSubmitHandler() {

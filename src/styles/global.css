@@ -190,49 +190,48 @@
 }
 
 /* Availability Status Indicators */
-/* Available - Green border/accent */
-#dateSelectionTags .availability-available,
-.date-selection-tags .availability-available {
+/* Target tags based on emoji content in their labels using attribute selectors */
+/* Available - Green border/accent (✓ emoji) */
+#dateSelectionTags button[aria-label*="✓"],
+#dateSelectionTags [role="button"][aria-label*="✓"],
+.date-selection-tags button[aria-label*="✓"],
+.date-selection-tags [role="button"][aria-label*="✓"] {
   border-left: 4px solid #4CAF50 !important;
   border-left-width: 4px !important;
 }
 
-/* Limited - Yellow/Orange border/accent */
-#dateSelectionTags .availability-limited,
-.date-selection-tags .availability-limited {
+/* Limited - Yellow/Orange border/accent (⚠ emoji) */
+#dateSelectionTags button[aria-label*="⚠"],
+#dateSelectionTags [role="button"][aria-label*="⚠"],
+.date-selection-tags button[aria-label*="⚠"],
+.date-selection-tags [role="button"][aria-label*="⚠"] {
   border-left: 4px solid #FF9800 !important;
   border-left-width: 4px !important;
 }
 
-/* Full - Red border/accent */
-#dateSelectionTags .availability-full,
-.date-selection-tags .availability-full {
+/* Full - Red border/accent (✕ emoji) */
+#dateSelectionTags button[aria-label*="✕"],
+#dateSelectionTags [role="button"][aria-label*="✕"],
+.date-selection-tags button[aria-label*="✕"],
+.date-selection-tags [role="button"][aria-label*="✕"] {
   border-left: 4px solid #F44336 !important;
   border-left-width: 4px !important;
-  opacity: 0.6;
+  opacity: 0.7 !important;
 }
 
-/* Add visual indicator icons/badges */
-#dateSelectionTags .availability-available::before,
-.date-selection-tags .availability-available::before {
-  content: "✓ ";
-  color: #4CAF50;
-  font-weight: bold;
-  margin-right: 4px;
+/* Also target by text content for broader compatibility */
+#dateSelectionTags button:has-text("✓"),
+#dateSelectionTags [role="button"]:has-text("✓") {
+  border-left: 4px solid #4CAF50 !important;
 }
 
-#dateSelectionTags .availability-limited::before,
-.date-selection-tags .availability-limited::before {
-  content: "⚠ ";
-  color: #FF9800;
-  font-weight: bold;
-  margin-right: 4px;
+#dateSelectionTags button:has-text("⚠"),
+#dateSelectionTags [role="button"]:has-text("⚠") {
+  border-left: 4px solid #FF9800 !important;
 }
 
-#dateSelectionTags .availability-full::before,
-.date-selection-tags .availability-full::before {
-  content: "✕ ";
-  color: #F44336;
-  font-weight: bold;
-  margin-right: 4px;
+#dateSelectionTags button:has-text("✕"),
+#dateSelectionTags [role="button"]:has-text("✕") {
+  border-left: 4px solid #F44336 !important;
+  opacity: 0.7 !important;
 }
