@@ -1,0 +1,128 @@
+import wixData from 'wix-data';
+
+/**
+ * Fix MarketDates2026 to ensure all dates are Saturdays
+ * Season: May 2, 2026 (Saturday) through October 31, 2026 (Saturday)
+ * Finds all Saturdays in that range and updates/creates records
+ */
+export async function fixSaturdayDates() {
+	try {
+		console.log('🔄 Starting Saturday date fix...');
+		
+		// Get all existing records
+		const existingResults = await wixData.query('MarketDates2026')
+			.find();
+		
+		console.log(`Found ${existingResults.items.length} existing records`);
+		
+		// Calculate all Saturdays from May 2, 2026 to October 31, 2026
+		const startDate = new Date('2026-05-02'); // May 2, 2026 (should be Saturday)
+		const endDate = new Date('2026-10-31');   // October 31, 2026 (should be Saturday)
+		
+		// Verify start date is Saturday (0 = Sunday, 6 = Saturday)
+		if (startDate.getDay() !== 6) {
+			console.warn('⚠️ Warning: May 2, 2026 is not a Saturday. Adjusting to next Saturday...');
+			// Find next Saturday
+			const daysUntilSaturday = (6 - startDate.getDay() + 7) % 7;
+			if (daysUntilSaturday === 0) daysUntilSaturday === 7; // If already Saturday, go to next week
+			startDate.setDate(startDate.getDate() + daysUntilSaturday);
+		}
+		
+		// Generate all Saturdays in range
+		const saturdays = [];
+		const currentDate = new Date(startDate);
+		
+		while (currentDate <= endDate) {
+			if (currentDate.getDay() === 6) { // Saturday
+				saturdays.push(new Date(currentDate));
+			}
+			currentDate.setDate(currentDate.getDate() + 1);
+		}
+		
+		console.log(`Calculated ${saturdays.length} Saturdays from ${startDate.toDateString()} to ${endDate.toDateString()}`);
+		console.log('First Saturday:', saturdays[0].toDateString());
+		console.log('Last Saturday:', saturdays[saturdays.length - 1].toDateString());
+		
+		// Create a map of existing records by date string (YYYY-MM-DD)
+		const existingMap = {};
+		existingResults.items.forEach(item => {
+			if (item.date) {
+				const dateStr = new Date(item.date).toISOString().split('T')[0];
+				existingMap[dateStr] = item;
+			}
+		});
+		
+		// Update or create records for each Saturday
+		const updatePromises = saturdays.map(async (saturday, index) => {
+			const dateStr = saturday.toISOString().split('T')[0];
+			const existingRecord = existingMap[dateStr];
+			
+			// Format title
+			const monthName = saturday.toLocaleDateString('en-US', { month: 'long' });
+			const day = saturday.getDate();
+			const year = saturday.getFullYear();
+			const daySuffix = getDaySuffix(day);
+			const title = `${monthName} ${day}${daySuffix}, ${year}`;
+			
+			if (existingRecord) {
+				// Update existing record
+				console.log(`Updating record ${index + 1}: ${title} (${dateStr})`);
+				return wixData.update('MarketDates2026', {
+					_id: existingRecord._id,
+					date: saturday,
+					title: title
+				});
+			} else {
+				// Create new record
+				console.log(`Creating record ${index + 1}: ${title} (${dateStr})`);
+				return wixData.save('MarketDates2026', {
+					date: saturday,
+					title: title
+				});
+			}
+		});
+		
+		await Promise.all(updatePromises);
+		
+		// Delete any records that aren't Saturdays
+		const saturdayDateStrs = saturdays.map(d => d.toISOString().split('T')[0]);
+		const recordsToDelete = existingResults.items.filter(item => {
+			if (!item.date) return true;
+			const dateStr = new Date(item.date).toISOString().split('T')[0];
+			return !saturdayDateStrs.includes(dateStr);
+		});
+		
+		if (recordsToDelete.length > 0) {
+			console.log(`Deleting ${recordsToDelete.length} non-Saturday records...`);
+			const deletePromises = recordsToDelete.map(item => 
+				wixData.remove('MarketDates2026', item._id)
+			);
+			await Promise.all(deletePromises);
+		}
+		
+		console.log(`✅ Successfully fixed all dates to Saturdays!`);
+		console.log(`   - Updated/Created: ${saturdays.length} records`);
+		console.log(`   - Deleted: ${recordsToDelete.length} non-Saturday records`);
+		
+		return {
+			success: true,
+			updated: saturdays.length,
+			deleted: recordsToDelete.length,
+			totalSaturdays: saturdays.length
+		};
+		
+	} catch (error) {
+		console.error('❌ Error fixing Saturday dates:', error);
+		throw error;
+	}
+}
+
+function getDaySuffix(day) {
+	if (day > 3 && day < 21) return 'th';
+	switch (day % 10) {
+		case 1: return 'st';
+		case 2: return 'nd';
+		case 3: return 'rd';
+		default: return 'th';
+	}
+}

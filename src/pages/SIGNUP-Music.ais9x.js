@@ -12,6 +12,11 @@ $w.onReady(function () {
 	populateGenreDropdown();
 	populateDateRepeater();
 	setupSubmitHandler();
+	
+	// Update date availability when location changes
+	$w('#inputLocation').onChange(() => {
+		populateDateRepeater();
+	});
 });
 
 async function populateDateRepeater() {
@@ -37,33 +42,59 @@ async function populateDateRepeater() {
 			})
 			.sort((a, b) => a.date - b.date);
 		
+		// Get selected location (if any)
+		const selectedLocation = $w('#inputLocation').value;
+		
 		// Build repeater data with availability status based on location bookings
 		const repeaterData = dateItems.map(item => {
 			const daySuffix = getDaySuffix(item.day);
 			const dateAvailability = availability[item._id];
 			
-			// Count how many locations are booked (each location limited to 1 musician)
-			let bookedLocations = 0;
-			if (dateAvailability && dateAvailability.musiciansByLocation) {
-				const locations = dateAvailability.musiciansByLocation;
-				// Count locations with at least 1 approved musician
-				if (locations['Location A'] >= 1) bookedLocations++;
-				if (locations['Location B'] >= 1) bookedLocations++;
-				if (locations['Location C'] >= 1) bookedLocations++;
-			}
-			
-			// Determine status: 0-1 locations booked = available, 2 = limited, 3 = full
+			// If a location is selected, check availability for that specific location
 			let status = 'available';
 			let borderColor = '#4CAF50'; // Green
 			
-			if (bookedLocations >= 3) {
-				status = 'full';
-				borderColor = '#F44336'; // Red - all locations booked
-			} else if (bookedLocations === 2) {
-				status = 'limited';
-				borderColor = '#FF9800'; // Orange - only 1 location available
+			if (selectedLocation && dateAvailability && dateAvailability.musiciansByLocation) {
+				// Check if the selected location is already booked
+				const locationBooked = dateAvailability.musiciansByLocation[selectedLocation] >= 1;
+				
+				if (locationBooked) {
+					// Selected location is already taken - show as full/red
+					status = 'full';
+					borderColor = '#F44336'; // Red
+				} else {
+					// Selected location is available - check overall availability
+					const locations = dateAvailability.musiciansByLocation;
+					let bookedLocations = 0;
+					if (locations['Location A'] >= 1) bookedLocations++;
+					if (locations['Location B'] >= 1) bookedLocations++;
+					if (locations['Location C'] >= 1) bookedLocations++;
+					
+					// Determine status based on other locations
+					if (bookedLocations >= 2) {
+						status = 'limited';
+						borderColor = '#FF9800'; // Orange - other locations getting full
+					}
+					// Otherwise available (green)
+				}
+			} else {
+				// No location selected - show overall availability
+				let bookedLocations = 0;
+				if (dateAvailability && dateAvailability.musiciansByLocation) {
+					const locations = dateAvailability.musiciansByLocation;
+					if (locations['Location A'] >= 1) bookedLocations++;
+					if (locations['Location B'] >= 1) bookedLocations++;
+					if (locations['Location C'] >= 1) bookedLocations++;
+				}
+				
+				if (bookedLocations >= 3) {
+					status = 'full';
+					borderColor = '#F44336'; // Red - all locations booked
+				} else if (bookedLocations === 2) {
+					status = 'limited';
+					borderColor = '#FF9800'; // Orange - only 1 location available
+				}
 			}
-			// bookedLocations 0-1 = available (green)
 			
 			return {
 				_id: item._id,
