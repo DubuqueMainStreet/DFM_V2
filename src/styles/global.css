@@ -235,3 +235,31 @@
   border-left: 4px solid #F44336 !important;
   opacity: 0.7 !important;
 }
+
+/* Repeater-based Date Selection Styling */
+/* Availability status classes for repeater items */
+#dateRepeater [id*="itemContainer"].availability-available {
+  border: 3px solid #4CAF50 !important;
+  border-width: 3px !important;
+}
+
+#dateRepeater [id*="itemContainer"].availability-limited {
+  border: 3px solid #FF9800 !important;
+  border-width: 3px !important;
+}
+
+#dateRepeater [id*="itemContainer"].availability-full {
+  border: 3px solid #F44336 !important;
+  border-width: 3px !important;
+  opacity: 0.6 !important;
+}
+
+/* Ensure repeater items have visible borders */
+#dateRepeater [id*="itemContainer"] {
+  border-style: solid !important;
+  border-width: 3px !important;
+  border-radius: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}

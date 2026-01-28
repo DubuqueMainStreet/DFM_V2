@@ -64,16 +64,13 @@ async function populateDateRepeater() {
 			// Determine status based on role-specific limits
 			const limit = roleLimits[selectedRole] || 2;
 			let status = 'available';
-			let statusEmoji = '✓';
 			let borderColor = '#4CAF50'; // Green
 			
 			if (roleCount >= limit) {
 				status = 'full';
-				statusEmoji = '✕';
 				borderColor = '#F44336'; // Red
 			} else if (roleCount >= Math.floor(limit * 0.7)) {
 				status = 'limited';
-				statusEmoji = '⚠';
 				borderColor = '#FF9800'; // Orange
 			}
 			
@@ -83,7 +80,6 @@ async function populateDateRepeater() {
 			return {
 				_id: item._id,
 				label: `${item.monthName} ${item.day}${daySuffix}`,
-				emoji: statusEmoji,
 				status: status,
 				borderColor: borderColor,
 				isSelected: wasSelected
@@ -92,49 +88,78 @@ async function populateDateRepeater() {
 		
 		// Set up repeater
 		$w('#dateRepeater').onItemReady(($item, itemData, index) => {
-			// Set label text
-			$item('#itemLabel').text = itemData.label;
-			
-			// Set emoji
-			$item('#itemEmoji').text = itemData.emoji;
-			
-			// Apply border color based on status
-			$item('#itemContainer').style.borderColor = itemData.borderColor;
-			$item('#itemContainer').style.borderWidth = '3px';
-			$item('#itemContainer').style.borderStyle = 'solid';
-			
-			// Apply opacity for full dates
-			if (itemData.status === 'full') {
-				$item('#itemContainer').style.opacity = 0.6;
-			} else {
-				$item('#itemContainer').style.opacity = 1;
-			}
-			
-			// Set initial checkbox state (preserve selection across role changes)
-			$item('#itemCheckbox').checked = itemData.isSelected;
-			if (itemData.isSelected) {
-				$item('#itemContainer').style.backgroundColor = '#E3F2FD';
-			} else {
-				$item('#itemContainer').style.backgroundColor = 'transparent';
+			try {
+				// Set label text
+				$item('#itemLabel').text = itemData.label;
+				
+				// Get container element
+				const container = $item('#itemContainer');
+				
+				if (!container) {
+					console.error('Container element not found for item:', itemData.label);
+					return;
+				}
+				
+				// Remove any existing availability classes
+				container.removeClass('availability-available');
+				container.removeClass('availability-limited');
+				container.removeClass('availability-full');
+				
+				// Add status class for CSS fallback
+				container.addClass(`availability-${itemData.status}`);
+				
+				// Apply border styling - try multiple approaches for compatibility
+				if (container.style) {
+					// Method 1: Set border as single property (most reliable)
+					container.style.border = `3px solid ${itemData.borderColor}`;
+					
+					// Method 2: Also set individual properties
+					container.style.borderColor = itemData.borderColor;
+					container.style.borderWidth = '3px';
+					container.style.borderStyle = 'solid';
+					
+					// Apply opacity for full dates
+					if (itemData.status === 'full') {
+						container.style.opacity = '0.6';
+					} else {
+						container.style.opacity = '1';
+					}
+					
+					console.log(`Applied border color ${itemData.borderColor} (${itemData.status}) to date ${itemData.label}`);
+				} else {
+					console.warn('Container style property not available');
+				}
+				
+				// Set initial checkbox state (preserve selection across role changes)
+				$item('#itemCheckbox').checked = itemData.isSelected;
+				if (itemData.isSelected) {
+					container.style.backgroundColor = '#E3F2FD';
+				} else {
+					container.style.backgroundColor = 'transparent';
+				}
+			} catch (error) {
+				console.error('Error styling repeater item:', error, itemData);
 			}
 			
 			// Handle checkbox changes
 			$item('#itemCheckbox').onChange((event) => {
+				const container = $item('#itemContainer');
 				const isChecked = event.target.checked;
 				if (isChecked) {
 					if (!selectedDateIds.includes(itemData._id)) {
 						selectedDateIds.push(itemData._id);
 					}
-					$item('#itemContainer').style.backgroundColor = '#E3F2FD';
+					container.style.backgroundColor = '#E3F2FD';
 				} else {
 					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-					$item('#itemContainer').style.backgroundColor = 'transparent';
+					container.style.backgroundColor = 'transparent';
 				}
 				console.log('Selected dates:', selectedDateIds);
 			});
 			
 			// Also allow clicking the container to toggle
 			$item('#itemContainer').onClick(() => {
+				const container = $item('#itemContainer');
 				const checkbox = $item('#itemCheckbox');
 				checkbox.checked = !checkbox.checked;
 				const isChecked = checkbox.checked;
@@ -142,10 +167,10 @@ async function populateDateRepeater() {
 					if (!selectedDateIds.includes(itemData._id)) {
 						selectedDateIds.push(itemData._id);
 					}
-					$item('#itemContainer').style.backgroundColor = '#E3F2FD';
+					container.style.backgroundColor = '#E3F2FD';
 				} else {
 					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-					$item('#itemContainer').style.backgroundColor = 'transparent';
+					container.style.backgroundColor = 'transparent';
 				}
 				console.log('Selected dates:', selectedDateIds);
 			});
