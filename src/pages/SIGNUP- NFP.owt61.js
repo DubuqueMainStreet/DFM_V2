@@ -1,4 +1,5 @@
 import wixData from 'wix-data';
+import { submitSpecialtyProfile } from 'backend/formSubmissions.jsw';
 
 $w.onReady(function () {
 	populateNonProfitTypeDropdown();
@@ -166,23 +167,9 @@ async function handleSubmit() {
 		// Log the data being saved for debugging
 		console.log('Saving non-profit profile data:', profileData);
 		
-		const profileResult = await wixData.save('SpecialtyProfiles', profileData);
-		const profileId = profileResult._id;
-		
-		// Insert child records - one WeeklyAssignments record per selected date
-		console.log('Creating WeeklyAssignments records for dates:', dateIds);
-		const assignmentPromises = dateIds.map(async (dateId, index) => {
-			console.log(`Creating assignment ${index + 1} with dateRef: ${dateId}`);
-			const result = await wixData.save('WeeklyAssignments', {
-				profileRef: profileId,
-				dateRef: dateId
-			});
-			console.log(`Created assignment ${index + 1} with ID: ${result._id}`);
-			return result;
-		});
-		
-		await Promise.all(assignmentPromises);
-		console.log(`Successfully created ${dateIds.length} WeeklyAssignments records`);
+		// Use backend function with elevated permissions
+		const result = await submitSpecialtyProfile(profileData, dateIds);
+		console.log(`Successfully created profile and ${result.assignmentsCreated} WeeklyAssignments records`);
 		
 		// Success feedback
 		$w('#msgSuccess').text = 'Non-profit application submitted successfully!';
