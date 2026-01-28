@@ -405,7 +405,7 @@ function setupCalendarItem($item, itemData) {
 		$item('#itemVolunteers').text = text + pendingText;
 	}
 	
-	// Expandable details section - CLEAN SIMPLE APPROACH
+	// Expandable details section
 	const detailsContainer = $item('#detailsContainer');
 	const detailsContent = $item('#detailsContent');
 	const toggleButton = $item('#btnToggleDetails');
@@ -414,8 +414,12 @@ function setupCalendarItem($item, itemData) {
 		// Track expanded state
 		let isExpanded = false;
 		
-		// Initially hide the details container
-		detailsContainer.hide();
+		// Initially collapse the details container
+		if (typeof detailsContainer.collapse === 'function') {
+			detailsContainer.collapse();
+		} else {
+			detailsContainer.hide();
+		}
 		
 		// Set initial button label
 		toggleButton.label = 'Show Details';
@@ -426,12 +430,25 @@ function setupCalendarItem($item, itemData) {
 				// SHOW details
 				populateDetails(detailsContent, itemData);
 				detailsContent.show();
-				detailsContainer.show();
+				
+				// Use expand() to properly resize the card
+				if (typeof detailsContainer.expand === 'function') {
+					detailsContainer.expand();
+				} else {
+					detailsContainer.show();
+				}
+				
 				toggleButton.label = 'Hide Details';
 				isExpanded = true;
 			} else {
 				// HIDE details
-				detailsContainer.hide();
+				// Use collapse() to properly resize the card
+				if (typeof detailsContainer.collapse === 'function') {
+					detailsContainer.collapse();
+				} else {
+					detailsContainer.hide();
+				}
+				
 				toggleButton.label = 'Show Details';
 				isExpanded = false;
 			}
