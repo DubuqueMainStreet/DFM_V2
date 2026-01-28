@@ -18,35 +18,43 @@ $w.onReady(async function () {
         console.log(`Found ${results.items.length} existing records.`);
         
         // Calculate all Saturdays from May 2, 2026 to October 31, 2026
+        // May 2, 2026 is a Saturday, and we need to find all 27 Saturdays through October 31
         const marketDates = [];
-        // Use UTC to avoid timezone issues
-        const startDate = new Date('2026-05-02T00:00:00Z'); // May 2, 2026
-        const endDate = new Date('2026-10-31T23:59:59Z'); // October 31, 2026
         
-        let currentDate = new Date(startDate);
-        let saturdayCount = 0;
+        // Start from May 2, 2026 (which should be a Saturday)
+        // Using local date constructor to avoid timezone issues
+        const firstSaturday = new Date(2026, 4, 2); // Month is 0-indexed, so 4 = May
+        const endDate = new Date(2026, 9, 31); // Month is 0-indexed, so 9 = October
         
-        while (currentDate <= endDate) {
-            // Check if it's a Saturday (day 6, where 0=Sunday, 6=Saturday)
-            if (currentDate.getDay() === 6) {
-                marketDates.push(new Date(currentDate));
-                saturdayCount++;
+        // Verify it's actually a Saturday
+        if (firstSaturday.getDay() !== 6) {
+            console.warn('⚠️  May 2, 2026 is not a Saturday. Finding first Saturday...');
+            // Find the first Saturday in May
+            while (firstSaturday.getDay() !== 6) {
+                firstSaturday.setDate(firstSaturday.getDate() + 1);
             }
-            // Move to next day
-            currentDate.setDate(currentDate.getDate() + 1);
         }
         
-        console.log(`Found ${saturdayCount} Saturdays between ${startDate.toISOString().split('T')[0]} and ${endDate.toISOString().split('T')[0]}`);
+        // Collect all Saturdays from first Saturday until October 31
+        let currentDate = new Date(firstSaturday);
+        while (currentDate <= endDate) {
+            marketDates.push(new Date(currentDate));
+            // Move to next Saturday (add 7 days)
+            currentDate.setDate(currentDate.getDate() + 7);
+        }
+        
+        console.log(`Found ${marketDates.length} Saturdays starting from ${firstSaturday.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`);
+        console.log(`First date: ${marketDates[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`);
+        console.log(`Last date: ${marketDates[marketDates.length - 1].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`);
         
         console.log(`Calculated ${marketDates.length} market dates (Saturdays)`);
         console.log('Dates:', marketDates.map(d => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })));
         
-        // Update records - handle mismatch by updating what we can
-        if (results.items.length >= marketDates.length) {
-            console.log(`Updating ${marketDates.length} records with calculated dates...`);
-            console.log(`(${results.items.length - marketDates.length} extra record(s) will be skipped)`);
+        // Update all records - should match exactly 27
+        if (results.items.length === marketDates.length) {
+            console.log(`✅ Perfect match! Updating all ${marketDates.length} records with calculated dates...`);
             
-            const updatePromises = results.items.slice(0, marketDates.length).map(async (item, index) => {
+            const updatePromises = results.items.map(async (item, index) => {
                 const date = marketDates[index];
                 const dateObj = new Date(date);
                 
@@ -68,18 +76,60 @@ $w.onReady(async function () {
             
             await Promise.all(updatePromises);
             
-            console.log(`✅ Successfully restored ${marketDates.length} records with dates and titles.`);
-            
-            if (results.items.length > marketDates.length) {
-                console.log(`⚠️  Note: ${results.items.length - marketDates.length} record(s) were not updated.`);
-                console.log('You may need to manually set the date for the extra record(s) in CMS.');
-            }
-            
+            console.log(`✅ Successfully restored all ${marketDates.length} records with dates and titles!`);
             console.log('✅ Check the MarketDates2026 collection in CMS to verify.');
+            
+        } else if (results.items.length > marketDates.length) {
+            console.log(`⚠️  More records (${results.items.length}) than dates (${marketDates.length})`);
+            console.log(`Updating first ${marketDates.length} records...`);
+            
+            const updatePromises = results.items.slice(0, marketDates.length).map(async (item, index) => {
+                const date = marketDates[index];
+                const dateObj = new Date(date);
+                
+                const monthName = dateObj.toLocaleDateString('en-US', { month: 'long' });
+                const day = dateObj.getDate();
+                const year = dateObj.getFullYear();
+                const daySuffix = getDaySuffix(day);
+                const title = `${monthName} ${day}${daySuffix}, ${year}`;
+                
+                console.log(`Updating record ${index + 1}: ${title} (${date.toISOString().split('T')[0]})`);
+                
+                return wixData.update('MarketDates2026', {
+                    _id: item._id,
+                    date: date,
+                    title: title
+                });
+            });
+            
+            await Promise.all(updatePromises);
+            console.log(`✅ Updated ${marketDates.length} records. ${results.items.length - marketDates.length} record(s) need manual date entry.`);
             
         } else {
             console.log(`⚠️  More dates (${marketDates.length}) than records (${results.items.length})`);
-            console.log('This is unusual - you may need to create more records in CMS.');
+            console.log('Updating all available records...');
+            
+            const updatePromises = results.items.map(async (item, index) => {
+                const date = marketDates[index];
+                const dateObj = new Date(date);
+                
+                const monthName = dateObj.toLocaleDateString('en-US', { month: 'long' });
+                const day = dateObj.getDate();
+                const year = dateObj.getFullYear();
+                const daySuffix = getDaySuffix(day);
+                const title = `${monthName} ${day}${daySuffix}, ${year}`;
+                
+                console.log(`Updating record ${index + 1}: ${title} (${date.toISOString().split('T')[0]})`);
+                
+                return wixData.update('MarketDates2026', {
+                    _id: item._id,
+                    date: date,
+                    title: title
+                });
+            });
+            
+            await Promise.all(updatePromises);
+            console.log(`✅ Updated ${results.items.length} records. You may need to create ${marketDates.length - results.items.length} more records.`);
         }
         
     } catch (error) {
