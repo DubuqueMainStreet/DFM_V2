@@ -4,69 +4,63 @@
 import wixData from 'wix-data';
 
 $w.onReady(async function () {
-    // DIAGNOSTIC: Check WeeklyAssignments to see what dateRef values are stored
+    // DIAGNOSTIC: Check MarketDates2026 to verify all dates are Saturdays
     // REMOVE THIS CODE AFTER RUNNING ONCE
     
-    console.log('🔍 Diagnosing WeeklyAssignments dateRef values...');
+    console.log('🔍 Checking MarketDates2026 dates...');
     
     try {
-        // Get all WeeklyAssignments records
-        const assignments = await wixData.query('WeeklyAssignments')
-            .find();
-        
-        console.log(`Found ${assignments.items.length} WeeklyAssignments records.`);
-        
-        // Get all MarketDates2026 records for reference
+        // Get all MarketDates2026 records
         const dates = await wixData.query('MarketDates2026')
             .find();
         
-        // Create a map of date IDs to date titles for easy lookup
-        const dateMap = {};
-        dates.items.forEach(date => {
-            dateMap[date._id] = {
-                title: date.title,
-                date: date.date,
-                dateString: new Date(date.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-            };
-        });
+        console.log(`Found ${dates.items.length} MarketDates2026 records.`);
+        console.log('\n--- All Market Dates ---');
         
-        console.log('\n--- WeeklyAssignments Records ---');
+        let saturdayCount = 0;
+        let nonSaturdayCount = 0;
+        const nonSaturdays = [];
         
-        let recordsWithValidDates = 0;
-        let recordsWithInvalidDates = 0;
-        let recordsWithMissingDates = 0;
-        
-        assignments.items.forEach((assignment, index) => {
-            console.log(`\nRecord ${index + 1} (ID: ${assignment._id}):`);
-            console.log('  - profileRef:', assignment.profileRef);
-            console.log('  - dateRef:', assignment.dateRef);
-            console.log('  - dateRef type:', typeof assignment.dateRef);
+        dates.items.forEach((date, index) => {
+            const dateObj = new Date(date.date);
+            const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 6 = Saturday
+            const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
+            const dateString = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
             
-            if (!assignment.dateRef) {
-                recordsWithMissingDates++;
-                console.log('  ⚠️  MISSING dateRef');
-            } else if (dateMap[assignment.dateRef]) {
-                recordsWithValidDates++;
-                console.log('  ✅ Valid dateRef:', dateMap[assignment.dateRef].title);
-                console.log('     Date:', dateMap[assignment.dateRef].dateString);
+            console.log(`\nRecord ${index + 1}:`);
+            console.log(`  - Title: ${date.title}`);
+            console.log(`  - Date: ${dateString}`);
+            console.log(`  - Day of week: ${dayName} (${dayOfWeek})`);
+            console.log(`  - ID: ${date._id}`);
+            
+            if (dayOfWeek === 6) {
+                saturdayCount++;
+                console.log('  ✅ Saturday');
             } else {
-                recordsWithInvalidDates++;
-                console.log('  ❌ INVALID dateRef - ID not found in MarketDates2026');
-                console.log('     Stored ID:', assignment.dateRef);
+                nonSaturdayCount++;
+                nonSaturdays.push({
+                    id: date._id,
+                    title: date.title,
+                    date: dateString,
+                    day: dayName
+                });
+                console.log('  ⚠️  NOT a Saturday!');
             }
         });
         
         console.log('\n--- Summary ---');
-        console.log(`Records with valid dates: ${recordsWithValidDates}`);
-        console.log(`Records with missing dates: ${recordsWithMissingDates}`);
-        console.log(`Records with invalid dates: ${recordsWithInvalidDates}`);
+        console.log(`Total records: ${dates.items.length}`);
+        console.log(`Saturdays: ${saturdayCount}`);
+        console.log(`Non-Saturdays: ${nonSaturdayCount}`);
         
-        if (recordsWithMissingDates > 0 || recordsWithInvalidDates > 0) {
-            console.log('\n⚠️  Some records have missing or invalid dateRef values.');
-            console.log('These records need to be fixed or deleted.');
+        if (nonSaturdayCount > 0) {
+            console.log('\n⚠️  Found non-Saturday dates:');
+            nonSaturdays.forEach(item => {
+                console.log(`  - ${item.title} (${item.day})`);
+            });
+            console.log('\nThese dates should be removed or corrected if the market only runs on Saturdays.');
         } else {
-            console.log('\n✅ All records have valid dateRef values.');
-            console.log('The dropdown showing all dates is normal - check what is actually SELECTED in each row.');
+            console.log('\n✅ All dates are Saturdays!');
         }
         
     } catch (error) {
