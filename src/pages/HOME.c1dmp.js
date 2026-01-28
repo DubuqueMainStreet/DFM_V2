@@ -4,9 +4,8 @@
 import wixData from 'wix-data';
 
 $w.onReady(async function () {
-    // TEMPORARY: Run date titles population script
-    // Remove this code after running once
-    console.log('Running date titles population script...');
+    // DIAGNOSTIC: Check what's actually in the database
+    console.log('🔍 Diagnosing MarketDates2026 collection...');
     
     try {
         // Query all date records
@@ -14,51 +13,54 @@ $w.onReady(async function () {
             .find();
         
         if (!results.items || results.items.length === 0) {
-            alert('No records found to update.');
+            console.log('❌ No records found in MarketDates2026.');
             return;
         }
         
-        // Helper function to get day suffix (st, nd, rd, th)
-        function getDaySuffix(day) {
-            if (day > 3 && day < 21) return 'th';
-            switch (day % 10) {
-                case 1: return 'st';
-                case 2: return 'nd';
-                case 3: return 'rd';
-                default: return 'th';
-            }
-        }
+        console.log(`Found ${results.items.length} records.`);
+        console.log('--- Record Details ---');
         
-        const updatePromises = results.items.map(async (item) => {
-            const dateObj = new Date(item.date);
+        // Check each record
+        let recordsWithDates = 0;
+        let recordsWithoutDates = 0;
+        let recordsWithInvalidDates = 0;
+        
+        results.items.forEach((item, index) => {
+            console.log(`\nRecord ${index + 1} (ID: ${item._id}):`);
+            console.log('  - date field:', item.date);
+            console.log('  - date type:', typeof item.date);
+            console.log('  - title field:', item.title);
             
-            // Format date with day suffix (e.g., "May 2nd, 2026")
-            const monthName = dateObj.toLocaleDateString('en-US', { month: 'long' });
-            const day = dateObj.getDate();
-            const year = dateObj.getFullYear();
-            const daySuffix = getDaySuffix(day);
-            
-            const title = `${monthName} ${day}${daySuffix}, ${year}`;
-            
-            // Update record with title
-            return wixData.update('MarketDates2026', {
-                _id: item._id,
-                title: title
-            });
+            if (!item.date) {
+                recordsWithoutDates++;
+                console.log('  ⚠️  MISSING DATE');
+            } else {
+                const dateObj = new Date(item.date);
+                if (isNaN(dateObj.getTime())) {
+                    recordsWithInvalidDates++;
+                    console.log('  ⚠️  INVALID DATE');
+                } else {
+                    recordsWithDates++;
+                    console.log('  ✅ Valid date:', dateObj.toISOString());
+                }
+            }
         });
         
-        await Promise.all(updatePromises);
+        console.log('\n--- Summary ---');
+        console.log(`Records with valid dates: ${recordsWithDates}`);
+        console.log(`Records without dates: ${recordsWithoutDates}`);
+        console.log(`Records with invalid dates: ${recordsWithInvalidDates}`);
         
-        const message = `Successfully updated ${results.items.length} date records.`;
-        console.log(`✅ ${message}`);
-        console.log(`Updated ${results.items.length} records.`);
-        alert(`✅ Date titles populated successfully!\n\n${message}\nUpdated ${results.items.length} records.\n\nCheck the console (F12) for details.`);
+        if (recordsWithoutDates > 0 || recordsWithInvalidDates > 0) {
+            console.log('\n❌ WARNING: Some records are missing or have invalid dates!');
+            console.log('The dates may need to be restored manually in the CMS.');
+        } else {
+            console.log('\n✅ All records have valid dates. The issue may be a display problem in CMS.');
+        }
         
     } catch (error) {
-        console.error('Error populating date titles:', error);
-        const errorMessage = error.message || 'Failed to populate date titles.';
-        console.error(`❌ ${errorMessage}`);
-        alert(`❌ Error: ${errorMessage}\n\nCheck the console (F12) for details.`);
+        console.error('Error diagnosing collection:', error);
+        console.error('Full error:', JSON.stringify(error, null, 2));
     }
     
     // Write your JavaScript here
