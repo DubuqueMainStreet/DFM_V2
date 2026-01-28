@@ -237,29 +237,61 @@
 }
 
 /* Repeater-based Date Selection Styling */
-/* Availability status classes for repeater items */
-#dateRepeater [id*="itemContainer"].availability-available {
+/* Target by CSS class */
+#dateRepeater .availability-available,
+#dateRepeater [class*="availability-available"] {
   border: 3px solid #4CAF50 !important;
   border-width: 3px !important;
+  border-style: solid !important;
 }
 
-#dateRepeater [id*="itemContainer"].availability-limited {
+#dateRepeater .availability-limited,
+#dateRepeater [class*="availability-limited"] {
   border: 3px solid #FF9800 !important;
   border-width: 3px !important;
+  border-style: solid !important;
 }
 
-#dateRepeater [id*="itemContainer"].availability-full {
+#dateRepeater .availability-full,
+#dateRepeater [class*="availability-full"] {
   border: 3px solid #F44336 !important;
   border-width: 3px !important;
+  border-style: solid !important;
+  opacity: 0.6 !important;
+}
+
+/* Target by data attribute */
+#dateRepeater [data-availability-status="available"] {
+  border: 3px solid #4CAF50 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
+}
+
+#dateRepeater [data-availability-status="limited"] {
+  border: 3px solid #FF9800 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
+}
+
+#dateRepeater [data-availability-status="full"] {
+  border: 3px solid #F44336 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
   opacity: 0.6 !important;
 }
 
 /* Ensure repeater items have visible borders */
+#dateRepeater [id*="itemContainer"],
+#dateRepeater [id*="itemContainer"] * {
+  box-sizing: border-box;
+}
+
 #dateRepeater [id*="itemContainer"] {
   border-style: solid !important;
   border-width: 3px !important;
   border-radius: 8px;
   padding: 10px 15px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  display: block;
 }

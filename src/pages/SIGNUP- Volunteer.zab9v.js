@@ -109,6 +109,16 @@ async function populateDateRepeater() {
 					status: itemData.status
 				});
 				
+				// Set data attribute for CSS targeting
+				try {
+					if (container.setAttribute) {
+						container.setAttribute('data-availability-status', itemData.status);
+						container.setAttribute('data-border-color', itemData.borderColor);
+					}
+				} catch (e) {
+					console.warn('setAttribute not available:', e);
+				}
+				
 				// Try to add CSS class (if supported)
 				try {
 					if (typeof container.addClass === 'function') {
@@ -116,29 +126,22 @@ async function populateDateRepeater() {
 						container.removeClass('availability-limited');
 						container.removeClass('availability-full');
 						container.addClass(`availability-${itemData.status}`);
+						console.log(`✅ Added CSS class: availability-${itemData.status}`);
 					}
 				} catch (e) {
 					console.warn('Class methods not available:', e);
 				}
 				
-				// Apply border styling - try multiple approaches for compatibility
+				// Apply border styling using inline styles AND CSS classes
 				if (container.style) {
-					// Method 1: Set border as single property (most reliable)
+					// Set border using inline style (may not work for Wix Box)
 					try {
-						container.style.border = `3px solid ${itemData.borderColor}`;
-						console.log(`✅ Set border: 3px solid ${itemData.borderColor}`);
-					} catch (e) {
-						console.warn('Failed to set border property:', e);
-					}
-					
-					// Method 2: Also set individual properties
-					try {
+						container.style.border = `3px solid ${itemData.borderColor} !important`;
 						container.style.borderColor = itemData.borderColor;
 						container.style.borderWidth = '3px';
 						container.style.borderStyle = 'solid';
-						console.log(`✅ Set individual border properties`);
 					} catch (e) {
-						console.warn('Failed to set individual border properties:', e);
+						console.warn('Failed to set border properties:', e);
 					}
 					
 					// Apply opacity for full dates
@@ -148,13 +151,35 @@ async function populateDateRepeater() {
 						container.style.opacity = '1';
 					}
 					
-					// Verify the style was applied
-					setTimeout(() => {
-						const computedBorder = container.style.border || container.style.borderColor;
-						console.log(`🔍 Verification for ${itemData.label}: border = ${computedBorder}`);
-					}, 100);
-				} else {
-					console.error('❌ Container.style property not available');
+					console.log(`✅ Applied styles for ${itemData.label}: ${itemData.status} (${itemData.borderColor})`);
+				}
+				
+				// Inject CSS rule dynamically as fallback
+				try {
+					if (typeof document !== 'undefined') {
+						const styleId = 'availability-dynamic-styles';
+						let styleEl = document.getElementById(styleId);
+						if (!styleEl) {
+							styleEl = document.createElement('style');
+							styleEl.id = styleId;
+							document.head.appendChild(styleEl);
+						}
+						
+						// Add CSS rule for this specific status
+						const cssRule = `
+							[data-availability-status="${itemData.status}"] {
+								border: 3px solid ${itemData.borderColor} !important;
+								border-width: 3px !important;
+								border-style: solid !important;
+							}
+						`;
+						
+						if (!styleEl.textContent.includes(`[data-availability-status="${itemData.status}"]`)) {
+							styleEl.textContent += cssRule;
+						}
+					}
+				} catch (e) {
+					console.warn('Failed to inject dynamic CSS:', e);
 				}
 				
 				// Set initial checkbox state (preserve selection across role changes)
