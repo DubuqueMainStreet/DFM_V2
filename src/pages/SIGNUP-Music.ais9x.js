@@ -1,5 +1,6 @@
 import wixData from 'wix-data';
 import { submitSpecialtyProfile } from 'backend/formSubmissions.jsw';
+import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 
 $w.onReady(function () {
 	populateMusicianTypeDropdown();
@@ -14,6 +15,9 @@ async function populateDateTags() {
 	try {
 		const results = await wixData.query('MarketDates2026')
 			.find();
+		
+		// Get availability data for all dates
+		const availability = await getDateAvailability();
 		
 		// Process dates: parse, sort chronologically, group by month
 		const dateItems = results.items
@@ -40,7 +44,7 @@ async function populateDateTags() {
 			groupedByMonth[monthKey].push(item);
 		});
 		
-		// Build options with month-grouped labels and styling
+		// Build options with month-grouped labels and availability status
 		const options = [];
 		const monthColors = {
 			'May': '#4CAF50',      // Green (spring)
@@ -58,24 +62,56 @@ async function populateDateTags() {
 			
 			dates.forEach(item => {
 				const daySuffix = getDaySuffix(item.day);
-				const label = `${item.monthName} ${item.day}${daySuffix}`;
+				const dateAvailability = availability[item._id];
+				const musicianCount = dateAvailability ? dateAvailability.musicians : 0;
+				
+				// Determine status for musicians (0-1 = available, 2 = limited, 3+ = full)
+				let status = 'available';
+				let statusLabel = '';
+				if (musicianCount >= 3) {
+					status = 'full';
+					statusLabel = ' (Full)';
+				} else if (musicianCount === 2) {
+					status = 'limited';
+					statusLabel = ' (Limited)';
+				}
+				
+				const label = `${item.monthName} ${item.day}${daySuffix}${statusLabel}`;
 				
 				options.push({
 					value: item._id,
 					label: label,
-					// Store month info for potential styling
+					// Store month and availability info for styling
 					month: monthName,
-					color: monthColor
+					color: monthColor,
+					availabilityStatus: status
 				});
 			});
 		});
 		
 		$w('#dateSelectionTags').options = options;
+		
+		// Apply custom styling based on availability
+		applyAvailabilityStyling(options);
 	} catch (error) {
 		console.error('Failed to load dates:', error);
 		$w('#msgError').text = 'Failed to load available dates. Please refresh.';
 		$w('#msgError').show();
 	}
+}
+
+function applyAvailabilityStyling(options) {
+	// Wait for DOM to render, then apply classes
+	setTimeout(() => {
+		try {
+			const tagElements = $w('#dateSelectionTags');
+			// Note: Wix doesn't provide direct access to individual tag elements
+			// The CSS classes in global.css will handle the visual styling
+			// This function is a placeholder for future enhancements
+		} catch (error) {
+			console.error('Error applying availability styling:', error);
+		}
+	}, 100);
 }
 
 function populateMusicianTypeDropdown() {

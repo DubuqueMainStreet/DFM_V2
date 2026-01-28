@@ -1,17 +1,39 @@
 import wixData from 'wix-data';
 import { submitSpecialtyProfile } from 'backend/formSubmissions.jsw';
+import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 
 $w.onReady(function () {
 	populateVolunteerRoleDropdown();
 	populateShiftPreferenceDropdown();
 	populateDateTags();
 	setupSubmitHandler();
+	
+	// Update date availability when volunteer role changes
+	$w('#inputVolunteerRole').onChange(() => {
+		populateDateTags();
+	});
 });
 
 async function populateDateTags() {
 	try {
 		const results = await wixData.query('MarketDates2026')
 			.find();
+		
+		// Get availability data for all dates
+		const availability = await getDateAvailability();
+		
+		// Get selected volunteer role (if any)
+		const selectedRole = $w('#inputVolunteerRole').value || 'No Preference';
+		
+		// Role-specific limits
+		const roleLimits = {
+			'Token Sales': 2,
+			'Merch Sales': 2,
+			'Setup': 2,
+			'Teardown': 2,
+			'Hospitality Support': 2,
+			'No Preference': 1
+		};
 		
 		// Process dates: parse, sort chronologically, group by month
 		const dateItems = results.items
@@ -38,7 +60,7 @@ async function populateDateTags() {
 			groupedByMonth[monthKey].push(item);
 		});
 		
-		// Build options with month-grouped labels and styling
+		// Build options with month-grouped labels and availability status
 		const options = [];
 		const monthColors = {
 			'May': '#4CAF50',      // Green (spring)
@@ -56,14 +78,33 @@ async function populateDateTags() {
 			
 			dates.forEach(item => {
 				const daySuffix = getDaySuffix(item.day);
-				const label = `${item.monthName} ${item.day}${daySuffix}`;
+				const dateAvailability = availability[item._id];
+				const roleCount = dateAvailability && dateAvailability.volunteers[selectedRole] 
+					? dateAvailability.volunteers[selectedRole] 
+					: 0;
+				
+				// Determine status based on role-specific limits
+				const limit = roleLimits[selectedRole] || 2;
+				let status = 'available';
+				let statusLabel = '';
+				
+				if (roleCount >= limit) {
+					status = 'full';
+					statusLabel = ' (Full)';
+				} else if (roleCount >= Math.floor(limit * 0.7)) {
+					status = 'limited';
+					statusLabel = ' (Limited)';
+				}
+				
+				const label = `${item.monthName} ${item.day}${daySuffix}${statusLabel}`;
 				
 				options.push({
 					value: item._id,
 					label: label,
-					// Store month info for potential styling
+					// Store month and availability info for styling
 					month: monthName,
-					color: monthColor
+					color: monthColor,
+					availabilityStatus: status
 				});
 			});
 		});
