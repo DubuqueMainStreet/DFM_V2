@@ -4,78 +4,73 @@
 import wixData from 'wix-data';
 
 $w.onReady(async function () {
-    // DIAGNOSTIC: Check MarketDates2026 field structure and fix display field
+    // DIAGNOSTIC: Check WeeklyAssignments to see what dateRef values are stored
     // REMOVE THIS CODE AFTER RUNNING ONCE
     
-    console.log('🔍 Diagnosing MarketDates2026 fields...');
+    console.log('🔍 Diagnosing WeeklyAssignments dateRef values...');
     
     try {
-        // Query records to see what fields exist
-        const results = await wixData.query('MarketDates2026')
-            .limit(3)
+        // Get all WeeklyAssignments records
+        const assignments = await wixData.query('WeeklyAssignments')
             .find();
         
-        if (results.items.length > 0) {
-            console.log('Sample record fields:');
-            const sampleRecord = results.items[0];
-            console.log('All fields:', Object.keys(sampleRecord));
-            console.log('Full record:', JSON.stringify(sampleRecord, null, 2));
-            
-            // Check for common display field names
-            console.log('\n--- Checking display fields ---');
-            console.log('title (lowercase):', sampleRecord.title);
-            console.log('Title (capitalized):', sampleRecord.Title);
-            console.log('name:', sampleRecord.name);
-            console.log('date:', sampleRecord.date);
-        }
+        console.log(`Found ${assignments.items.length} WeeklyAssignments records.`);
         
-        // Now update ALL records to ensure BOTH 'title' and 'Title' fields are set
-        console.log('\n🔄 Updating all records with display titles...');
-        
-        const allResults = await wixData.query('MarketDates2026')
+        // Get all MarketDates2026 records for reference
+        const dates = await wixData.query('MarketDates2026')
             .find();
         
-        function getDaySuffix(day) {
-            if (day > 3 && day < 21) return 'th';
-            switch (day % 10) {
-                case 1: return 'st';
-                case 2: return 'nd';
-                case 3: return 'rd';
-                default: return 'th';
-            }
-        }
-        
-        const updatePromises = allResults.items.map(async (item) => {
-            const dateObj = new Date(item.date);
-            
-            if (isNaN(dateObj.getTime())) {
-                console.warn(`Record ${item._id} has invalid date, skipping`);
-                return null;
-            }
-            
-            const monthName = dateObj.toLocaleDateString('en-US', { month: 'long' });
-            const day = dateObj.getDate();
-            const year = dateObj.getFullYear();
-            const daySuffix = getDaySuffix(day);
-            const displayTitle = `${monthName} ${day}${daySuffix}, ${year}`;
-            
-            console.log(`Setting display title: ${displayTitle}`);
-            
-            // Update with BOTH possible display field names
-            // Wix might use 'title' or 'Title' depending on configuration
-            return wixData.update('MarketDates2026', {
-                ...item,  // Preserve all existing fields including date
-                title: displayTitle,
-                Title: displayTitle  // Also try capital T
-            });
+        // Create a map of date IDs to date titles for easy lookup
+        const dateMap = {};
+        dates.items.forEach(date => {
+            dateMap[date._id] = {
+                title: date.title,
+                date: date.date,
+                dateString: new Date(date.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            };
         });
         
-        await Promise.all(updatePromises.filter(p => p !== null));
+        console.log('\n--- WeeklyAssignments Records ---');
         
-        console.log(`✅ Updated ${allResults.items.length} records with display titles.`);
-        console.log('Check MarketDates2026 and WeeklyAssignments collections now.');
+        let recordsWithValidDates = 0;
+        let recordsWithInvalidDates = 0;
+        let recordsWithMissingDates = 0;
+        
+        assignments.items.forEach((assignment, index) => {
+            console.log(`\nRecord ${index + 1} (ID: ${assignment._id}):`);
+            console.log('  - profileRef:', assignment.profileRef);
+            console.log('  - dateRef:', assignment.dateRef);
+            console.log('  - dateRef type:', typeof assignment.dateRef);
+            
+            if (!assignment.dateRef) {
+                recordsWithMissingDates++;
+                console.log('  ⚠️  MISSING dateRef');
+            } else if (dateMap[assignment.dateRef]) {
+                recordsWithValidDates++;
+                console.log('  ✅ Valid dateRef:', dateMap[assignment.dateRef].title);
+                console.log('     Date:', dateMap[assignment.dateRef].dateString);
+            } else {
+                recordsWithInvalidDates++;
+                console.log('  ❌ INVALID dateRef - ID not found in MarketDates2026');
+                console.log('     Stored ID:', assignment.dateRef);
+            }
+        });
+        
+        console.log('\n--- Summary ---');
+        console.log(`Records with valid dates: ${recordsWithValidDates}`);
+        console.log(`Records with missing dates: ${recordsWithMissingDates}`);
+        console.log(`Records with invalid dates: ${recordsWithInvalidDates}`);
+        
+        if (recordsWithMissingDates > 0 || recordsWithInvalidDates > 0) {
+            console.log('\n⚠️  Some records have missing or invalid dateRef values.');
+            console.log('These records need to be fixed or deleted.');
+        } else {
+            console.log('\n✅ All records have valid dateRef values.');
+            console.log('The dropdown showing all dates is normal - check what is actually SELECTED in each row.');
+        }
         
     } catch (error) {
         console.error('❌ Error:', error);
+        console.error('Full error:', JSON.stringify(error, null, 2));
     }
 });

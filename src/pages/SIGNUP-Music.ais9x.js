@@ -191,6 +191,11 @@ async function handleSubmit() {
 			dateIds = [selectedDates];
 		}
 		
+		// Debug logging for date selection
+		console.log('Selected dates from component:', selectedDates);
+		console.log('Extracted dateIds:', dateIds);
+		console.log('Number of dates selected:', dateIds.length);
+		
 		if (!organizationName || !contactEmail || !contactPhone || !musicianType || !preferredLocation || !bio) {
 			throw new Error('Name, email, phone, musician type, location, and bio are required.');
 		}
@@ -232,14 +237,19 @@ async function handleSubmit() {
 		const profileId = profileResult._id;
 		
 		// Insert child records
-		const assignmentPromises = dateIds.map(dateId => 
-			wixData.save('WeeklyAssignments', {
+		console.log('Creating WeeklyAssignments records for dates:', dateIds);
+		const assignmentPromises = dateIds.map(async (dateId, index) => {
+			console.log(`Creating assignment ${index + 1} with dateRef: ${dateId}`);
+			const result = await wixData.save('WeeklyAssignments', {
 				profileRef: profileId,
 				dateRef: dateId
-			})
-		);
+			});
+			console.log(`Created assignment ${index + 1} with ID: ${result._id}`);
+			return result;
+		});
 		
 		await Promise.all(assignmentPromises);
+		console.log(`Successfully created ${dateIds.length} WeeklyAssignments records`);
 		
 		// Success feedback
 		$w('#msgSuccess').text = 'Application submitted successfully!';
