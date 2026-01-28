@@ -39,9 +39,23 @@ async function populateDateRepeater() {
 		};
 		
 		// Process dates: parse, sort chronologically
+		// Fix timezone issue: parse date strings as local time, not UTC
 		const dateItems = results.items
 			.map(item => {
-				const dateObj = new Date(item.date);
+				// Handle date parsing to avoid timezone issues
+				let dateObj;
+				if (typeof item.date === 'string') {
+					// If it's a date string like "2026-05-02", parse it as local time
+					const dateStr = item.date.split('T')[0]; // Get YYYY-MM-DD part
+					const [year, month, day] = dateStr.split('-').map(Number);
+					dateObj = new Date(year, month - 1, day, 12, 0, 0, 0); // Use noon local time
+				} else {
+					// If it's already a Date object
+					dateObj = new Date(item.date);
+					// Set to noon local time to avoid timezone edge cases
+					dateObj.setHours(12, 0, 0, 0);
+				}
+				
 				return {
 					_id: item._id,
 					date: dateObj,
