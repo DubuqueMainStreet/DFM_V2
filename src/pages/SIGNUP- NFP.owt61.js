@@ -23,16 +23,36 @@ async function populateDateRepeater() {
 		const dateItems = results.items
 			.map(item => {
 				const dateObj = new Date(item.date);
+				// Verify date is a Saturday (for debugging)
+				const dayOfWeek = dateObj.getDay();
+				const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+				
+				if (dayOfWeek !== 6) {
+					console.warn(`⚠️ WARNING: Date ${item.date} parsed as ${dayName} (day ${dayOfWeek}), not Saturday!`);
+					console.warn(`   Raw date value:`, item.date);
+					console.warn(`   Parsed date:`, dateObj.toString());
+				}
+				
 				return {
 					_id: item._id,
 					date: dateObj,
 					month: dateObj.getMonth(),
 					year: dateObj.getFullYear(),
 					day: dateObj.getDate(),
-					monthName: dateObj.toLocaleDateString('en-US', { month: 'long' })
+					monthName: dateObj.toLocaleDateString('en-US', { month: 'long' }),
+					dayOfWeek: dayOfWeek,
+					dayName: dayName
 				};
 			})
 			.sort((a, b) => a.date - b.date);
+		
+		// Log first few dates for verification
+		console.log('Non-Profit Form - First 3 dates parsed:', dateItems.slice(0, 3).map(d => ({
+			date: d.date.toDateString(),
+			day: d.dayName,
+			dayOfWeek: d.dayOfWeek,
+			label: `${d.monthName} ${d.day}${getDaySuffix(d.day)}`
+		})));
 		
 		// Build repeater data with availability status
 		const repeaterData = dateItems.map(item => {
