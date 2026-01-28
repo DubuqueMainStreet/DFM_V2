@@ -112,8 +112,7 @@ async function populateStatusFilter() {
 			{ value: 'all', label: 'All Statuses' },
 			{ value: 'Pending', label: 'Pending' },
 			{ value: 'Approved', label: 'Approved' },
-			{ value: 'Rejected', label: 'Rejected' },
-			{ value: 'Confirmed', label: 'Confirmed' }
+			{ value: 'Rejected', label: 'Rejected' }
 		];
 		
 		if ($w('#filterStatus')) {
@@ -313,8 +312,7 @@ function setupRepeaterItem($item, itemData) {
 				$item('#itemStatus').options = [
 					{ value: 'Pending', label: 'Pending' },
 					{ value: 'Approved', label: 'Approved' },
-					{ value: 'Rejected', label: 'Rejected' },
-					{ value: 'Confirmed', label: 'Confirmed' }
+					{ value: 'Rejected', label: 'Rejected' }
 				];
 				
 				// Normalize and set current value
@@ -348,8 +346,9 @@ function setupRepeaterItem($item, itemData) {
 			}
 		}
 	
-		// Set location dropdown/display
-		if ($item('#itemLocation')) {
+		// Set location dropdown/display - ONLY for Musicians
+		// Volunteers and Non-Profits don't need location assignment
+		if (itemData.profileType === 'Musician' && $item('#itemLocation')) {
 			if ($item('#itemLocation').options) {
 				// It's a dropdown
 				$item('#itemLocation').options = [
@@ -362,6 +361,9 @@ function setupRepeaterItem($item, itemData) {
 				
 				const currentLocation = itemData.location || 'Unassigned';
 				$item('#itemLocation').value = currentLocation;
+				
+				// Show the location dropdown for musicians
+				$item('#itemLocation').show();
 				
 				// Prevent multiple onChange handlers
 				const assignmentId = itemData._id;
@@ -384,7 +386,11 @@ function setupRepeaterItem($item, itemData) {
 			} else {
 				// It's a text element
 				$item('#itemLocation').text = itemData.location || 'Unassigned';
+				$item('#itemLocation').show();
 			}
+		} else if ($item('#itemLocation')) {
+			// Hide location dropdown for Volunteers and Non-Profits
+			$item('#itemLocation').hide();
 		}
 	
 	// Set up action buttons - check if they exist and are buttons before setting onClick
@@ -393,8 +399,8 @@ function setupRepeaterItem($item, itemData) {
 		btnApprove.onClick(() => {
 			updateAssignmentStatus(itemData._id, 'Approved');
 		});
-		// Hide button if already approved/confirmed
-		if (itemData.status === 'Approved' || itemData.status === 'Confirmed') {
+		// Hide button if already approved
+		if (itemData.status === 'Approved') {
 			btnApprove.hide();
 		} else {
 			btnApprove.show();
@@ -414,38 +420,16 @@ function setupRepeaterItem($item, itemData) {
 		}
 	}
 	
+	// Hide Confirm button (removed from workflow)
 	const btnConfirm = $item('#btnConfirm');
-	if (btnConfirm && typeof btnConfirm.onClick === 'function') {
-		btnConfirm.onClick(() => {
-			updateAssignmentStatus(itemData._id, 'Confirmed');
-		});
-		// Only show if approved
-		if (itemData.status === 'Approved') {
-			btnConfirm.show();
-		} else {
-			btnConfirm.hide();
-		}
+	if (btnConfirm) {
+		btnConfirm.hide();
 	}
 	
+	// Hide Assign Location button (redundant with dropdown)
 	const btnAssignLocation = $item('#btnAssignLocation');
-	if (btnAssignLocation && typeof btnAssignLocation.onClick === 'function') {
-		btnAssignLocation.onClick(() => {
-			// If location dropdown exists, open it (focus triggers dropdown)
-			const locationDropdown = $item('#itemLocation');
-			if (locationDropdown && locationDropdown.options) {
-				// Focus will open the dropdown for user to select
-				locationDropdown.focus();
-				// Alternative: If you want to assign a default location, uncomment:
-				// updateAssignmentLocation(itemData._id, 'Default');
-			} else {
-				// If no dropdown, show message or open modal
-				showError('Location dropdown not available. Please assign location manually.');
-			}
-		});
-		// Hide button if location is already assigned (optional)
-		// if (itemData.location && itemData.location !== 'Unassigned') {
-		// 	btnAssignLocation.hide();
-		// }
+	if (btnAssignLocation) {
+		btnAssignLocation.hide();
 	}
 }
 

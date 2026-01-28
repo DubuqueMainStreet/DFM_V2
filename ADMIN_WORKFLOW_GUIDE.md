@@ -16,101 +16,77 @@
 
 ### Step 3: Decision (Approve/Reject)
 - **Approve:** Click "Approve" button → Status changes to `Approved`
+  - For **Musicians only:** Assign location using dropdown (if needed)
+  - For **Volunteers/Non-Profits:** No location needed (location is implied by role/booth type)
 - **Reject:** Click "Reject" button → Status changes to `Rejected`
-
-### Step 4: Location Assignment (After Approval)
-- Once `Approved`, you can assign a location
-- Use location dropdown or "Assign Location" button
-- Assigns `assignedMapId` field
-- **Status can then move to:** `Confirmed` (optional)
-
-### Step 5: Confirmation (Final Step)
-- After location is assigned, click "Confirm" button
-- Status changes to `Confirmed`
-- Assignment is finalized
 
 ---
 
 ## 📊 Status Flow
 
 ```
-Pending → Approved → Confirmed
+Pending → Approved (final)
    ↓
 Rejected (end of workflow)
 ```
 
 ### Status Meanings:
 - **Pending:** New submission, awaiting review
-- **Approved:** Admin approved the request
+- **Approved:** Admin approved the request (final status - assignment is confirmed)
 - **Rejected:** Admin rejected the request (workflow ends)
-- **Confirmed:** Final confirmation after location assignment
 
 ---
 
-## 🎯 Location Assignment Use Cases
+## 🎯 Location Assignment
 
 ### For Musicians:
+- **Location dropdown is visible** in the admin dashboard
 - **Multiple performance locations** available (Location A, B, C, Default)
 - Assign specific location based on:
   - Musician preference (if they selected one)
   - Sound/equipment needs
   - Schedule conflicts
   - Space availability
+- Location can be assigned when approving or after approval
 
 ### For Volunteers:
+- **Location dropdown is hidden** (not needed)
 - **Role determines location:**
   - Token Booth Sales → Token booth location
   - Merch Sales → Merch booth location
   - Setup/Teardown → Various locations
   - Hospitality Support → Throughout market
-- Location assignment may be less critical, but useful for:
-  - Tracking which volunteers are where
-  - Coordinating shifts
-  - Managing coverage
+- Location is implied by the volunteer role selected
 
 ### For Non-Profits:
-- **One booth space per week** (same location each week)
-- Location assignment may be:
-  - Always the same (non-profit booth area)
-  - Or used to track which org gets the space each week
-- Useful for:
-  - Ensuring only one org per date
-  - Tracking which orgs have been assigned
-  - Managing the rotation
+- **Location dropdown is hidden** (not needed)
+- **Single non-profit booth space** per week
+- Location is always the same (non-profit booth area)
+- Only one organization can be approved per date
 
 ---
 
-## 💡 Recommended Workflow
+## 💡 Current Workflow
 
-### Option A: Simple Workflow (Current)
-1. **Review** submissions
-2. **Approve** or **Reject**
-3. **Assign Location** (if approved)
-4. **Confirm** (optional - marks as final)
-
-### Option B: Enhanced Workflow (Future)
-1. **Review** submissions
-2. **Approve** or **Reject**
-3. **Assign Location** (if approved)
-4. **Send Confirmation Email** (automated)
-5. **Confirm** (after email sent)
+1. **Review** submissions (filter by type, date, or status)
+2. **Approve** or **Reject** using action buttons
+3. **Assign Location** (Musicians only) - use dropdown if needed
+   - Location dropdown is automatically hidden for Volunteers and Non-Profits
+   - Can assign location when approving or after approval
 
 ---
 
 ## 🔧 Current Implementation
 
 ### Status Buttons:
-- **Approve Button:** Changes status to `Approved`
-- **Reject Button:** Changes status to `Rejected`
-- **Confirm Button:** Only shows when `Approved`, changes to `Confirmed`
+- **Approve Button:** Changes status to `Approved` (hides after approval)
+- **Reject Button:** Changes status to `Rejected` (hides after rejection)
 
 ### Location Assignment:
-- **Location Dropdown:** Directly in repeater item
+- **Location Dropdown:** Only visible for Musicians
   - Options: Unassigned, Default, Location A, B, C
   - Changes `assignedMapId` field
-- **Assign Location Button:** Helper button
-  - Currently focuses the dropdown
-  - Could be enhanced to open a modal or provide quick actions
+  - Automatically hidden for Volunteers and Non-Profits
 
 ---
 
@@ -130,25 +106,16 @@ Rejected (end of workflow)
 
 ---
 
-## ❓ Questions to Consider
+## 🚀 Potential Enhancements
 
-1. **Do you need the "Confirm" step?**
-   - Could simplify to: Pending → Approved → Done
-   - Or: Pending → Approved → Confirmed (current)
-
-2. **When do you assign locations?**
-   - Immediately after approval?
-   - Later, after reviewing all submissions for a date?
-   - In batches?
-
-3. **Do you need conflict detection?**
-   - Prevent double-booking same location/time?
-   - Warn about conflicts?
-
-4. **Do you need email notifications?**
-   - Auto-send when approved?
-   - Send confirmation with location details?
+### Workflow Enhancements:
+1. **Email Notifications:** Auto-send when approved/rejected
+2. **Notes Field:** Add admin notes to each assignment
+3. **Calendar View:** See all assignments on calendar
+4. **Export:** Export final schedule to CSV/PDF
+5. **Conflict Detection:** Warn if location already assigned to another musician/date
+6. **Bulk Operations:** Bulk approve/reject, bulk location assignment
 
 ---
 
-**Current workflow is functional. Let me know if you want to adjust the status flow or enhance location assignment!**
+**Current workflow is simplified: Pending → Approved/Rejected. Location assignment only for Musicians.**

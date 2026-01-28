@@ -15,7 +15,7 @@ A unified admin dashboard for managing musician, volunteer, and non-profit sched
 
 ### Filters
 - `#filterDate` - Dropdown - Filter by market date (populated automatically)
-- `#filterStatus` - Dropdown (optional) - Filter by status (Pending, Approved, Rejected, Confirmed)
+- `#filterStatus` - Dropdown (optional) - Filter by status (Pending, Approved, Rejected)
 
 ### Statistics Display (Optional but Recommended)
 - `#statTotal` - Text element - Total assignments count
@@ -91,8 +91,8 @@ A unified admin dashboard for managing musician, volunteer, and non-profit sched
 ### WeeklyAssignments Collection Fields Used:
 - `profileRef` - References SpecialtyProfiles (includes type, name, contact info)
 - `dateRef` - References MarketDates2026 (includes date, title)
-- `applicationStatus` - Status: "Pending", "Approved", "Rejected", "Confirmed"
-- `assignedMapId` - Location assignment
+- `applicationStatus` - Status: "Pending", "Approved", "Rejected"
+- `assignedMapId` - Location assignment (Musicians only - hidden for Volunteers/Non-Profits)
 
 ### SpecialtyProfiles Collection Fields Used:
 - `type` - "Musician", "Volunteer", or "NonProfit"
@@ -114,11 +114,10 @@ A unified admin dashboard for managing musician, volunteer, and non-profit sched
 - `#itemDate` - Text - Market date
 - `#itemContact` - Text - Contact info (email/phone)
 - `#itemDetails` - Text - Type-specific details (role, shift, etc.)
-- `#itemStatus` - Dropdown/Text - Current status
-- `#itemLocation` - Dropdown/Text - Assigned location
+- `#itemStatus` - Dropdown/Text - Current status (Pending, Approved, Rejected)
+- `#itemLocation` - Dropdown/Text - Assigned location (Musicians only - automatically hidden for Volunteers/Non-Profits)
 - `#btnApprove` - Button - Approve assignment
 - `#btnReject` - Button - Reject assignment
-- `#btnAssignLocation` - Button - Assign location
 
 ### Repeater Data Structure:
 ```javascript
@@ -141,7 +140,7 @@ A unified admin dashboard for managing musician, volunteer, and non-profit sched
 
 ### Status Updates
 - `updateAssignmentStatus(assignmentId, newStatus)` - Updates application status
-- Statuses: "Pending", "Approved", "Rejected", "Confirmed"
+- Statuses: "Pending", "Approved", "Rejected"
 
 ### Location Assignment
 - `updateAssignmentLocation(assignmentId, locationId)` - Assigns location
