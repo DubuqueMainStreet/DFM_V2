@@ -132,7 +132,7 @@ async function populateDateRepeater() {
 					console.warn('Class methods not available:', e);
 				}
 				
-				// PRIMARY: Try to style the container border (now that border exists in editor)
+				// Style the container border based on availability status
 				if (container.style) {
 					try {
 						// Ensure borderColor is in correct format (#RRGGBB)
@@ -140,36 +140,21 @@ async function populateDateRepeater() {
 							? itemData.borderColor 
 							: `#${itemData.borderColor}`;
 						
-						// Set border color - try multiple approaches
+						// Set border color
 						container.style.borderColor = borderColor;
 						container.style.borderWidth = '3px';
 						container.style.borderStyle = 'solid';
 						
-						// Also try setting as single border property
-						container.style.border = `3px solid ${borderColor}`;
+						// Apply opacity for full dates
+						if (itemData.status === 'full') {
+							container.style.opacity = '0.6';
+						} else {
+							container.style.opacity = '1';
+						}
 						
-						console.log(`✅ Applied container border color ${borderColor} (${itemData.status}) to ${itemData.label}`);
+						console.log(`✅ Applied border color ${borderColor} (${itemData.status}) to ${itemData.label}`);
 					} catch (e) {
 						console.warn('Failed to set container border:', e);
-					}
-					
-					// Apply opacity for full dates
-					if (itemData.status === 'full') {
-						container.style.opacity = '0.6';
-					} else {
-						container.style.opacity = '1';
-					}
-				}
-				
-				// FALLBACK: Style the border indicator element (in case container border doesn't work)
-				const borderIndicator = $item('#itemBorderIndicator');
-				if (borderIndicator && borderIndicator.style) {
-					try {
-						// Set background color based on availability status
-						borderIndicator.style.backgroundColor = itemData.borderColor;
-						borderIndicator.style.display = 'block';
-					} catch (e) {
-						console.warn('Failed to style border indicator:', e);
 					}
 				}
 				
