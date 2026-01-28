@@ -149,15 +149,46 @@ async function loadAssignments(type) {
 		
 		// Filter by profile type and status, then prepare data for repeater
 		const repeaterData = [];
+		let totalChecked = 0;
+		let typeMatched = 0;
+		let statusFiltered = 0;
+		const statusCounts = {}; // Track actual status values found
+		
 		for (const assignment of results.items) {
-			if (assignment.profileRef && assignment.profileRef.type === type) {
-				// Filter by status if not "all"
-				const assignmentStatus = assignment.applicationStatus || 'Pending';
-				if (selectedStatus === 'all' || assignmentStatus === selectedStatus) {
-					repeaterData.push(prepareRepeaterItem(assignment));
+			totalChecked++;
+			
+			// Check if profile type matches
+			if (!assignment.profileRef || assignment.profileRef.type !== type) {
+				continue;
+			}
+			typeMatched++;
+			
+			// Get status (default to 'Pending' if not set)
+			// Normalize: trim whitespace and handle null/undefined
+			const assignmentStatus = (assignment.applicationStatus || 'Pending').toString().trim();
+			
+			// Track status counts for debugging
+			statusCounts[assignmentStatus] = (statusCounts[assignmentStatus] || 0) + 1;
+			
+			// Filter by status if not "all" (case-insensitive comparison)
+			if (selectedStatus !== 'all') {
+				const normalizedSelectedStatus = selectedStatus.toString().trim();
+				if (assignmentStatus.toLowerCase() !== normalizedSelectedStatus.toLowerCase()) {
+					statusFiltered++;
+					continue;
 				}
 			}
+			
+			repeaterData.push(prepareRepeaterItem(assignment));
 		}
+		
+		console.log(`Assignment loading summary:`);
+		console.log(`  - Total assignments checked: ${totalChecked}`);
+		console.log(`  - Matched type "${type}": ${typeMatched}`);
+		console.log(`  - Status breakdown:`, statusCounts);
+		console.log(`  - Filtered out by status: ${statusFiltered}`);
+		console.log(`  - Final count displayed: ${repeaterData.length}`);
+		console.log(`  - Filters: status="${selectedStatus}", date="${selectedDateId}"`);
 		
 		// Sort by date, then by name
 		repeaterData.sort((a, b) => {
@@ -189,6 +220,9 @@ function prepareRepeaterItem(assignment) {
 	// Format contact info
 	const contactInfo = formatContactInfo(profile);
 	
+	// Normalize status (trim and default to Pending)
+	const status = (assignment.applicationStatus || 'Pending').toString().trim();
+	
 	return {
 		_id: assignment._id,
 		name: profile.organizationName || 'Unknown',
@@ -196,7 +230,7 @@ function prepareRepeaterItem(assignment) {
 		dateValue: dateRef.date || new Date(0),
 		contactInfo: contactInfo,
 		details: details,
-		status: assignment.applicationStatus || 'Pending',
+		status: status,
 		location: assignment.assignedMapId || 'Unassigned',
 		profileType: profile.type,
 		profileId: profile._id
@@ -272,46 +306,86 @@ function setupRepeaterItem($item, itemData) {
 		$item('#itemDetails').text = itemData.details;
 	}
 	
-	// Set status dropdown/display
-	if ($item('#itemStatus')) {
-		if ($item('#itemStatus').options) {
-			// It's a dropdown
-			$item('#itemStatus').options = [
-				{ value: 'Pending', label: 'Pending' },
-				{ value: 'Approved', label: 'Approved' },
-				{ value: 'Rejected', label: 'Rejected' },
-				{ value: 'Confirmed', label: 'Confirmed' }
-			];
-			$item('#itemStatus').value = itemData.status;
-			$item('#itemStatus').onChange(() => {
-				updateAssignmentStatus(itemData._id, $item('#itemStatus').value);
-			});
-		} else {
-			// It's a text element
-			$item('#itemStatus').text = itemData.status;
+		// Set status dropdown/display
+		if ($item('#itemStatus')) {
+			if ($item('#itemStatus').options) {
+				// It's a dropdown
+				$item('#itemStatus').options = [
+					{ value: 'Pending', label: 'Pending' },
+					{ value: 'Approved', label: 'Approved' },
+					{ value: 'Rejected', label: 'Rejected' },
+					{ value: 'Confirmed', label: 'Confirmed' }
+				];
+				
+				// Normalize and set current value
+				const currentStatus = (itemData.status || 'Pending').toString().trim();
+				$item('#itemStatus').value = currentStatus;
+				
+				// Prevent multiple onChange handlers by removing existing ones first
+				// Store assignment ID for the handler
+				const assignmentId = itemData._id;
+				let isUpdating = false; // Flag to prevent recursive updates
+				
+				$item('#itemStatus').onChange(async () => {
+					if (isUpdating) return; // Prevent recursive calls
+					
+					const newValue = $item('#itemStatus').value;
+					const normalizedNewValue = (newValue || 'Pending').toString().trim();
+					const normalizedCurrent = currentStatus;
+					
+					if (normalizedNewValue !== normalizedCurrent) {
+						isUpdating = true;
+						try {
+							await updateAssignmentStatus(assignmentId, normalizedNewValue);
+						} finally {
+							isUpdating = false;
+						}
+					}
+				});
+			} else {
+				// It's a text element
+				$item('#itemStatus').text = itemData.status;
+			}
 		}
-	}
 	
-	// Set location dropdown/display
-	if ($item('#itemLocation')) {
-		if ($item('#itemLocation').options) {
-			// It's a dropdown
-			$item('#itemLocation').options = [
-				{ value: 'Unassigned', label: 'Unassigned' },
-				{ value: 'Default', label: 'Default' },
-				{ value: 'Location A', label: 'Location A' },
-				{ value: 'Location B', label: 'Location B' },
-				{ value: 'Location C', label: 'Location C' }
-			];
-			$item('#itemLocation').value = itemData.location || 'Unassigned';
-			$item('#itemLocation').onChange(() => {
-				updateAssignmentLocation(itemData._id, $item('#itemLocation').value);
-			});
-		} else {
-			// It's a text element
-			$item('#itemLocation').text = itemData.location || 'Unassigned';
+		// Set location dropdown/display
+		if ($item('#itemLocation')) {
+			if ($item('#itemLocation').options) {
+				// It's a dropdown
+				$item('#itemLocation').options = [
+					{ value: 'Unassigned', label: 'Unassigned' },
+					{ value: 'Default', label: 'Default' },
+					{ value: 'Location A', label: 'Location A' },
+					{ value: 'Location B', label: 'Location B' },
+					{ value: 'Location C', label: 'Location C' }
+				];
+				
+				const currentLocation = itemData.location || 'Unassigned';
+				$item('#itemLocation').value = currentLocation;
+				
+				// Prevent multiple onChange handlers
+				const assignmentId = itemData._id;
+				let isUpdating = false; // Flag to prevent recursive updates
+				
+				$item('#itemLocation').onChange(async () => {
+					if (isUpdating) return; // Prevent recursive calls
+					
+					const newLocation = $item('#itemLocation').value || 'Unassigned';
+					
+					if (newLocation !== currentLocation) {
+						isUpdating = true;
+						try {
+							await updateAssignmentLocation(assignmentId, newLocation);
+						} finally {
+							isUpdating = false;
+						}
+					}
+				});
+			} else {
+				// It's a text element
+				$item('#itemLocation').text = itemData.location || 'Unassigned';
+			}
 		}
-	}
 	
 	// Set up action buttons - check if they exist and are buttons before setting onClick
 	const btnApprove = $item('#btnApprove');
@@ -356,45 +430,99 @@ function setupRepeaterItem($item, itemData) {
 	const btnAssignLocation = $item('#btnAssignLocation');
 	if (btnAssignLocation && typeof btnAssignLocation.onClick === 'function') {
 		btnAssignLocation.onClick(() => {
-			// Focus the location dropdown if it exists
+			// If location dropdown exists, open it (focus triggers dropdown)
 			const locationDropdown = $item('#itemLocation');
 			if (locationDropdown && locationDropdown.options) {
+				// Focus will open the dropdown for user to select
 				locationDropdown.focus();
+				// Alternative: If you want to assign a default location, uncomment:
+				// updateAssignmentLocation(itemData._id, 'Default');
+			} else {
+				// If no dropdown, show message or open modal
+				showError('Location dropdown not available. Please assign location manually.');
 			}
 		});
+		// Hide button if location is already assigned (optional)
+		// if (itemData.location && itemData.location !== 'Unassigned') {
+		// 	btnAssignLocation.hide();
+		// }
 	}
 }
 
 async function updateAssignmentStatus(assignmentId, newStatus) {
 	try {
-		await wixData.update('WeeklyAssignments', {
+		// Normalize status
+		const normalizedStatus = (newStatus || 'Pending').toString().trim();
+		console.log(`Updating assignment ${assignmentId} to status: "${normalizedStatus}"`);
+		
+		// Get current status filter before update
+		const currentStatusFilter = ($w('#filterStatus')?.value || 'all').toString().trim();
+		
+		const result = await wixData.update('WeeklyAssignments', {
 			_id: assignmentId,
-			applicationStatus: newStatus
+			applicationStatus: normalizedStatus
 		});
 		
-		// Reload current view
+		console.log('Update result:', result);
+		console.log('Updated assignment status:', result.applicationStatus);
+		
+		// Verify the update worked
+		const verifyResult = await wixData.get('WeeklyAssignments', assignmentId);
+		console.log('Verified status after update:', verifyResult.applicationStatus);
+		
+		// If filter is set to a specific status and item changed to different status,
+		// automatically adjust filter to show the new status
+		if (currentStatusFilter !== 'all' && currentStatusFilter.toLowerCase() !== normalizedStatus.toLowerCase()) {
+			// Update filter to show the new status
+			if ($w('#filterStatus')) {
+				$w('#filterStatus').value = normalizedStatus;
+			}
+			showSuccess(`Status updated to ${normalizedStatus}. Filter adjusted to show ${normalizedStatus} items.`);
+		} else {
+			showSuccess(`Status updated to ${normalizedStatus}`);
+		}
+		
+		// Small delay to ensure database is updated
+		await new Promise(resolve => setTimeout(resolve, 100));
+		
+		// Reload current view (will use updated filter if changed)
 		await loadAssignments(currentType);
 		
-		showSuccess(`Status updated to ${newStatus}`);
 	} catch (error) {
 		console.error('Error updating status:', error);
+		console.error('Full error:', JSON.stringify(error, null, 2));
 		showError('Failed to update status. Please try again.');
 	}
 }
 
 async function updateAssignmentLocation(assignmentId, locationId) {
 	try {
-		await wixData.update('WeeklyAssignments', {
+		const normalizedLocation = (locationId || 'Unassigned').toString().trim();
+		console.log(`Updating assignment ${assignmentId} location to: "${normalizedLocation}"`);
+		
+		const updateValue = normalizedLocation === 'Unassigned' ? null : normalizedLocation;
+		const result = await wixData.update('WeeklyAssignments', {
 			_id: assignmentId,
-			assignedMapId: locationId === 'Unassigned' ? null : locationId
+			assignedMapId: updateValue
 		});
 		
-		// Reload current view
+		console.log('Location update result:', result);
+		console.log('Updated assignedMapId:', result.assignedMapId);
+		
+		// Verify the update worked
+		const verifyResult = await wixData.get('WeeklyAssignments', assignmentId);
+		console.log('Verified location after update:', verifyResult.assignedMapId);
+		
+		// Small delay to ensure database is updated
+		await new Promise(resolve => setTimeout(resolve, 100));
+		
+		// Reload current view (will respect current filters)
 		await loadAssignments(currentType);
 		
 		showSuccess('Location assigned successfully');
 	} catch (error) {
 		console.error('Error updating location:', error);
+		console.error('Full error:', JSON.stringify(error, null, 2));
 		showError('Failed to assign location. Please try again.');
 	}
 }

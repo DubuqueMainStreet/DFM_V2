@@ -225,25 +225,26 @@ dubuque-market-2026-planning/
 2. **Date field formatting** - Fixed (using `date` field, formatted with day suffixes)
 3. **Date selection retrieval** - Fixed (robust value retrieval from selection tags)
 4. **Field consolidation** - Fixed (unified schema: `organizationName`, `contactEmail`, `contactPhone`)
-
-### ✅ Resolved
-1. **✅ Tag fields** - `musicianType` and `preferredLocation` verified as Text fields
-2. **✅ Reference field displays** - `dateRef` should now display dates correctly (titles populated in `MarketDates2026`)
+5. **Date restoration** - Fixed (all 27 dates restored to Saturdays: May 2 - October 31, 2026)
+6. **Reference field displays** - Fixed (`dateRef` now displays dates correctly, `title` field set as primary)
+7. **Multiple date selections** - Verified (each selected date creates separate `WeeklyAssignments` record)
 
 ---
 
 ## 🚀 Immediate Next Steps
 
-### Step 1: Complete CMS Configuration
-1. Add `title` field to `MarketDates2026` collection
-2. Verify `musicianType` and `preferredLocation` are Text fields (not Tag)
-3. Run `populateDateTitles` script (visit test page or run manually)
+### ✅ Step 1: CMS Configuration - COMPLETE
+1. ✅ `title` field added to `MarketDates2026` collection
+2. ✅ `musicianType` and `preferredLocation` verified as Text fields
+3. ✅ All 27 dates populated and corrected to Saturdays
+4. ✅ `title` field set as primary display field
 
-### Step 2: Test Form Submission
-1. Submit a test form with all fields
-2. Verify data saves correctly to `SpecialtyProfiles`
-3. Verify `WeeklyAssignments` records are created
-4. Verify reference fields display correctly (names and dates, not UUIDs)
+### Step 2: Test Form Submission - IN PROGRESS
+1. ✅ Submit a test form with all fields
+2. ✅ Verify data saves correctly to `SpecialtyProfiles`
+3. ✅ Verify `WeeklyAssignments` records are created (multiple dates = multiple records)
+4. ✅ Verify reference fields display correctly (names and dates, not UUIDs)
+5. ⏳ Complete full end-to-end testing checklist
 
 ### Step 3: UI Polish (If Needed)
 1. Style form elements appropriately
@@ -317,4 +318,5 @@ The form is complete when:
 
 **Last Updated:** January 28, 2026  
 **Code Status:** ✅ Complete  
-**CMS Status:** ✅ Configuration Complete
+**CMS Status:** ✅ Configuration Complete  
+**Testing Status:** ✅ WeeklyAssignments Verified Working
