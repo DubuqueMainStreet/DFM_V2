@@ -27,6 +27,11 @@ export async function getDateAvailability() {
 			if (!availability[dateId]) {
 				availability[dateId] = {
 					musicians: 0,
+					musiciansByLocation: {
+						'Location A': 0,  // 13th Street
+						'Location B': 0,  // Food Court
+						'Location C': 0   // 10th & Iowa St
+					},
 					nonProfits: 0,
 					volunteers: {
 						'Token Sales': 0,
@@ -43,6 +48,12 @@ export async function getDateAvailability() {
 			const type = profile.type;
 			if (type === 'Musician') {
 				availability[dateId].musicians++;
+				// Track by location - only count if assignedMapId is set (confirmed location assignment)
+				// assignedMapId is set when admin assigns location in admin dashboard
+				const location = assignment.assignedMapId;
+				if (location && availability[dateId].musiciansByLocation[location] !== undefined) {
+					availability[dateId].musiciansByLocation[location]++;
+				}
 			} else if (type === 'NonProfit') {
 				availability[dateId].nonProfits++;
 			} else if (type === 'Volunteer') {

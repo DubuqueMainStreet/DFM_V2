@@ -37,23 +37,33 @@ async function populateDateRepeater() {
 			})
 			.sort((a, b) => a.date - b.date);
 		
-		// Build repeater data with availability status
+		// Build repeater data with availability status based on location bookings
 		const repeaterData = dateItems.map(item => {
 			const daySuffix = getDaySuffix(item.day);
 			const dateAvailability = availability[item._id];
-			const musicianCount = dateAvailability ? dateAvailability.musicians : 0;
 			
-			// Determine status for musicians (0-1 = available, 2 = limited, 3+ = full)
+			// Count how many locations are booked (each location limited to 1 musician)
+			let bookedLocations = 0;
+			if (dateAvailability && dateAvailability.musiciansByLocation) {
+				const locations = dateAvailability.musiciansByLocation;
+				// Count locations with at least 1 approved musician
+				if (locations['Location A'] >= 1) bookedLocations++;
+				if (locations['Location B'] >= 1) bookedLocations++;
+				if (locations['Location C'] >= 1) bookedLocations++;
+			}
+			
+			// Determine status: 0-1 locations booked = available, 2 = limited, 3 = full
 			let status = 'available';
 			let borderColor = '#4CAF50'; // Green
 			
-			if (musicianCount >= 3) {
+			if (bookedLocations >= 3) {
 				status = 'full';
-				borderColor = '#F44336'; // Red
-			} else if (musicianCount === 2) {
+				borderColor = '#F44336'; // Red - all locations booked
+			} else if (bookedLocations === 2) {
 				status = 'limited';
-				borderColor = '#FF9800'; // Orange
+				borderColor = '#FF9800'; // Orange - only 1 location available
 			}
+			// bookedLocations 0-1 = available (green)
 			
 			return {
 				_id: item._id,
@@ -179,21 +189,20 @@ function populateMusicianTypeDropdown() {
 
 function populateLocationDropdown() {
 	const locationOptions = [
-		{ value: 'Default', label: 'Default (No Preference)' },
-		{ value: 'Location A', label: 'Location A' },
-		{ value: 'Location B', label: 'Location B' },
-		{ value: 'Location C', label: 'Location C' }
+		{ value: 'Location A', label: '13th Street' },
+		{ value: 'Location B', label: 'Food Court' },
+		{ value: 'Location C', label: '10th & Iowa St' }
 	];
 	$w('#inputLocation').options = locationOptions;
 }
 
 function populateDurationDropdown() {
 	const durationOptions = [
-		{ value: '30 minutes', label: '30 minutes' },
-		{ value: '1 hour', label: '1 hour' },
-		{ value: '1.5 hours', label: '1.5 hours' },
+		{ value: '5 hours', label: '5 hours' },
+		{ value: '4 hours', label: '4 hours' },
+		{ value: '3 hours', label: '3 hours' },
 		{ value: '2 hours', label: '2 hours' },
-		{ value: 'Flexible', label: 'Flexible' }
+		{ value: '1 hour', label: '1 hour' }
 	];
 	$w('#inputDuration').options = durationOptions;
 }
