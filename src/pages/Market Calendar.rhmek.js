@@ -362,16 +362,23 @@ function setupCalendarItem($item, itemData) {
 	const overallStatus = itemData.overallStatus;
 	if ($item('#itemStatus')) {
 		let statusText = '';
+		let statusColor = '';
 		
 		if (overallStatus === 'complete') {
 			statusText = '✅ Complete';
+			statusColor = '#28a745'; // Green
 		} else if (overallStatus === 'needs_attention') {
 			statusText = '⚠️ Attention';
+			statusColor = '#ffc107'; // Yellow/Orange
 		} else {
 			statusText = '❌ Critical';
+			statusColor = '#dc3545'; // Red
 		}
 		
 		$item('#itemStatus').text = statusText;
+		if ($item('#itemStatus').style) {
+			$item('#itemStatus').style.color = statusColor;
+		}
 	}
 	
 	// Musicians coverage
