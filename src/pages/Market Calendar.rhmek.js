@@ -436,6 +436,16 @@ function setupCalendarItem($item, itemData) {
 					// SHOW details
 					console.log('Showing details...');
 					
+					// Reset any height constraints first
+					if (detailsContainer.style) {
+						try {
+							detailsContainer.style.height = 'auto';
+							detailsContainer.style.overflow = '';
+						} catch (e) {
+							console.warn('Could not reset container height:', e);
+						}
+					}
+					
 					// Populate the content first
 					populateDetails(detailsContent, itemData);
 					
@@ -444,8 +454,10 @@ function setupCalendarItem($item, itemData) {
 						detailsContent.show();
 					}
 					
-					// Show container
-					if (typeof detailsContainer.show === 'function') {
+					// Show container - try expand() first if available, then show()
+					if (typeof detailsContainer.expand === 'function') {
+						detailsContainer.expand();
+					} else if (typeof detailsContainer.show === 'function') {
 						detailsContainer.show();
 					}
 					
@@ -462,8 +474,33 @@ function setupCalendarItem($item, itemData) {
 					// HIDE details
 					console.log('Hiding details...');
 					
-					if (typeof detailsContainer.hide === 'function') {
+					// Hide content first
+					if (typeof detailsContent.hide === 'function') {
+						detailsContent.hide();
+					}
+					
+					// Hide container - try multiple methods to ensure it collapses properly
+					if (typeof detailsContainer.collapse === 'function') {
+						detailsContainer.collapse();
+					} else if (typeof detailsContainer.hide === 'function') {
 						detailsContainer.hide();
+					}
+					
+					// Force container to resize by setting height to auto/0
+					if (detailsContainer.style) {
+						try {
+							detailsContainer.style.height = '0';
+							detailsContainer.style.overflow = 'hidden';
+							// Reset after a moment to allow natural sizing
+							setTimeout(() => {
+								if (detailsContainer.style) {
+									detailsContainer.style.height = 'auto';
+									detailsContainer.style.overflow = '';
+								}
+							}, 100);
+						} catch (e) {
+							console.warn('Could not set container height:', e);
+						}
 					}
 					
 					// Update button text
