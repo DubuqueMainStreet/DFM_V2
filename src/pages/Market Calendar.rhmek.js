@@ -364,11 +364,11 @@ function setupCalendarItem($item, itemData) {
 		let statusText = '';
 		
 		if (overallStatus === 'complete') {
-			statusText = '✅';
+			statusText = '✅ Complete';
 		} else if (overallStatus === 'needs_attention') {
-			statusText = '⚠️';
+			statusText = '⚠️ Attention';
 		} else {
-			statusText = '❌';
+			statusText = '❌ Critical';
 		}
 		
 		$item('#itemStatus').text = statusText;
