@@ -362,23 +362,16 @@ function setupCalendarItem($item, itemData) {
 	const overallStatus = itemData.overallStatus;
 	if ($item('#itemStatus')) {
 		let statusText = '';
-		let statusColor = '';
 		
 		if (overallStatus === 'complete') {
-			statusText = '✅ Complete';
-			statusColor = '#28a745'; // Green
+			statusText = '✅';
 		} else if (overallStatus === 'needs_attention') {
-			statusText = '⚠️ Needs Attention';
-			statusColor = '#ffc107'; // Yellow
+			statusText = '⚠️';
 		} else {
-			statusText = '❌ Critical Gaps';
-			statusColor = '#dc3545'; // Red
+			statusText = '❌';
 		}
 		
 		$item('#itemStatus').text = statusText;
-		if ($item('#itemStatus').style) {
-			$item('#itemStatus').style.color = statusColor;
-		}
 	}
 	
 	// Musicians coverage
