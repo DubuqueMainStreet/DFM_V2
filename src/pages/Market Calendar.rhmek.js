@@ -405,146 +405,36 @@ function setupCalendarItem($item, itemData) {
 		$item('#itemVolunteers').text = text + pendingText;
 	}
 	
-	// Expandable details section - SIMPLIFIED APPROACH
-	// Using hide/show instead of collapse/expand for reliability
+	// Expandable details section - CLEAN SIMPLE APPROACH
 	const detailsContainer = $item('#detailsContainer');
 	const detailsContent = $item('#detailsContent');
 	const toggleButton = $item('#btnToggleDetails');
 	
 	if (detailsContainer && detailsContent && toggleButton) {
-		// Track expanded state (more reliable than checking hidden property)
+		// Track expanded state
 		let isExpanded = false;
 		
 		// Initially hide the details container
-		if (typeof detailsContainer.hide === 'function') {
-			detailsContainer.hide();
-		}
+		detailsContainer.hide();
 		
-		// Set initial button text - try both label and text properties
-		if (toggleButton.label !== undefined) {
-			toggleButton.label = 'Show Details';
-		} else if (toggleButton.text !== undefined) {
-			toggleButton.text = 'Show Details';
-		}
+		// Set initial button label
+		toggleButton.label = 'Show Details';
 		
 		// Set up toggle button click handler
-		if (typeof toggleButton.onClick === 'function') {
-			toggleButton.onClick(() => {
-				console.log('Toggle button clicked, current state:', isExpanded);
-				
-				if (!isExpanded) {
-					// SHOW details
-					console.log('Showing details...');
-					
-					// Populate the content first
-					populateDetails(detailsContent, itemData);
-					
-					// Show content element FIRST
-					if (typeof detailsContent.show === 'function') {
-						detailsContent.show();
-					}
-					
-					// Ensure content is visible via style
-					if (detailsContent.style) {
-						try {
-							detailsContent.style.display = 'block';
-							detailsContent.style.visibility = 'visible';
-							detailsContent.style.opacity = '1';
-							detailsContent.style.height = 'auto';
-						} catch (e) {
-							console.warn('Could not style content:', e);
-						}
-					}
-					
-					// Show container - try expand() first if available, then show()
-					// Don't manipulate height - let Wix handle it naturally
-					if (typeof detailsContainer.expand === 'function') {
-						detailsContainer.expand();
-					} else if (typeof detailsContainer.show === 'function') {
-						detailsContainer.show();
-					}
-					
-					// Double-check content is visible after container is shown
-					setTimeout(() => {
-						if (detailsContent.text && detailsContent.text.length > 0) {
-							console.log('Content verified after show, length:', detailsContent.text.length);
-						}
-						
-						// Force show and style the content element
-						if (typeof detailsContent.show === 'function') {
-							detailsContent.show();
-						}
-						
-						if (detailsContent.visible !== undefined) {
-							detailsContent.visible = true;
-						}
-						
-						if (detailsContent.style) {
-							try {
-								detailsContent.style.display = 'block';
-								detailsContent.style.visibility = 'visible';
-								detailsContent.style.opacity = '1';
-								detailsContent.style.height = 'auto';
-								detailsContent.style.width = '100%';
-								detailsContent.style.color = '#000000';
-								console.log('Content element re-styled after container show');
-							} catch (e) {
-								console.warn('Could not re-style content:', e);
-							}
-						}
-						
-						// Verify final state
-						console.log('Final content check:', {
-							hasText: !!detailsContent.text,
-							textLength: detailsContent.text ? detailsContent.text.length : 0,
-							visible: detailsContent.visible !== undefined ? detailsContent.visible : 'unknown'
-						});
-					}, 100);
-					
-					// Update button text
-					if (toggleButton.label !== undefined) {
-						toggleButton.label = 'Hide Details';
-					} else if (toggleButton.text !== undefined) {
-						toggleButton.text = 'Hide Details';
-					}
-					
-					isExpanded = true;
-					console.log('Details shown, isExpanded:', isExpanded);
-				} else {
-					// HIDE details
-					console.log('Hiding details...');
-					
-					// Hide container first (this should naturally collapse)
-					if (typeof detailsContainer.collapse === 'function') {
-						detailsContainer.collapse();
-					} else if (typeof detailsContainer.hide === 'function') {
-						detailsContainer.hide();
-					}
-					
-					// Hide content element
-					if (typeof detailsContent.hide === 'function') {
-						detailsContent.hide();
-					}
-					
-					// Update button text
-					if (toggleButton.label !== undefined) {
-						toggleButton.label = 'Show Details';
-					} else if (toggleButton.text !== undefined) {
-						toggleButton.text = 'Show Details';
-					}
-					
-					isExpanded = false;
-					console.log('Details hidden, isExpanded:', isExpanded);
-				}
-			});
-		} else {
-			console.warn('toggleButton.onClick is not a function');
-		}
-	} else {
-		console.warn('Missing elements:', {
-			detailsContainer: !!detailsContainer,
-			detailsContent: !!detailsContent,
-			toggleButton: !!toggleButton
+		toggleButton.onClick(() => {
+			if (!isExpanded) {
+				// SHOW details
+				populateDetails(detailsContent, itemData);
+				detailsContent.show();
+				detailsContainer.show();
+				toggleButton.label = 'Hide Details';
+				isExpanded = true;
+			} else {
+				// HIDE details
+				detailsContainer.hide();
+				toggleButton.label = 'Show Details';
+				isExpanded = false;
+			}
 		});
 	}
 }
