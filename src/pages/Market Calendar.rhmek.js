@@ -412,42 +412,74 @@ function setupCalendarItem($item, itemData) {
 	const toggleButton = $item('#btnToggleDetails');
 	
 	if (detailsContainer && detailsContent && toggleButton) {
-		// Initially hide the details container
-		detailsContainer.hide();
+		// Track expanded state (more reliable than checking hidden property)
+		let isExpanded = false;
 		
-		// Set initial button text
-		toggleButton.label = 'Show Details';
+		// Initially hide the details container
+		if (typeof detailsContainer.hide === 'function') {
+			detailsContainer.hide();
+		}
+		
+		// Set initial button text - try both label and text properties
+		if (toggleButton.label !== undefined) {
+			toggleButton.label = 'Show Details';
+		} else if (toggleButton.text !== undefined) {
+			toggleButton.text = 'Show Details';
+		}
 		
 		// Set up toggle button click handler
-		toggleButton.onClick(() => {
-			// Check current visibility state
-			if (detailsContainer.hidden) {
-				// SHOW details
-				console.log('Showing details...');
+		if (typeof toggleButton.onClick === 'function') {
+			toggleButton.onClick(() => {
+				console.log('Toggle button clicked, current state:', isExpanded);
 				
-				// Populate the content
-				populateDetails(detailsContent, itemData);
-				
-				// Show both container and content
-				detailsContent.show();
-				detailsContainer.show();
-				
-				// Update button text
-				toggleButton.label = 'Hide Details';
-				
-				console.log('Details shown');
-			} else {
-				// HIDE details
-				console.log('Hiding details...');
-				
-				detailsContainer.hide();
-				
-				// Update button text
-				toggleButton.label = 'Show Details';
-				
-				console.log('Details hidden');
-			}
-		});
+				if (!isExpanded) {
+					// SHOW details
+					console.log('Showing details...');
+					
+					// Populate the content first
+					populateDetails(detailsContent, itemData);
+					
+					// Show content element
+					if (typeof detailsContent.show === 'function') {
+						detailsContent.show();
+					}
+					
+					// Show container
+					if (typeof detailsContainer.show === 'function') {
+						detailsContainer.show();
+					}
+					
+					// Update button text
+					if (toggleButton.label !== undefined) {
+						toggleButton.label = 'Hide Details';
+					} else if (toggleButton.text !== undefined) {
+						toggleButton.text = 'Hide Details';
+					}
+					
+					isExpanded = true;
+					console.log('Details shown, isExpanded:', isExpanded);
+				} else {
+					// HIDE details
+					console.log('Hiding details...');
+					
+					if (typeof detailsContainer.hide === 'function') {
+						detailsContainer.hide();
+					}
+					
+					// Update button text
+					if (toggleButton.label !== undefined) {
+						toggleButton.label = 'Show Details';
+					} else if (toggleButton.text !== undefined) {
+						toggleButton.text = 'Show Details';
+					}
+					
+					isExpanded = false;
+					console.log('Details hidden, isExpanded:', isExpanded);
+				}
+			});
+		} else {
+			console.warn('toggleButton.onClick is not a function');
+		}
 	} else {
 		console.warn('Missing elements:', {
 			detailsContainer: !!detailsContainer,
