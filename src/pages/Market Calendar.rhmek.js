@@ -467,6 +467,27 @@ function setupCalendarItem($item, itemData) {
 							console.log('Container shown via style.display');
 						}
 						
+						// Wait a moment for container to finish expanding
+						await new Promise(resolve => setTimeout(resolve, 100));
+						
+						// Ensure content is visible AFTER container expansion (container might reset child visibility)
+						if (typeof detailsContent.show === 'function') {
+							detailsContent.show();
+							console.log('Content element shown again after container expansion');
+						}
+						
+						// Force visibility via style after expansion
+						if (detailsContent.style) {
+							try {
+								detailsContent.style.display = 'block';
+								detailsContent.style.visibility = 'visible';
+								detailsContent.style.opacity = '1';
+								console.log('Content element styled again after expansion');
+							} catch (e) {
+								console.warn('Could not style content after expansion:', e);
+							}
+						}
+						
 						// Double-check content is visible after container expansion
 						if (detailsContent.text && detailsContent.text.length > 0) {
 							console.log('Content verified after expansion, length:', detailsContent.text.length);
