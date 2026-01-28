@@ -13,8 +13,9 @@ async function initializeDashboard() {
 		// Set up tab handlers
 		setupTabHandlers();
 		
-		// Load date filter options
+		// Load filter options
 		await populateDateFilter();
+		await populateStatusFilter();
 		
 		// Load default view (Musicians)
 		await loadAssignments('Musician');
@@ -49,19 +50,24 @@ async function switchTab(type) {
 }
 
 function updateActiveTab(activeType) {
-	// Remove active styling from all tabs
+	// Update tab styling - keep all tabs visible, just change active state
+	// Note: You may want to add custom CSS classes for active/inactive states
+	// For now, we'll just ensure all tabs remain visible
 	const tabs = ['Musician', 'Volunteer', 'NonProfit'];
 	tabs.forEach(type => {
 		const tabElement = $w(`#tab${type}s`);
 		if (tabElement) {
-			tabElement.collapse();
+			// Ensure tab is visible (don't collapse)
+			tabElement.show();
+			// You can add custom styling here if needed
 		}
 	});
 	
-	// Add active styling to selected tab
+	// Mark active tab (you can add custom styling)
 	const activeTab = $w(`#tab${activeType}s`);
 	if (activeTab) {
-		activeTab.expand();
+		activeTab.show();
+		// Add any active state styling here if needed
 	}
 }
 
@@ -100,12 +106,34 @@ async function populateDateFilter() {
 	}
 }
 
+async function populateStatusFilter() {
+	try {
+		const statusOptions = [
+			{ value: 'all', label: 'All Statuses' },
+			{ value: 'Pending', label: 'Pending' },
+			{ value: 'Approved', label: 'Approved' },
+			{ value: 'Rejected', label: 'Rejected' },
+			{ value: 'Confirmed', label: 'Confirmed' }
+		];
+		
+		if ($w('#filterStatus')) {
+			$w('#filterStatus').options = statusOptions;
+			$w('#filterStatus').onChange(() => {
+				loadAssignments(currentType);
+			});
+		}
+	} catch (error) {
+		console.error('Error populating status filter:', error);
+	}
+}
+
 async function loadAssignments(type) {
 	try {
 		showLoading(true);
 		
-		// Get selected date filter
+		// Get selected filters
 		const selectedDateId = $w('#filterDate')?.value || 'all';
+		const selectedStatus = $w('#filterStatus')?.value || 'all';
 		
 		// Build query
 		let query = wixData.query('WeeklyAssignments')
@@ -119,11 +147,15 @@ async function loadAssignments(type) {
 		
 		const results = await query.find();
 		
-		// Filter by profile type and prepare data for repeater
+		// Filter by profile type and status, then prepare data for repeater
 		const repeaterData = [];
 		for (const assignment of results.items) {
 			if (assignment.profileRef && assignment.profileRef.type === type) {
-				repeaterData.push(prepareRepeaterItem(assignment));
+				// Filter by status if not "all"
+				const assignmentStatus = assignment.applicationStatus || 'Pending';
+				if (selectedStatus === 'all' || assignmentStatus === selectedStatus) {
+					repeaterData.push(prepareRepeaterItem(assignment));
+				}
 			}
 		}
 		
@@ -281,43 +313,53 @@ function setupRepeaterItem($item, itemData) {
 		}
 	}
 	
-	// Set up action buttons
-	if ($item('#btnApprove')) {
-		$item('#btnApprove').onClick(() => {
+	// Set up action buttons - check if they exist and are buttons before setting onClick
+	const btnApprove = $item('#btnApprove');
+	if (btnApprove && typeof btnApprove.onClick === 'function') {
+		btnApprove.onClick(() => {
 			updateAssignmentStatus(itemData._id, 'Approved');
 		});
 		// Hide button if already approved/confirmed
 		if (itemData.status === 'Approved' || itemData.status === 'Confirmed') {
-			$item('#btnApprove').hide();
+			btnApprove.hide();
+		} else {
+			btnApprove.show();
 		}
 	}
 	
-	if ($item('#btnReject')) {
-		$item('#btnReject').onClick(() => {
+	const btnReject = $item('#btnReject');
+	if (btnReject && typeof btnReject.onClick === 'function') {
+		btnReject.onClick(() => {
 			updateAssignmentStatus(itemData._id, 'Rejected');
 		});
 		// Hide button if already rejected
 		if (itemData.status === 'Rejected') {
-			$item('#btnReject').hide();
+			btnReject.hide();
+		} else {
+			btnReject.show();
 		}
 	}
 	
-	if ($item('#btnConfirm')) {
-		$item('#btnConfirm').onClick(() => {
+	const btnConfirm = $item('#btnConfirm');
+	if (btnConfirm && typeof btnConfirm.onClick === 'function') {
+		btnConfirm.onClick(() => {
 			updateAssignmentStatus(itemData._id, 'Confirmed');
 		});
 		// Only show if approved
-		if (itemData.status !== 'Approved') {
-			$item('#btnConfirm').hide();
+		if (itemData.status === 'Approved') {
+			btnConfirm.show();
+		} else {
+			btnConfirm.hide();
 		}
 	}
 	
-	if ($item('#btnAssignLocation')) {
-		$item('#btnAssignLocation').onClick(() => {
-			// Toggle location dropdown visibility or open modal
-			// For now, just focus the location dropdown if it exists
-			if ($item('#itemLocation') && $item('#itemLocation').options) {
-				$item('#itemLocation').focus();
+	const btnAssignLocation = $item('#btnAssignLocation');
+	if (btnAssignLocation && typeof btnAssignLocation.onClick === 'function') {
+		btnAssignLocation.onClick(() => {
+			// Focus the location dropdown if it exists
+			const locationDropdown = $item('#itemLocation');
+			if (locationDropdown && locationDropdown.options) {
+				locationDropdown.focus();
 			}
 		});
 	}
