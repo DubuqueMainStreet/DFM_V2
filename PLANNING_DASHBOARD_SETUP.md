@@ -119,7 +119,7 @@ A calendar/planning dashboard that shows all 27 market dates with coverage indic
 2. Style the repeater item as needed (cards, spacing, etc.)
 
 ### Step 3: Add Code
-1. Copy the code from `src/pages/Market Calendar.k6g1g.js`
+1. Copy the code from `src/pages/Market Calendar.rhmek.js`
 2. Paste it into your page's code section in Wix Editor
 
 ### Step 4: Add Loading/Error Messages
@@ -230,7 +230,7 @@ A calendar/planning dashboard that shows all 27 market dates with coverage indic
 
 ## 📚 Related Files
 
-- **Code:** `src/pages/Market Calendar.k6g1g.js`
+- **Code:** `src/pages/Market Calendar.rhmek.js`
 - **Proposal:** `PLANNING_DASHBOARD_PROPOSAL.md`
 - **Admin Dashboard:** `src/pages/Speciality Requests.k6g1g.js`
 
