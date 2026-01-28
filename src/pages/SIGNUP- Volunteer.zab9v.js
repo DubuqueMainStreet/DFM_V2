@@ -158,59 +158,36 @@ async function populateDateRepeater() {
 					}
 				}
 				
-				// Set initial checkbox state (preserve selection across role changes)
-				$item('#itemCheckbox').checked = itemData.isSelected;
-				if (itemData.isSelected) {
+				// Set initial selection state (preserve selection across role changes)
+				const isCurrentlySelected = selectedDateIds.includes(itemData._id);
+				if (isCurrentlySelected) {
 					container.style.backgroundColor = '#E3F2FD';
-				} else {
-					// Don't set backgroundColor for transparent - let it use default
-					// Wix doesn't accept rgba(255, 255, 255, 0) format
 				}
 			} catch (error) {
 				console.error('Error styling repeater item:', error, itemData);
 			}
 			
-			// Handle checkbox changes
-			$item('#itemCheckbox').onChange((event) => {
-				const container = $item('#itemContainer');
-				const isChecked = event.target.checked;
-				if (isChecked) {
-					if (!selectedDateIds.includes(itemData._id)) {
-						selectedDateIds.push(itemData._id);
-					}
-					container.style.backgroundColor = '#E3F2FD';
-				} else {
-					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-					// Reset to default background - don't set transparent explicitly
-					try {
-						container.style.backgroundColor = '';
-					} catch (e) {
-						// If clearing doesn't work, just leave it
-					}
-				}
-				console.log('Selected dates:', selectedDateIds);
-			});
-			
-			// Also allow clicking the container to toggle
+			// Make entire container clickable to toggle selection
 			$item('#itemContainer').onClick(() => {
 				const container = $item('#itemContainer');
-				const checkbox = $item('#itemCheckbox');
-				checkbox.checked = !checkbox.checked;
-				const isChecked = checkbox.checked;
-				if (isChecked) {
+				const isSelected = selectedDateIds.includes(itemData._id);
+				
+				if (isSelected) {
+					// Deselect: remove from array and clear background
+					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
+					try {
+						container.style.backgroundColor = '';
+					} catch (e) {
+						// Ignore if can't clear background
+					}
+				} else {
+					// Select: add to array and highlight
 					if (!selectedDateIds.includes(itemData._id)) {
 						selectedDateIds.push(itemData._id);
 					}
 					container.style.backgroundColor = '#E3F2FD';
-				} else {
-					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-					// Reset to default background - don't set transparent explicitly
-					try {
-						container.style.backgroundColor = '';
-					} catch (e) {
-						// If clearing doesn't work, just leave it
-					}
 				}
+				
 				console.log('Selected dates:', selectedDateIds);
 			});
 		});
@@ -328,9 +305,8 @@ function resetForm() {
 	// Reset selected dates
 	selectedDateIds = [];
 	
-	// Reset repeater checkboxes and styling
+	// Reset repeater selection styling
 	$w('#dateRepeater').forEachItem(($item, itemData, index) => {
-		$item('#itemCheckbox').checked = false;
 		try {
 			$item('#itemContainer').style.backgroundColor = '';
 		} catch (e) {

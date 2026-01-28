@@ -148,46 +148,32 @@ async function populateDateRepeater() {
 					}
 				}
 				
-				// Set initial checkbox state
-				$item('#itemCheckbox').checked = false;
+				// Set initial selection state (not selected)
+				const isCurrentlySelected = selectedDateIds.includes(itemData._id);
+				if (isCurrentlySelected) {
+					container.style.backgroundColor = '#E3F2FD';
+				}
 				
-				// Handle checkbox changes
-				$item('#itemCheckbox').onChange((event) => {
-					const isChecked = event.target.checked;
-					if (isChecked) {
-						if (!selectedDateIds.includes(itemData._id)) {
-							selectedDateIds.push(itemData._id);
-						}
-						container.style.backgroundColor = '#E3F2FD';
-					} else {
-						selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-						try {
-							container.style.backgroundColor = '';
-						} catch (e) {
-							// Ignore if can't clear background
-						}
-					}
-					console.log('Selected dates:', selectedDateIds);
-				});
-				
-				// Also allow clicking the container to toggle
+				// Make entire container clickable to toggle selection
 				$item('#itemContainer').onClick(() => {
-					const checkbox = $item('#itemCheckbox');
-					checkbox.checked = !checkbox.checked;
-					const isChecked = checkbox.checked;
-					if (isChecked) {
-						if (!selectedDateIds.includes(itemData._id)) {
-							selectedDateIds.push(itemData._id);
-						}
-						container.style.backgroundColor = '#E3F2FD';
-					} else {
+					const isSelected = selectedDateIds.includes(itemData._id);
+					
+					if (isSelected) {
+						// Deselect: remove from array and clear background
 						selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
 						try {
 							container.style.backgroundColor = '';
 						} catch (e) {
 							// Ignore if can't clear background
 						}
+					} else {
+						// Select: add to array and highlight
+						if (!selectedDateIds.includes(itemData._id)) {
+							selectedDateIds.push(itemData._id);
+						}
+						container.style.backgroundColor = '#E3F2FD';
 					}
+					
 					console.log('Selected dates:', selectedDateIds);
 				});
 			} catch (error) {
@@ -357,9 +343,8 @@ function resetForm() {
 	// Reset selected dates
 	selectedDateIds = [];
 	
-	// Reset repeater checkboxes and styling
+	// Reset repeater selection styling
 	$w('#dateRepeater').forEachItem(($item, itemData, index) => {
-		$item('#itemCheckbox').checked = false;
 		try {
 			$item('#itemContainer').style.backgroundColor = '';
 		} catch (e) {
