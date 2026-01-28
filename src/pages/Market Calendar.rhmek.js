@@ -411,24 +411,70 @@ function setupCalendarItem($item, itemData) {
 	const toggleButton = $item('#btnToggleDetails');
 	
 	if (detailsContainer && detailsContent && toggleButton) {
-		// Initially hide details
-		detailsContainer.collapse();
+		// Track expanded state
+		let isExpanded = false;
 		
-		// Set up toggle button
-		if (toggleButton && typeof toggleButton.onClick === 'function') {
-			toggleButton.onClick(() => {
-				if (detailsContainer.isCollapsed) {
-					populateDetails(detailsContent, itemData);
-					detailsContainer.expand();
-					toggleButton.text = 'Hide Details';
-				} else {
-					detailsContainer.collapse();
-					toggleButton.text = 'Show Details';
-				}
-			});
+		// Initially collapse details
+		try {
+			if (typeof detailsContainer.collapse === 'function') {
+				detailsContainer.collapse();
+			} else if (typeof detailsContainer.hide === 'function') {
+				detailsContainer.hide();
+			}
+		} catch (error) {
+			console.warn('Could not collapse detailsContainer:', error);
 		}
 		
-		toggleButton.text = 'Show Details';
+		// Set up toggle button
+		if (typeof toggleButton.onClick === 'function') {
+			toggleButton.onClick(async () => {
+				try {
+					if (!isExpanded) {
+						// Expand: populate content first, then show
+						populateDetails(detailsContent, itemData);
+						
+						// Try multiple methods to expand/show
+						if (typeof detailsContainer.expand === 'function') {
+							detailsContainer.expand();
+						} else if (typeof detailsContainer.show === 'function') {
+							detailsContainer.show();
+						} else if (detailsContainer.style) {
+							detailsContainer.style.display = 'block';
+						}
+						
+						isExpanded = true;
+						toggleButton.text = 'Hide Details';
+					} else {
+						// Collapse: hide container
+						if (typeof detailsContainer.collapse === 'function') {
+							detailsContainer.collapse();
+						} else if (typeof detailsContainer.hide === 'function') {
+							detailsContainer.hide();
+						} else if (detailsContainer.style) {
+							detailsContainer.style.display = 'none';
+						}
+						
+						isExpanded = false;
+						toggleButton.text = 'Show Details';
+					}
+				} catch (error) {
+					console.error('Error toggling details:', error);
+				}
+			});
+		} else {
+			console.warn('toggleButton.onClick is not a function. Element:', toggleButton);
+		}
+		
+		// Set initial button text
+		if (typeof toggleButton.text !== 'undefined') {
+			toggleButton.text = 'Show Details';
+		}
+	} else {
+		console.warn('Missing elements:', {
+			detailsContainer: !!detailsContainer,
+			detailsContent: !!detailsContent,
+			toggleButton: !!toggleButton
+		});
 	}
 }
 
