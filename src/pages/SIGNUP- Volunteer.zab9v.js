@@ -132,54 +132,31 @@ async function populateDateRepeater() {
 					console.warn('Class methods not available:', e);
 				}
 				
-				// Apply border styling using inline styles AND CSS classes
-				if (container.style) {
-					// Set border using inline style (may not work for Wix Box)
+				// Style the border indicator element (more reliable than container border)
+				const borderIndicator = $item('#itemBorderIndicator');
+				if (borderIndicator && borderIndicator.style) {
 					try {
-						container.style.border = `3px solid ${itemData.borderColor} !important`;
-						container.style.borderColor = itemData.borderColor;
-						container.style.borderWidth = '3px';
-						container.style.borderStyle = 'solid';
+						// Set background color based on availability status
+						borderIndicator.style.backgroundColor = itemData.borderColor;
+						
+						// Ensure it's visible
+						borderIndicator.style.display = 'block';
+						
+						console.log(`✅ Applied border indicator color ${itemData.borderColor} (${itemData.status}) to ${itemData.label}`);
 					} catch (e) {
-						console.warn('Failed to set border properties:', e);
+						console.warn('Failed to style border indicator:', e);
 					}
-					
-					// Apply opacity for full dates
+				} else {
+					console.warn('Border indicator element not found for:', itemData.label);
+				}
+				
+				// Apply opacity for full dates (on container)
+				if (container.style) {
 					if (itemData.status === 'full') {
 						container.style.opacity = '0.6';
 					} else {
 						container.style.opacity = '1';
 					}
-					
-					console.log(`✅ Applied styles for ${itemData.label}: ${itemData.status} (${itemData.borderColor})`);
-				}
-				
-				// Inject CSS rule dynamically as fallback
-				try {
-					if (typeof document !== 'undefined') {
-						const styleId = 'availability-dynamic-styles';
-						let styleEl = document.getElementById(styleId);
-						if (!styleEl) {
-							styleEl = document.createElement('style');
-							styleEl.id = styleId;
-							document.head.appendChild(styleEl);
-						}
-						
-						// Add CSS rule for this specific status
-						const cssRule = `
-							[data-availability-status="${itemData.status}"] {
-								border: 3px solid ${itemData.borderColor} !important;
-								border-width: 3px !important;
-								border-style: solid !important;
-							}
-						`;
-						
-						if (!styleEl.textContent.includes(`[data-availability-status="${itemData.status}"]`)) {
-							styleEl.textContent += cssRule;
-						}
-					}
-				} catch (e) {
-					console.warn('Failed to inject dynamic CSS:', e);
 				}
 				
 				// Set initial checkbox state (preserve selection across role changes)
