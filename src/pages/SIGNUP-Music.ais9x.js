@@ -51,7 +51,7 @@ async function populateDateRepeater() {
 					month: dateObj.getMonth(),
 					year: dateObj.getFullYear(),
 					day: dateObj.getDate(),
-					monthName: dateObj.toLocaleDateString('en-US', { month: 'long' })
+					monthName: dateObj.toLocaleDateString('en-US', { month: 'short' })
 				};
 			})
 			.sort((a, b) => a.date - b.date);
