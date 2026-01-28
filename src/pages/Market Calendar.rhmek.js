@@ -479,16 +479,37 @@ function setupCalendarItem($item, itemData) {
 						if (detailsContent.text && detailsContent.text.length > 0) {
 							console.log('Content verified after show, length:', detailsContent.text.length);
 						}
+						
+						// Force show and style the content element
 						if (typeof detailsContent.show === 'function') {
 							detailsContent.show();
 						}
+						
+						if (detailsContent.visible !== undefined) {
+							detailsContent.visible = true;
+						}
+						
 						if (detailsContent.style) {
 							try {
 								detailsContent.style.display = 'block';
 								detailsContent.style.visibility = 'visible';
-							} catch (e) {}
+								detailsContent.style.opacity = '1';
+								detailsContent.style.height = 'auto';
+								detailsContent.style.width = '100%';
+								detailsContent.style.color = '#000000';
+								console.log('Content element re-styled after container show');
+							} catch (e) {
+								console.warn('Could not re-style content:', e);
+							}
 						}
-					}, 50);
+						
+						// Verify final state
+						console.log('Final content check:', {
+							hasText: !!detailsContent.text,
+							textLength: detailsContent.text ? detailsContent.text.length : 0,
+							visible: detailsContent.visible !== undefined ? detailsContent.visible : 'unknown'
+						});
+					}, 100);
 					
 					// Update button text
 					if (toggleButton.label !== undefined) {
@@ -677,12 +698,13 @@ function populateDetails(container, itemData) {
 		container.text = textContent;
 		console.log('Content set via .text property');
 		
-		// Ensure element is visible and styled
+		// CRITICAL: Ensure element is visible and properly styled
+		// Show the element first
 		if (typeof container.show === 'function') {
 			container.show();
 		}
 		
-		// Try to set styling to ensure visibility
+		// Force visibility via style - this is critical for text elements
 		if (container.style) {
 			try {
 				container.style.display = 'block';
@@ -690,16 +712,26 @@ function populateDetails(container, itemData) {
 				container.style.opacity = '1';
 				container.style.height = 'auto';
 				container.style.minHeight = '50px';
+				container.style.width = '100%';
+				container.style.color = '#000000'; // Ensure text color is black
+				container.style.backgroundColor = 'transparent';
 			} catch (e) {
 				console.warn('Could not set style properties:', e);
 			}
 		}
 		
+		// Also try setting visible property if it exists
+		if (container.visible !== undefined) {
+			container.visible = true;
+		}
+		
 		// Log element state for debugging
 		console.log('Content element state:', {
 			text: container.text ? container.text.substring(0, 50) : 'no text',
+			textLength: container.text ? container.text.length : 0,
 			visible: container.visible !== undefined ? container.visible : 'unknown',
-			style: container.style ? 'has style' : 'no style'
+			style: container.style ? 'has style' : 'no style',
+			hidden: container.hidden !== undefined ? container.hidden : 'unknown'
 		});
 	} else if (container.html !== undefined) {
 		// HTML Component - convert text to HTML
