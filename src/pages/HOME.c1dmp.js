@@ -7,10 +7,13 @@ $w.onReady(function () {
     fixSaturdayDates()
         .then(result => {
             console.log('✅ Date fix completed:', result);
-            alert(`Successfully fixed dates!\n- Updated/Created: ${result.updated} records\n- Deleted: ${result.deleted} non-Saturday records\n- Total Saturdays: ${result.totalSaturdays}`);
+            console.log(`Successfully fixed dates!`);
+            console.log(`- Updated/Created: ${result.updated} records`);
+            console.log(`- Deleted: ${result.deleted} non-Saturday records`);
+            console.log(`- Total Saturdays: ${result.totalSaturdays}`);
         })
         .catch(error => {
             console.error('❌ Date fix failed:', error);
-            alert('Error fixing dates: ' + error.message);
+            console.error('Error details:', error.message);
         });
 });
