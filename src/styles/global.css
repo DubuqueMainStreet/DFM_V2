@@ -294,4 +294,42 @@
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease;
   display: block;
+  position: relative;
+}
+
+/* Alternative: Use left border accent bar if full border doesn't work */
+#dateRepeater [data-availability-status="available"]::before,
+#dateRepeater .availability-available::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #4CAF50;
+  border-radius: 8px 0 0 8px;
+}
+
+#dateRepeater [data-availability-status="limited"]::before,
+#dateRepeater .availability-limited::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #FF9800;
+  border-radius: 8px 0 0 8px;
+}
+
+#dateRepeater [data-availability-status="full"]::before,
+#dateRepeater .availability-full::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #F44336;
+  border-radius: 8px 0 0 8px;
 }
