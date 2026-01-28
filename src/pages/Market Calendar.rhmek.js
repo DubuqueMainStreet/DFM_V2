@@ -531,10 +531,25 @@ function populateDetails(container, itemData) {
 	
 	html += '</div>';
 	
-	if (container.html) {
+	// Try different methods to set HTML content
+	if (container.html !== undefined) {
+		// HTML Component - has .html property
 		container.html = html;
-	} else if (container.text) {
-		container.text = html.replace(/<[^>]*>/g, ''); // Fallback to plain text
+	} else if (container.text !== undefined) {
+		// Text element - strip HTML tags for plain text fallback
+		container.text = html.replace(/<[^>]*>/g, '');
+	} else if (container.src !== undefined) {
+		// Iframe/Embed Code - create data URI
+		const dataUri = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+		container.src = dataUri;
+	} else {
+		// Last resort: try innerHTML if available
+		console.warn('detailsContent element type not recognized. Trying innerHTML...');
+		if (container.innerHTML !== undefined) {
+			container.innerHTML = html;
+		} else {
+			console.error('Could not set HTML content. Element type:', container);
+		}
 	}
 }
 

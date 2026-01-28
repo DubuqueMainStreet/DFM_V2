@@ -92,10 +92,14 @@ These elements go **inside** the repeater item design. Each date will have its o
     - **Important:** Must support `.collapse()` and `.expand()` methods
 
 11. **`#detailsContent`**
-    - **Type:** HTML Component (preferred) OR Text element
+    - **Type:** HTML Component (preferred) OR Embed Code/Iframe OR Text element
     - **Purpose:** Displays detailed assignment information
     - **Location:** Inside `#detailsContainer`
-    - **Note:** HTML Component is preferred for better formatting
+    - **Options:**
+      - **HTML Component** (best): Has `.html` property - just add it and set ID
+      - **Embed Code/Iframe**: Code will use `.src` with data URI - should work
+      - **Text element** (fallback): Will strip HTML tags, shows plain text only
+    - **Note:** The code tries multiple methods, so any of these should work
 
 ---
 
