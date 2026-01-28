@@ -9,8 +9,6 @@ import wixData from 'wix-data';
  */
 export async function submitSpecialtyProfile(profileData, dateIds) {
 	try {
-		console.log('Backend function called with:', { profileData, dateIds });
-		
 		// Validate inputs
 		if (!profileData) {
 			throw new Error('Profile data is required');
@@ -19,27 +17,20 @@ export async function submitSpecialtyProfile(profileData, dateIds) {
 			throw new Error('At least one date must be selected');
 		}
 		
-		console.log('Attempting to save profile to SpecialtyProfiles...');
 		// Save the profile
 		const profileResult = await wixData.save('SpecialtyProfiles', profileData);
 		const profileId = profileResult._id;
-		console.log('Profile saved successfully with ID:', profileId);
 		
 		// Create weekly assignment records for each selected date
-		console.log('Creating WeeklyAssignments records...');
-		const assignmentPromises = dateIds.map(async (dateId, index) => {
-			console.log(`Creating assignment ${index + 1} for dateId: ${dateId}`);
-			const assignment = await wixData.save('WeeklyAssignments', {
+		const assignmentPromises = dateIds.map(async (dateId) => {
+			return await wixData.save('WeeklyAssignments', {
 				profileRef: profileId,
 				dateRef: dateId,
 				applicationStatus: 'Pending'
 			});
-			console.log(`Assignment ${index + 1} created with ID: ${assignment._id}`);
-			return assignment;
 		});
 		
 		await Promise.all(assignmentPromises);
-		console.log(`Successfully created ${dateIds.length} WeeklyAssignments records`);
 		
 		return {
 			success: true,
@@ -48,12 +39,6 @@ export async function submitSpecialtyProfile(profileData, dateIds) {
 		};
 	} catch (error) {
 		console.error('Error in submitSpecialtyProfile:', error);
-		console.error('Error details:', {
-			message: error.message,
-			stack: error.stack,
-			name: error.name
-		});
-		// Re-throw with more context
-		throw new Error(`Backend submission failed: ${error.message}`);
+		throw error;
 	}
 }

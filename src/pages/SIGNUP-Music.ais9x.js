@@ -2,14 +2,6 @@ import wixData from 'wix-data';
 import { submitSpecialtyProfile } from 'backend/formSubmissions.jsw';
 
 $w.onReady(function () {
-	// Test backend function availability
-	console.log('Backend function type:', typeof submitSpecialtyProfile);
-	if (typeof submitSpecialtyProfile === 'function') {
-		console.log('✅ Backend function loaded successfully');
-	} else {
-		console.error('❌ Backend function not loaded. Check import path.');
-	}
-	
 	populateMusicianTypeDropdown();
 	populateLocationDropdown();
 	populateDurationDropdown();
@@ -239,16 +231,7 @@ async function handleSubmit() {
 			genre: genre || null // Musician-specific
 		};
 		
-		// Log the data being saved for debugging
-		console.log('Saving profile data:', profileData);
-		console.log('Calling backend function submitSpecialtyProfile...');
-		console.log('Function available?', typeof submitSpecialtyProfile);
-		
 		// Use backend function with elevated permissions
-		if (typeof submitSpecialtyProfile !== 'function') {
-			throw new Error('Backend function submitSpecialtyProfile is not available. Please check the import.');
-		}
-		
 		const result = await submitSpecialtyProfile(profileData, dateIds);
 		console.log(`Successfully created profile and ${result.assignmentsCreated} WeeklyAssignments records`);
 		
@@ -261,13 +244,7 @@ async function handleSubmit() {
 		
 	} catch (error) {
 		console.error('Submit error:', error);
-		console.error('Error details:', {
-			message: error.message,
-			name: error.name,
-			stack: error.stack
-		});
-		const errorMessage = error.message || 'Submission failed. Please try again.';
-		$w('#msgError').text = errorMessage;
+		$w('#msgError').text = error.message || 'Submission failed. Please try again.';
 		$w('#msgError').show();
 	} finally {
 		$w('#btnSubmit').enable();
