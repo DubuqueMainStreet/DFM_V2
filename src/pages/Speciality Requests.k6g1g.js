@@ -458,17 +458,22 @@ async function updateAssignmentStatus(assignmentId, newStatus) {
 		// Get current status filter before update
 		const currentStatusFilter = ($w('#filterStatus')?.value || 'all').toString().trim();
 		
-		const result = await wixData.update('WeeklyAssignments', {
-			_id: assignmentId,
-			applicationStatus: normalizedStatus
-		});
+		// IMPORTANT: Fetch the FULL record first, then update only the status field
+		// wixData.update() replaces the entire record - any missing fields get cleared!
+		const existingRecord = await wixData.get('WeeklyAssignments', assignmentId);
+		if (!existingRecord) {
+			throw new Error(`Assignment ${assignmentId} not found`);
+		}
+		
+		// Update only the status field on the complete record
+		existingRecord.applicationStatus = normalizedStatus;
+		
+		const result = await wixData.update('WeeklyAssignments', existingRecord);
 		
 		console.log('Update result:', result);
 		console.log('Updated assignment status:', result.applicationStatus);
-		
-		// Verify the update worked
-		const verifyResult = await wixData.get('WeeklyAssignments', assignmentId);
-		console.log('Verified status after update:', verifyResult.applicationStatus);
+		console.log('dateRef preserved:', result.dateRef);
+		console.log('profileRef preserved:', result.profileRef);
 		
 		// If filter is set to a specific status and item changed to different status,
 		// automatically adjust filter to show the new status
@@ -500,18 +505,22 @@ async function updateAssignmentLocation(assignmentId, locationId) {
 		const normalizedLocation = (locationId || 'Unassigned').toString().trim();
 		console.log(`Updating assignment ${assignmentId} location to: "${normalizedLocation}"`);
 		
-		const updateValue = normalizedLocation === 'Unassigned' ? null : normalizedLocation;
-		const result = await wixData.update('WeeklyAssignments', {
-			_id: assignmentId,
-			assignedMapId: updateValue
-		});
+		// IMPORTANT: Fetch the FULL record first, then update only the location field
+		// wixData.update() replaces the entire record - any missing fields get cleared!
+		const existingRecord = await wixData.get('WeeklyAssignments', assignmentId);
+		if (!existingRecord) {
+			throw new Error(`Assignment ${assignmentId} not found`);
+		}
+		
+		// Update only the location field on the complete record
+		existingRecord.assignedMapId = normalizedLocation === 'Unassigned' ? null : normalizedLocation;
+		
+		const result = await wixData.update('WeeklyAssignments', existingRecord);
 		
 		console.log('Location update result:', result);
 		console.log('Updated assignedMapId:', result.assignedMapId);
-		
-		// Verify the update worked
-		const verifyResult = await wixData.get('WeeklyAssignments', assignmentId);
-		console.log('Verified location after update:', verifyResult.assignedMapId);
+		console.log('dateRef preserved:', result.dateRef);
+		console.log('profileRef preserved:', result.profileRef);
 		
 		// Small delay to ensure database is updated
 		await new Promise(resolve => setTimeout(resolve, 100));
