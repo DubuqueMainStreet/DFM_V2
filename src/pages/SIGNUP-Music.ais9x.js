@@ -64,6 +64,9 @@ async function populateDateRepeater() {
 			const daySuffix = getDaySuffix(item.day);
 			const dateAvailability = availability[item._id];
 			
+			// Check if this date is currently selected (preserve selection state)
+			const isCurrentlySelected = selectedDateIds.includes(item._id);
+			
 			// If a location is selected, check availability for that specific location
 			let status = 'available';
 			let borderColor = '#4CAF50'; // Green
@@ -115,12 +118,11 @@ async function populateDateRepeater() {
 				label: `${item.monthName} ${item.day}${daySuffix}`,
 				status: status,
 				borderColor: borderColor,
-				isSelected: false
+				isSelected: isCurrentlySelected
 			};
 		});
 		
-		// Reset selected dates
-		selectedDateIds = [];
+		// Don't reset selected dates - preserve user selections when repopulating
 		
 		// Set up repeater
 		$w('#dateRepeater').onItemReady(($item, itemData, index) => {
@@ -162,7 +164,7 @@ async function populateDateRepeater() {
 					}
 				}
 				
-				// Set initial selection state (not selected)
+				// Set initial selection state (preserve selection across location changes)
 				const isCurrentlySelected = selectedDateIds.includes(itemData._id);
 				if (isCurrentlySelected) {
 					container.style.backgroundColor = '#E3F2FD';
@@ -170,6 +172,7 @@ async function populateDateRepeater() {
 				
 				// Make entire container clickable to toggle selection
 				$item('#itemContainer').onClick(() => {
+					const container = $item('#itemContainer');
 					const isSelected = selectedDateIds.includes(itemData._id);
 					
 					if (isSelected) {
