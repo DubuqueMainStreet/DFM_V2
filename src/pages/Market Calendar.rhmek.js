@@ -436,22 +436,35 @@ function setupCalendarItem($item, itemData) {
 					// SHOW details
 					console.log('Showing details...');
 					
-					// Reset any height constraints first
-					if (detailsContainer.style) {
-						try {
-							detailsContainer.style.height = 'auto';
-							detailsContainer.style.overflow = '';
-						} catch (e) {
-							console.warn('Could not reset container height:', e);
-						}
-					}
-					
 					// Populate the content first
 					populateDetails(detailsContent, itemData);
 					
-					// Show content element
+					// Show content element FIRST
 					if (typeof detailsContent.show === 'function') {
 						detailsContent.show();
+					}
+					
+					// Ensure content is visible via style
+					if (detailsContent.style) {
+						try {
+							detailsContent.style.display = 'block';
+							detailsContent.style.visibility = 'visible';
+							detailsContent.style.opacity = '1';
+							detailsContent.style.height = 'auto';
+						} catch (e) {
+							console.warn('Could not style content:', e);
+						}
+					}
+					
+					// Reset container height constraints BEFORE showing
+					if (detailsContainer.style) {
+						try {
+							detailsContainer.style.height = 'auto';
+							detailsContainer.style.overflow = 'visible';
+							detailsContainer.style.display = 'block';
+						} catch (e) {
+							console.warn('Could not reset container height:', e);
+						}
 					}
 					
 					// Show container - try expand() first if available, then show()
@@ -460,6 +473,22 @@ function setupCalendarItem($item, itemData) {
 					} else if (typeof detailsContainer.show === 'function') {
 						detailsContainer.show();
 					}
+					
+					// Double-check content is visible after container is shown
+					setTimeout(() => {
+						if (detailsContent.text && detailsContent.text.length > 0) {
+							console.log('Content verified after show, length:', detailsContent.text.length);
+						}
+						if (typeof detailsContent.show === 'function') {
+							detailsContent.show();
+						}
+						if (detailsContent.style) {
+							try {
+								detailsContent.style.display = 'block';
+								detailsContent.style.visibility = 'visible';
+							} catch (e) {}
+						}
+					}, 50);
 					
 					// Update button text
 					if (toggleButton.label !== undefined) {
