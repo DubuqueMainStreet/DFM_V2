@@ -2,16 +2,19 @@ import wixData from 'wix-data';
 import { submitSpecialtyProfile } from 'backend/formSubmissions.jsw';
 import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 
+// Track selected dates (since we're using a repeater instead of selection tags)
+let selectedDateIds = [];
+
 $w.onReady(function () {
 	populateMusicianTypeDropdown();
 	populateLocationDropdown();
 	populateDurationDropdown();
 	populateGenreDropdown();
-	populateDateTags();
+	populateDateRepeater();
 	setupSubmitHandler();
 });
 
-async function populateDateTags() {
+async function populateDateRepeater() {
 	try {
 		const results = await wixData.query('MarketDates2026')
 			.find();
@@ -19,7 +22,7 @@ async function populateDateTags() {
 		// Get availability data for all dates
 		const availability = await getDateAvailability();
 		
-		// Process dates: parse, sort chronologically, group by month
+		// Process dates: parse, sort chronologically
 		const dateItems = results.items
 			.map(item => {
 				const dateObj = new Date(item.date);
@@ -32,69 +35,101 @@ async function populateDateTags() {
 					monthName: dateObj.toLocaleDateString('en-US', { month: 'long' })
 				};
 			})
-			.sort((a, b) => a.date - b.date); // Sort chronologically
+			.sort((a, b) => a.date - b.date);
 		
-		// Group by month for organization
-		const groupedByMonth = {};
-		dateItems.forEach(item => {
-			const monthKey = `${item.year}-${String(item.month).padStart(2, '0')}`;
-			if (!groupedByMonth[monthKey]) {
-				groupedByMonth[monthKey] = [];
+		// Build repeater data with availability status
+		const repeaterData = dateItems.map(item => {
+			const daySuffix = getDaySuffix(item.day);
+			const dateAvailability = availability[item._id];
+			const musicianCount = dateAvailability ? dateAvailability.musicians : 0;
+			
+			// Determine status for musicians (0-1 = available, 2 = limited, 3+ = full)
+			let status = 'available';
+			let statusEmoji = '✓';
+			let borderColor = '#4CAF50'; // Green
+			
+			if (musicianCount >= 3) {
+				status = 'full';
+				statusEmoji = '✕';
+				borderColor = '#F44336'; // Red
+			} else if (musicianCount === 2) {
+				status = 'limited';
+				statusEmoji = '⚠';
+				borderColor = '#FF9800'; // Orange
 			}
-			groupedByMonth[monthKey].push(item);
+			
+			return {
+				_id: item._id,
+				label: `${item.monthName} ${item.day}${daySuffix}`,
+				emoji: statusEmoji,
+				status: status,
+				borderColor: borderColor,
+				isSelected: false
+			};
 		});
 		
-		// Build options with month-grouped labels and availability status
-		const options = [];
-		const monthColors = {
-			'May': '#4CAF50',      // Green (spring)
-			'June': '#2196F3',     // Blue (summer)
-			'July': '#2196F3',     // Blue (summer)
-			'August': '#2196F3',   // Blue (summer)
-			'September': '#FF9800', // Orange (fall)
-			'October': '#FF9800'    // Orange (fall)
-		};
+		// Reset selected dates
+		selectedDateIds = [];
 		
-		Object.keys(groupedByMonth).sort().forEach(monthKey => {
-			const dates = groupedByMonth[monthKey];
-			const monthName = dates[0].monthName;
-			const monthColor = monthColors[monthName] || '#757575'; // Default gray
+		// Set up repeater
+		$w('#dateRepeater').onItemReady(($item, itemData, index) => {
+			// Set label text
+			$item('#itemLabel').text = itemData.label;
 			
-			dates.forEach(item => {
-				const daySuffix = getDaySuffix(item.day);
-				const dateAvailability = availability[item._id];
-				const musicianCount = dateAvailability ? dateAvailability.musicians : 0;
-				
-				// Determine status for musicians (0-1 = available, 2 = limited, 3+ = full)
-				let status = 'available';
-				let statusEmoji = '✓';
-				if (musicianCount >= 3) {
-					status = 'full';
-					statusEmoji = '✕';
-				} else if (musicianCount === 2) {
-					status = 'limited';
-					statusEmoji = '⚠';
+			// Set emoji
+			$item('#itemEmoji').text = itemData.emoji;
+			
+			// Apply border color based on status
+			$item('#itemContainer').style.borderColor = itemData.borderColor;
+			$item('#itemContainer').style.borderWidth = '3px';
+			$item('#itemContainer').style.borderStyle = 'solid';
+			
+			// Apply opacity for full dates
+			if (itemData.status === 'full') {
+				$item('#itemContainer').style.opacity = 0.6;
+			}
+			
+			// Set initial checkbox state
+			$item('#itemCheckbox').checked = false;
+			
+			// Handle checkbox changes
+			$item('#itemCheckbox').onChange((event) => {
+				const isChecked = event.target.checked;
+				if (isChecked) {
+					if (!selectedDateIds.includes(itemData._id)) {
+						selectedDateIds.push(itemData._id);
+					}
+					// Visual feedback for selection
+					$item('#itemContainer').style.backgroundColor = '#E3F2FD';
+				} else {
+					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
+					$item('#itemContainer').style.backgroundColor = 'transparent';
 				}
-				
-				const label = `${statusEmoji} ${item.monthName} ${item.day}${daySuffix}`;
-				
-				options.push({
-					value: item._id,
-					label: label,
-					// Store month and availability info for styling
-					month: monthName,
-					color: monthColor,
-					availabilityStatus: status
-				});
+				console.log('Selected dates:', selectedDateIds);
+			});
+			
+			// Also allow clicking the container to toggle
+			$item('#itemContainer').onClick(() => {
+				const checkbox = $item('#itemCheckbox');
+				checkbox.checked = !checkbox.checked;
+				// Trigger the onChange manually
+				const isChecked = checkbox.checked;
+				if (isChecked) {
+					if (!selectedDateIds.includes(itemData._id)) {
+						selectedDateIds.push(itemData._id);
+					}
+					$item('#itemContainer').style.backgroundColor = '#E3F2FD';
+				} else {
+					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
+					$item('#itemContainer').style.backgroundColor = 'transparent';
+				}
+				console.log('Selected dates:', selectedDateIds);
 			});
 		});
 		
-		$w('#dateSelectionTags').options = options;
+		// Populate repeater with data
+		$w('#dateRepeater').data = repeaterData;
 		
-		// Apply custom styling based on availability after a short delay
-		setTimeout(() => {
-			applyAvailabilityStyling(options);
-		}, 200);
 	} catch (error) {
 		console.error('Failed to load dates:', error);
 		$w('#msgError').text = 'Failed to load available dates. Please refresh.';
@@ -102,62 +137,7 @@ async function populateDateTags() {
 	}
 }
 
-function applyAvailabilityStyling(options) {
-	// Apply styling by finding elements with emoji content and adding inline styles
-	setTimeout(() => {
-		try {
-			// Use document.querySelector to find tag elements and apply styles directly
-			if (typeof document !== 'undefined') {
-				// Find all clickable elements in the tag component
-				const tagContainer = document.querySelector('[data-testid*="dateSelectionTags"], #dateSelectionTags, [id*="dateSelectionTags"]');
-				if (tagContainer) {
-					const allButtons = tagContainer.querySelectorAll('button, [role="button"], .tag-item, [class*="tag"]');
-					
-					allButtons.forEach(button => {
-						const text = button.textContent || button.innerText || button.getAttribute('aria-label') || '';
-						
-						if (text.includes('✓')) {
-							button.style.borderLeft = '4px solid #4CAF50';
-							button.style.borderLeftWidth = '4px';
-						} else if (text.includes('⚠')) {
-							button.style.borderLeft = '4px solid #FF9800';
-							button.style.borderLeftWidth = '4px';
-						} else if (text.includes('✕')) {
-							button.style.borderLeft = '4px solid #F44336';
-							button.style.borderLeftWidth = '4px';
-							button.style.opacity = '0.7';
-						}
-					});
-				}
-				
-				// Also try a broader search
-				const allPossibleTags = document.querySelectorAll('button, [role="button"]');
-				allPossibleTags.forEach(el => {
-					const text = el.textContent || el.innerText || '';
-					const parent = el.closest('[id*="dateSelection"], [class*="dateSelection"]');
-					if (parent && (text.includes('✓') || text.includes('⚠') || text.includes('✕'))) {
-						if (text.includes('✓')) {
-							el.style.borderLeft = '4px solid #4CAF50';
-							el.style.borderLeftWidth = '4px';
-						} else if (text.includes('⚠')) {
-							el.style.borderLeft = '4px solid #FF9800';
-							el.style.borderLeftWidth = '4px';
-						} else if (text.includes('✕')) {
-							el.style.borderLeft = '4px solid #F44336';
-							el.style.borderLeftWidth = '4px';
-							el.style.opacity = '0.7';
-						}
-					}
-				});
-			}
-		} catch (error) {
-			console.error('Error applying availability styling:', error);
-		}
-	}, 500);
-}
-
 function populateMusicianTypeDropdown() {
-	// Set musician type options
 	const musicianTypeOptions = [
 		{ value: 'Solo Acoustic', label: 'Solo Acoustic' },
 		{ value: 'Solo Electric', label: 'Solo Electric' },
@@ -167,24 +147,20 @@ function populateMusicianTypeDropdown() {
 		{ value: 'Large Band (5+ members)', label: 'Large Band (5+ members)' },
 		{ value: 'Other', label: 'Other' }
 	];
-	
 	$w('#inputMusicianType').options = musicianTypeOptions;
 }
 
 function populateLocationDropdown() {
-	// Set performance location options
 	const locationOptions = [
 		{ value: 'Default', label: 'Default (No Preference)' },
 		{ value: 'Location A', label: 'Location A' },
 		{ value: 'Location B', label: 'Location B' },
 		{ value: 'Location C', label: 'Location C' }
 	];
-	
 	$w('#inputLocation').options = locationOptions;
 }
 
 function populateDurationDropdown() {
-	// Set performance duration options
 	const durationOptions = [
 		{ value: '30 minutes', label: '30 minutes' },
 		{ value: '1 hour', label: '1 hour' },
@@ -192,12 +168,10 @@ function populateDurationDropdown() {
 		{ value: '2 hours', label: '2 hours' },
 		{ value: 'Flexible', label: 'Flexible' }
 	];
-	
 	$w('#inputDuration').options = durationOptions;
 }
 
 function populateGenreDropdown() {
-	// Set music genre options
 	const genreOptions = [
 		{ value: 'Acoustic/Folk', label: 'Acoustic/Folk' },
 		{ value: 'Country', label: 'Country' },
@@ -210,7 +184,6 @@ function populateGenreDropdown() {
 		{ value: 'World Music', label: 'World Music' },
 		{ value: 'Other', label: 'Other' }
 	];
-	
 	$w('#inputGenre').options = genreOptions;
 }
 
@@ -224,13 +197,6 @@ function getDaySuffix(day) {
 	}
 }
 
-function formatDate(dateObj) {
-	// Format Date object to readable string (e.g., "May 2, 2026")
-	const date = new Date(dateObj);
-	const options = { year: 'numeric', month: 'long', day: 'numeric' };
-	return date.toLocaleDateString('en-US', options);
-}
-
 function setupSubmitHandler() {
 	$w('#btnSubmit').onClick(async () => {
 		await handleSubmit();
@@ -239,40 +205,25 @@ function setupSubmitHandler() {
 
 async function handleSubmit() {
 	try {
-		// Reset feedback
 		$w('#msgSuccess').hide();
 		$w('#msgError').hide();
 		$w('#btnSubmit').disable();
 		
-		// Validation
-		const organizationName = $w('#inputName').value?.trim(); // Maps to organizationName field
-		const contactEmail = $w('#inputEmail').value?.trim(); // Maps to contactEmail field
-		const contactPhone = $w('#inputPhone').value?.trim(); // Maps to contactPhone field
+		const organizationName = $w('#inputName').value?.trim();
+		const contactEmail = $w('#inputEmail').value?.trim();
+		const contactPhone = $w('#inputPhone').value?.trim();
 		const musicianType = $w('#inputMusicianType').value?.trim();
-		const techNeeds = $w('#inputNeedsElectric').checked || false; // Boolean field
+		const techNeeds = $w('#inputNeedsElectric').checked || false;
 		const preferredLocation = $w('#inputLocation').value?.trim();
 		const bio = $w('#inputBio').value?.trim();
 		const website = $w('#inputWebsite').value?.trim();
 		const duration = $w('#inputDuration').value?.trim();
 		const genre = $w('#inputGenre').value?.trim();
 		
-		// Get selected dates from selection tags component
-		const selectionTags = $w('#dateSelectionTags');
-		let selectedDates = selectionTags.value || selectionTags.selected || selectionTags.selectedValues;
+		// Get selected dates from our tracked array (instead of selection tags)
+		const dateIds = [...selectedDateIds];
 		
-		// Handle different return formats
-		let dateIds = [];
-		if (Array.isArray(selectedDates)) {
-			dateIds = selectedDates;
-		} else if (selectedDates && typeof selectedDates === 'object') {
-			dateIds = selectedDates.values || Object.values(selectedDates);
-		} else if (selectedDates) {
-			dateIds = [selectedDates];
-		}
-		
-		// Debug logging for date selection
-		console.log('Selected dates from component:', selectedDates);
-		console.log('Extracted dateIds:', dateIds);
+		console.log('Selected dates for submission:', dateIds);
 		console.log('Number of dates selected:', dateIds.length);
 		
 		if (!organizationName || !contactEmail || !contactPhone || !musicianType || !preferredLocation || !bio) {
@@ -283,7 +234,6 @@ async function handleSubmit() {
 			throw new Error('Please select at least one market date.');
 		}
 		
-		// Upload file
 		let fileUrl = null;
 		if ($w('#uploadButton').files && $w('#uploadButton').files.length > 0) {
 			const uploadResult = await $w('#uploadButton').startUpload();
@@ -292,32 +242,27 @@ async function handleSubmit() {
 			}
 		}
 		
-		// Insert parent record
-		// Using unified schema Field IDs that work for all signup types
 		const profileData = {
-			type: 'Musician', // Hardcoded since this is musician-only form
-			title: organizationName, // Title field for reference display (fixes "Untitled" issue)
-			organizationName: organizationName, // Unified field (name/org name)
-			contactEmail: contactEmail, // Unified email field
-			contactPhone: contactPhone, // Unified phone field
-			musicianType: musicianType, // Musician-specific (should be Text field, not Tag)
-			techNeeds: techNeeds, // Boolean field (true/false)
-			preferredLocation: preferredLocation, // Works for all types (should be Text field, not Tag)
-			bio: bio, // Works for all types
-			website: website || null, // Works for all types
-			duration: duration || null, // Musicians and events
-			genre: genre || null // Musician-specific
+			type: 'Musician',
+			title: organizationName,
+			organizationName: organizationName,
+			contactEmail: contactEmail,
+			contactPhone: contactPhone,
+			musicianType: musicianType,
+			techNeeds: techNeeds,
+			preferredLocation: preferredLocation,
+			bio: bio,
+			website: website || null,
+			duration: duration || null,
+			genre: genre || null
 		};
 		
-		// Use backend function with elevated permissions
 		const result = await submitSpecialtyProfile(profileData, dateIds);
 		console.log(`Successfully created profile and ${result.assignmentsCreated} WeeklyAssignments records`);
 		
-		// Success feedback
 		$w('#msgSuccess').text = 'Application submitted successfully!';
 		$w('#msgSuccess').show();
 		
-		// Reset form
 		resetForm();
 		
 	} catch (error) {
@@ -340,6 +285,14 @@ function resetForm() {
 	$w('#inputWebsite').value = '';
 	$w('#inputDuration').value = '';
 	$w('#inputGenre').value = '';
-	$w('#dateSelectionTags').selected = [];
 	$w('#uploadButton').reset();
+	
+	// Reset selected dates
+	selectedDateIds = [];
+	
+	// Reset repeater checkboxes and styling
+	$w('#dateRepeater').forEachItem(($item, itemData, index) => {
+		$item('#itemCheckbox').checked = false;
+		$item('#itemContainer').style.backgroundColor = 'transparent';
+	});
 }

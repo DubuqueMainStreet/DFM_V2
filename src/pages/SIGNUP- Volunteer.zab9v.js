@@ -2,19 +2,22 @@ import wixData from 'wix-data';
 import { submitSpecialtyProfile } from 'backend/formSubmissions.jsw';
 import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 
+// Track selected dates
+let selectedDateIds = [];
+
 $w.onReady(function () {
 	populateVolunteerRoleDropdown();
 	populateShiftPreferenceDropdown();
-	populateDateTags();
+	populateDateRepeater();
 	setupSubmitHandler();
 	
 	// Update date availability when volunteer role changes
 	$w('#inputVolunteerRole').onChange(() => {
-		populateDateTags();
+		populateDateRepeater();
 	});
 });
 
-async function populateDateTags() {
+async function populateDateRepeater() {
 	try {
 		const results = await wixData.query('MarketDates2026')
 			.find();
@@ -35,7 +38,7 @@ async function populateDateTags() {
 			'No Preference': 1
 		};
 		
-		// Process dates: parse, sort chronologically, group by month
+		// Process dates: parse, sort chronologically
 		const dateItems = results.items
 			.map(item => {
 				const dateObj = new Date(item.date);
@@ -48,73 +51,109 @@ async function populateDateTags() {
 					monthName: dateObj.toLocaleDateString('en-US', { month: 'long' })
 				};
 			})
-			.sort((a, b) => a.date - b.date); // Sort chronologically
+			.sort((a, b) => a.date - b.date);
 		
-		// Group by month for organization
-		const groupedByMonth = {};
-		dateItems.forEach(item => {
-			const monthKey = `${item.year}-${String(item.month).padStart(2, '0')}`;
-			if (!groupedByMonth[monthKey]) {
-				groupedByMonth[monthKey] = [];
+		// Build repeater data with availability status
+		const repeaterData = dateItems.map(item => {
+			const daySuffix = getDaySuffix(item.day);
+			const dateAvailability = availability[item._id];
+			const roleCount = dateAvailability && dateAvailability.volunteers[selectedRole] 
+				? dateAvailability.volunteers[selectedRole] 
+				: 0;
+			
+			// Determine status based on role-specific limits
+			const limit = roleLimits[selectedRole] || 2;
+			let status = 'available';
+			let statusEmoji = '✓';
+			let borderColor = '#4CAF50'; // Green
+			
+			if (roleCount >= limit) {
+				status = 'full';
+				statusEmoji = '✕';
+				borderColor = '#F44336'; // Red
+			} else if (roleCount >= Math.floor(limit * 0.7)) {
+				status = 'limited';
+				statusEmoji = '⚠';
+				borderColor = '#FF9800'; // Orange
 			}
-			groupedByMonth[monthKey].push(item);
+			
+			// Preserve selection state if date was previously selected
+			const wasSelected = selectedDateIds.includes(item._id);
+			
+			return {
+				_id: item._id,
+				label: `${item.monthName} ${item.day}${daySuffix}`,
+				emoji: statusEmoji,
+				status: status,
+				borderColor: borderColor,
+				isSelected: wasSelected
+			};
 		});
 		
-		// Build options with month-grouped labels and availability status
-		const options = [];
-		const monthColors = {
-			'May': '#4CAF50',      // Green (spring)
-			'June': '#2196F3',     // Blue (summer)
-			'July': '#2196F3',     // Blue (summer)
-			'August': '#2196F3',   // Blue (summer)
-			'September': '#FF9800', // Orange (fall)
-			'October': '#FF9800'    // Orange (fall)
-		};
-		
-		Object.keys(groupedByMonth).sort().forEach(monthKey => {
-			const dates = groupedByMonth[monthKey];
-			const monthName = dates[0].monthName;
-			const monthColor = monthColors[monthName] || '#757575'; // Default gray
+		// Set up repeater
+		$w('#dateRepeater').onItemReady(($item, itemData, index) => {
+			// Set label text
+			$item('#itemLabel').text = itemData.label;
 			
-			dates.forEach(item => {
-				const daySuffix = getDaySuffix(item.day);
-				const dateAvailability = availability[item._id];
-				const roleCount = dateAvailability && dateAvailability.volunteers[selectedRole] 
-					? dateAvailability.volunteers[selectedRole] 
-					: 0;
-				
-				// Determine status based on role-specific limits
-				const limit = roleLimits[selectedRole] || 2;
-				let status = 'available';
-				let statusEmoji = '✓';
-				
-				if (roleCount >= limit) {
-					status = 'full';
-					statusEmoji = '✕';
-				} else if (roleCount >= Math.floor(limit * 0.7)) {
-					status = 'limited';
-					statusEmoji = '⚠';
+			// Set emoji
+			$item('#itemEmoji').text = itemData.emoji;
+			
+			// Apply border color based on status
+			$item('#itemContainer').style.borderColor = itemData.borderColor;
+			$item('#itemContainer').style.borderWidth = '3px';
+			$item('#itemContainer').style.borderStyle = 'solid';
+			
+			// Apply opacity for full dates
+			if (itemData.status === 'full') {
+				$item('#itemContainer').style.opacity = 0.6;
+			} else {
+				$item('#itemContainer').style.opacity = 1;
+			}
+			
+			// Set initial checkbox state (preserve selection across role changes)
+			$item('#itemCheckbox').checked = itemData.isSelected;
+			if (itemData.isSelected) {
+				$item('#itemContainer').style.backgroundColor = '#E3F2FD';
+			} else {
+				$item('#itemContainer').style.backgroundColor = 'transparent';
+			}
+			
+			// Handle checkbox changes
+			$item('#itemCheckbox').onChange((event) => {
+				const isChecked = event.target.checked;
+				if (isChecked) {
+					if (!selectedDateIds.includes(itemData._id)) {
+						selectedDateIds.push(itemData._id);
+					}
+					$item('#itemContainer').style.backgroundColor = '#E3F2FD';
+				} else {
+					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
+					$item('#itemContainer').style.backgroundColor = 'transparent';
 				}
-				
-				const label = `${statusEmoji} ${item.monthName} ${item.day}${daySuffix}`;
-				
-				options.push({
-					value: item._id,
-					label: label,
-					// Store month and availability info for styling
-					month: monthName,
-					color: monthColor,
-					availabilityStatus: status
-				});
+				console.log('Selected dates:', selectedDateIds);
+			});
+			
+			// Also allow clicking the container to toggle
+			$item('#itemContainer').onClick(() => {
+				const checkbox = $item('#itemCheckbox');
+				checkbox.checked = !checkbox.checked;
+				const isChecked = checkbox.checked;
+				if (isChecked) {
+					if (!selectedDateIds.includes(itemData._id)) {
+						selectedDateIds.push(itemData._id);
+					}
+					$item('#itemContainer').style.backgroundColor = '#E3F2FD';
+				} else {
+					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
+					$item('#itemContainer').style.backgroundColor = 'transparent';
+				}
+				console.log('Selected dates:', selectedDateIds);
 			});
 		});
 		
-		$w('#dateSelectionTags').options = options;
+		// Populate repeater with data
+		$w('#dateRepeater').data = repeaterData;
 		
-		// Apply custom styling based on availability after a short delay
-		setTimeout(() => {
-			applyAvailabilityStyling(options);
-		}, 200);
 	} catch (error) {
 		console.error('Failed to load dates:', error);
 		$w('#msgError').text = 'Failed to load available dates. Please refresh.';
@@ -123,7 +162,6 @@ async function populateDateTags() {
 }
 
 function populateVolunteerRoleDropdown() {
-	// Set volunteer role options
 	const volunteerRoleOptions = [
 		{ value: 'Token Sales', label: 'Token Sales' },
 		{ value: 'Merch Sales', label: 'Merch Sales' },
@@ -132,18 +170,15 @@ function populateVolunteerRoleDropdown() {
 		{ value: 'Hospitality Support', label: 'Hospitality Support' },
 		{ value: 'No Preference', label: 'No Preference' }
 	];
-	
 	$w('#inputVolunteerRole').options = volunteerRoleOptions;
 }
 
 function populateShiftPreferenceDropdown() {
-	// Set shift preference options for volunteers
 	const shiftOptions = [
 		{ value: 'Early Shift', label: 'Early Shift (7:00 AM - 9:30 AM)' },
 		{ value: 'Late Shift', label: 'Late Shift (9:30 AM - 12:00 PM)' },
 		{ value: 'Both', label: 'Both Shifts' }
 	];
-	
 	$w('#inputShiftPreference').options = shiftOptions;
 }
 
@@ -157,57 +192,6 @@ function getDaySuffix(day) {
 	}
 }
 
-function applyAvailabilityStyling(options) {
-	// Apply styling by finding elements with emoji content and adding inline styles
-	setTimeout(() => {
-		try {
-			if (typeof document !== 'undefined') {
-				const tagContainer = document.querySelector('[data-testid*="dateSelectionTags"], #dateSelectionTags, [id*="dateSelectionTags"]');
-				if (tagContainer) {
-					const allButtons = tagContainer.querySelectorAll('button, [role="button"], .tag-item, [class*="tag"]');
-					
-					allButtons.forEach(button => {
-						const text = button.textContent || button.innerText || button.getAttribute('aria-label') || '';
-						
-						if (text.includes('✓')) {
-							button.style.borderLeft = '4px solid #4CAF50';
-							button.style.borderLeftWidth = '4px';
-						} else if (text.includes('⚠')) {
-							button.style.borderLeft = '4px solid #FF9800';
-							button.style.borderLeftWidth = '4px';
-						} else if (text.includes('✕')) {
-							button.style.borderLeft = '4px solid #F44336';
-							button.style.borderLeftWidth = '4px';
-							button.style.opacity = '0.7';
-						}
-					});
-				}
-				
-				const allPossibleTags = document.querySelectorAll('button, [role="button"]');
-				allPossibleTags.forEach(el => {
-					const text = el.textContent || el.innerText || '';
-					const parent = el.closest('[id*="dateSelection"], [class*="dateSelection"]');
-					if (parent && (text.includes('✓') || text.includes('⚠') || text.includes('✕'))) {
-						if (text.includes('✓')) {
-							el.style.borderLeft = '4px solid #4CAF50';
-							el.style.borderLeftWidth = '4px';
-						} else if (text.includes('⚠')) {
-							el.style.borderLeft = '4px solid #FF9800';
-							el.style.borderLeftWidth = '4px';
-						} else if (text.includes('✕')) {
-							el.style.borderLeft = '4px solid #F44336';
-							el.style.borderLeftWidth = '4px';
-							el.style.opacity = '0.7';
-						}
-					}
-				});
-			}
-		} catch (error) {
-			console.error('Error applying availability styling:', error);
-		}
-	}, 500);
-}
-
 function setupSubmitHandler() {
 	$w('#btnSubmit').onClick(async () => {
 		await handleSubmit();
@@ -216,71 +200,48 @@ function setupSubmitHandler() {
 
 async function handleSubmit() {
 	try {
-		// Reset feedback
 		$w('#msgSuccess').hide();
 		$w('#msgError').hide();
 		$w('#btnSubmit').disable();
 		
-		// Validation - get form values
-		const organizationName = $w('#inputName').value?.trim(); // Volunteer name
+		const organizationName = $w('#inputName').value?.trim();
 		const contactEmail = $w('#inputEmail').value?.trim();
 		const contactPhone = $w('#inputPhone').value?.trim();
 		const volunteerRole = $w('#inputVolunteerRole').value?.trim();
 		const shiftPreference = $w('#inputShiftPreference').value?.trim();
 		const bio = $w('#inputBio').value?.trim();
 		
-		// Get selected dates from selection tags component
-		const selectionTags = $w('#dateSelectionTags');
-		let selectedDates = selectionTags.value || selectionTags.selected || selectionTags.selectedValues;
+		// Get selected dates from our tracked array
+		const dateIds = [...selectedDateIds];
 		
-		// Handle different return formats
-		let dateIds = [];
-		if (Array.isArray(selectedDates)) {
-			dateIds = selectedDates;
-		} else if (selectedDates && typeof selectedDates === 'object') {
-			dateIds = selectedDates.values || Object.values(selectedDates);
-		} else if (selectedDates) {
-			dateIds = [selectedDates];
-		}
-		
-		// Debug logging for date selection
-		console.log('Selected dates from component:', selectedDates);
-		console.log('Extracted dateIds:', dateIds);
+		console.log('Selected dates for submission:', dateIds);
 		console.log('Number of dates selected:', dateIds.length);
 		
-		// Validate required fields
-		if (!organizationName || !contactEmail || !contactPhone || !volunteerRole || !shiftPreference || !bio) {
-			throw new Error('Name, email, phone, volunteer role, shift preference, and bio/experience are required.');
+		if (!organizationName || !contactEmail || !contactPhone || !volunteerRole || !shiftPreference) {
+			throw new Error('Name, email, phone, volunteer role, and shift preference are required.');
 		}
 		
 		if (!dateIds || dateIds.length === 0) {
 			throw new Error('Please select at least one market date.');
 		}
 		
-		// Insert parent record using unified schema
 		const profileData = {
-			type: 'Volunteer', // Set type to Volunteer
-			title: organizationName, // Title field for reference display
-			organizationName: organizationName, // Volunteer name
+			type: 'Volunteer',
+			title: organizationName,
+			organizationName: organizationName,
 			contactEmail: contactEmail,
 			contactPhone: contactPhone,
-			volunteerRole: volunteerRole, // Volunteer-specific field
-			shiftPreference: shiftPreference, // Shift preference: Early Shift, Late Shift, or Both
-			bio: bio // Experience/background
+			volunteerRole: volunteerRole,
+			shiftPreference: shiftPreference,
+			bio: bio || null
 		};
 		
-		// Log the data being saved for debugging
-		console.log('Saving volunteer profile data:', profileData);
-		
-		// Use backend function with elevated permissions
 		const result = await submitSpecialtyProfile(profileData, dateIds);
 		console.log(`Successfully created profile and ${result.assignmentsCreated} WeeklyAssignments records`);
 		
-		// Success feedback
 		$w('#msgSuccess').text = 'Volunteer application submitted successfully!';
 		$w('#msgSuccess').show();
 		
-		// Reset form
 		resetForm();
 		
 	} catch (error) {
@@ -299,5 +260,13 @@ function resetForm() {
 	$w('#inputVolunteerRole').value = '';
 	$w('#inputShiftPreference').value = '';
 	$w('#inputBio').value = '';
-	$w('#dateSelectionTags').selected = [];
+	
+	// Reset selected dates
+	selectedDateIds = [];
+	
+	// Reset repeater checkboxes and styling
+	$w('#dateRepeater').forEachItem(($item, itemData, index) => {
+		$item('#itemCheckbox').checked = false;
+		$item('#itemContainer').style.backgroundColor = 'transparent';
+	});
 }

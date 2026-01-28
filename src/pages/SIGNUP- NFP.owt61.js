@@ -2,13 +2,16 @@ import wixData from 'wix-data';
 import { submitSpecialtyProfile } from 'backend/formSubmissions.jsw';
 import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 
+// Track selected dates
+let selectedDateIds = [];
+
 $w.onReady(function () {
 	populateNonProfitTypeDropdown();
-	populateDateTags();
+	populateDateRepeater();
 	setupSubmitHandler();
 });
 
-async function populateDateTags() {
+async function populateDateRepeater() {
 	try {
 		const results = await wixData.query('MarketDates2026')
 			.find();
@@ -16,7 +19,7 @@ async function populateDateTags() {
 		// Get availability data for all dates
 		const availability = await getDateAvailability();
 		
-		// Process dates: parse, sort chronologically, group by month
+		// Process dates: parse, sort chronologically
 		const dateItems = results.items
 			.map(item => {
 				const dateObj = new Date(item.date);
@@ -29,66 +32,95 @@ async function populateDateTags() {
 					monthName: dateObj.toLocaleDateString('en-US', { month: 'long' })
 				};
 			})
-			.sort((a, b) => a.date - b.date); // Sort chronologically
+			.sort((a, b) => a.date - b.date);
 		
-		// Group by month for organization
-		const groupedByMonth = {};
-		dateItems.forEach(item => {
-			const monthKey = `${item.year}-${String(item.month).padStart(2, '0')}`;
-			if (!groupedByMonth[monthKey]) {
-				groupedByMonth[monthKey] = [];
+		// Build repeater data with availability status
+		const repeaterData = dateItems.map(item => {
+			const daySuffix = getDaySuffix(item.day);
+			const dateAvailability = availability[item._id];
+			const nonProfitCount = dateAvailability ? dateAvailability.nonProfits : 0;
+			
+			// Non-profits: only 1 per week, so 0 = available, 1+ = full
+			let status = 'available';
+			let statusEmoji = '✓';
+			let borderColor = '#4CAF50'; // Green
+			
+			if (nonProfitCount >= 1) {
+				status = 'full';
+				statusEmoji = '✕';
+				borderColor = '#F44336'; // Red
 			}
-			groupedByMonth[monthKey].push(item);
+			
+			return {
+				_id: item._id,
+				label: `${item.monthName} ${item.day}${daySuffix}`,
+				emoji: statusEmoji,
+				status: status,
+				borderColor: borderColor,
+				isSelected: false
+			};
 		});
 		
-		// Build options with month-grouped labels and availability status
-		const options = [];
-		const monthColors = {
-			'May': '#4CAF50',      // Green (spring)
-			'June': '#2196F3',     // Blue (summer)
-			'July': '#2196F3',     // Blue (summer)
-			'August': '#2196F3',   // Blue (summer)
-			'September': '#FF9800', // Orange (fall)
-			'October': '#FF9800'    // Orange (fall)
-		};
+		// Reset selected dates
+		selectedDateIds = [];
 		
-		Object.keys(groupedByMonth).sort().forEach(monthKey => {
-			const dates = groupedByMonth[monthKey];
-			const monthName = dates[0].monthName;
-			const monthColor = monthColors[monthName] || '#757575'; // Default gray
+		// Set up repeater
+		$w('#dateRepeater').onItemReady(($item, itemData, index) => {
+			// Set label text
+			$item('#itemLabel').text = itemData.label;
 			
-			dates.forEach(item => {
-				const daySuffix = getDaySuffix(item.day);
-				const dateAvailability = availability[item._id];
-				const nonProfitCount = dateAvailability ? dateAvailability.nonProfits : 0;
-				
-				// Non-profits: only 1 per week, so 0 = available, 1+ = full
-				let status = 'available';
-				let statusEmoji = '✓';
-				if (nonProfitCount >= 1) {
-					status = 'full';
-					statusEmoji = '✕';
+			// Set emoji
+			$item('#itemEmoji').text = itemData.emoji;
+			
+			// Apply border color based on status
+			$item('#itemContainer').style.borderColor = itemData.borderColor;
+			$item('#itemContainer').style.borderWidth = '3px';
+			$item('#itemContainer').style.borderStyle = 'solid';
+			
+			// Apply opacity for full dates
+			if (itemData.status === 'full') {
+				$item('#itemContainer').style.opacity = 0.6;
+			}
+			
+			// Set initial checkbox state
+			$item('#itemCheckbox').checked = false;
+			
+			// Handle checkbox changes
+			$item('#itemCheckbox').onChange((event) => {
+				const isChecked = event.target.checked;
+				if (isChecked) {
+					if (!selectedDateIds.includes(itemData._id)) {
+						selectedDateIds.push(itemData._id);
+					}
+					$item('#itemContainer').style.backgroundColor = '#E3F2FD';
+				} else {
+					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
+					$item('#itemContainer').style.backgroundColor = 'transparent';
 				}
-				
-				const label = `${statusEmoji} ${item.monthName} ${item.day}${daySuffix}`;
-				
-				options.push({
-					value: item._id,
-					label: label,
-					// Store month and availability info for styling
-					month: monthName,
-					color: monthColor,
-					availabilityStatus: status
-				});
+				console.log('Selected dates:', selectedDateIds);
+			});
+			
+			// Also allow clicking the container to toggle
+			$item('#itemContainer').onClick(() => {
+				const checkbox = $item('#itemCheckbox');
+				checkbox.checked = !checkbox.checked;
+				const isChecked = checkbox.checked;
+				if (isChecked) {
+					if (!selectedDateIds.includes(itemData._id)) {
+						selectedDateIds.push(itemData._id);
+					}
+					$item('#itemContainer').style.backgroundColor = '#E3F2FD';
+				} else {
+					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
+					$item('#itemContainer').style.backgroundColor = 'transparent';
+				}
+				console.log('Selected dates:', selectedDateIds);
 			});
 		});
 		
-		$w('#dateSelectionTags').options = options;
+		// Populate repeater with data
+		$w('#dateRepeater').data = repeaterData;
 		
-		// Apply custom styling based on availability after a short delay
-		setTimeout(() => {
-			applyAvailabilityStyling(options);
-		}, 200);
 	} catch (error) {
 		console.error('Failed to load dates:', error);
 		$w('#msgError').text = 'Failed to load available dates. Please refresh.';
@@ -97,22 +129,17 @@ async function populateDateTags() {
 }
 
 function populateNonProfitTypeDropdown() {
-	// Set non-profit type options
-	// Note: These are generic categories - customize as needed
 	const nonProfitTypeOptions = [
-		{ value: 'Community Organization', label: 'Community Organization' },
-		{ value: 'Charity', label: 'Charity' },
-		{ value: 'Educational', label: 'Educational' },
-		{ value: 'Religious', label: 'Religious' },
-		{ value: 'Environmental', label: 'Environmental' },
+		{ value: 'Community Outreach', label: 'Community Outreach' },
 		{ value: 'Health & Wellness', label: 'Health & Wellness' },
 		{ value: 'Arts & Culture', label: 'Arts & Culture' },
+		{ value: 'Education', label: 'Education' },
+		{ value: 'Environment', label: 'Environment' },
+		{ value: 'Social Services', label: 'Social Services' },
 		{ value: 'Other', label: 'Other' }
 	];
-	
 	$w('#inputNonProfitType').options = nonProfitTypeOptions;
 }
-
 
 function getDaySuffix(day) {
 	if (day > 3 && day < 21) return 'th';
@@ -124,57 +151,6 @@ function getDaySuffix(day) {
 	}
 }
 
-function applyAvailabilityStyling(options) {
-	// Apply styling by finding elements with emoji content and adding inline styles
-	setTimeout(() => {
-		try {
-			if (typeof document !== 'undefined') {
-				const tagContainer = document.querySelector('[data-testid*="dateSelectionTags"], #dateSelectionTags, [id*="dateSelectionTags"]');
-				if (tagContainer) {
-					const allButtons = tagContainer.querySelectorAll('button, [role="button"], .tag-item, [class*="tag"]');
-					
-					allButtons.forEach(button => {
-						const text = button.textContent || button.innerText || button.getAttribute('aria-label') || '';
-						
-						if (text.includes('✓')) {
-							button.style.borderLeft = '4px solid #4CAF50';
-							button.style.borderLeftWidth = '4px';
-						} else if (text.includes('⚠')) {
-							button.style.borderLeft = '4px solid #FF9800';
-							button.style.borderLeftWidth = '4px';
-						} else if (text.includes('✕')) {
-							button.style.borderLeft = '4px solid #F44336';
-							button.style.borderLeftWidth = '4px';
-							button.style.opacity = '0.7';
-						}
-					});
-				}
-				
-				const allPossibleTags = document.querySelectorAll('button, [role="button"]');
-				allPossibleTags.forEach(el => {
-					const text = el.textContent || el.innerText || '';
-					const parent = el.closest('[id*="dateSelection"], [class*="dateSelection"]');
-					if (parent && (text.includes('✓') || text.includes('⚠') || text.includes('✕'))) {
-						if (text.includes('✓')) {
-							el.style.borderLeft = '4px solid #4CAF50';
-							el.style.borderLeftWidth = '4px';
-						} else if (text.includes('⚠')) {
-							el.style.borderLeft = '4px solid #FF9800';
-							el.style.borderLeftWidth = '4px';
-						} else if (text.includes('✕')) {
-							el.style.borderLeft = '4px solid #F44336';
-							el.style.borderLeftWidth = '4px';
-							el.style.opacity = '0.7';
-						}
-					}
-				});
-			}
-		} catch (error) {
-			console.error('Error applying availability styling:', error);
-		}
-	}, 500);
-}
-
 function setupSubmitHandler() {
 	$w('#btnSubmit').onClick(async () => {
 		await handleSubmit();
@@ -183,39 +159,23 @@ function setupSubmitHandler() {
 
 async function handleSubmit() {
 	try {
-		// Reset feedback
 		$w('#msgSuccess').hide();
 		$w('#msgError').hide();
 		$w('#btnSubmit').disable();
 		
-		// Validation - get form values
-		const organizationName = $w('#inputName').value?.trim(); // Organization name
+		const organizationName = $w('#inputName').value?.trim();
 		const contactEmail = $w('#inputEmail').value?.trim();
 		const contactPhone = $w('#inputPhone').value?.trim();
 		const nonProfitType = $w('#inputNonProfitType').value?.trim();
-		const bio = $w('#inputBio').value?.trim(); // Organization description
-		const website = $w('#inputWebsite').value?.trim() || null; // Optional
+		const bio = $w('#inputBio').value?.trim();
+		const website = $w('#inputWebsite').value?.trim();
 		
-		// Get selected dates from selection tags component
-		const selectionTags = $w('#dateSelectionTags');
-		let selectedDates = selectionTags.value || selectionTags.selected || selectionTags.selectedValues;
+		// Get selected dates from our tracked array
+		const dateIds = [...selectedDateIds];
 		
-		// Handle different return formats
-		let dateIds = [];
-		if (Array.isArray(selectedDates)) {
-			dateIds = selectedDates;
-		} else if (selectedDates && typeof selectedDates === 'object') {
-			dateIds = selectedDates.values || Object.values(selectedDates);
-		} else if (selectedDates) {
-			dateIds = [selectedDates];
-		}
-		
-		// Debug logging for date selection
-		console.log('Selected dates from component:', selectedDates);
-		console.log('Extracted dateIds:', dateIds);
+		console.log('Selected dates for submission:', dateIds);
 		console.log('Number of dates selected:', dateIds.length);
 		
-		// Validate required fields
 		if (!organizationName || !contactEmail || !contactPhone || !nonProfitType || !bio) {
 			throw new Error('Organization name, email, phone, non-profit type, and description are required.');
 		}
@@ -224,30 +184,23 @@ async function handleSubmit() {
 			throw new Error('Please select at least one market date.');
 		}
 		
-		// Insert parent record using unified schema
 		const profileData = {
-			type: 'NonProfit', // Set type to NonProfit
-			title: organizationName, // Title field for reference display
-			organizationName: organizationName, // Organization name
+			type: 'NonProfit',
+			title: organizationName,
+			organizationName: organizationName,
 			contactEmail: contactEmail,
 			contactPhone: contactPhone,
-			nonProfitType: nonProfitType, // Non-profit-specific field
-			bio: bio, // Organization description
-			website: website || null // Optional
+			nonProfitType: nonProfitType,
+			bio: bio,
+			website: website || null
 		};
 		
-		// Log the data being saved for debugging
-		console.log('Saving non-profit profile data:', profileData);
-		
-		// Use backend function with elevated permissions
 		const result = await submitSpecialtyProfile(profileData, dateIds);
 		console.log(`Successfully created profile and ${result.assignmentsCreated} WeeklyAssignments records`);
 		
-		// Success feedback
 		$w('#msgSuccess').text = 'Non-profit application submitted successfully!';
 		$w('#msgSuccess').show();
 		
-		// Reset form
 		resetForm();
 		
 	} catch (error) {
@@ -266,5 +219,13 @@ function resetForm() {
 	$w('#inputNonProfitType').value = '';
 	$w('#inputBio').value = '';
 	$w('#inputWebsite').value = '';
-	$w('#dateSelectionTags').selected = [];
+	
+	// Reset selected dates
+	selectedDateIds = [];
+	
+	// Reset repeater checkboxes and styling
+	$w('#dateRepeater').forEachItem(($item, itemData, index) => {
+		$item('#itemCheckbox').checked = false;
+		$item('#itemContainer').style.backgroundColor = 'transparent';
+	});
 }
