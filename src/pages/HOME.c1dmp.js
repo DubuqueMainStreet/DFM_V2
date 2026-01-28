@@ -19,27 +19,34 @@ $w.onReady(async function () {
         
         // Calculate all Saturdays from May 2, 2026 to October 31, 2026
         const marketDates = [];
-        const startDate = new Date('2026-05-02'); // May 2, 2026 (Saturday)
-        const endDate = new Date('2026-10-31'); // October 31, 2026
+        // Use UTC to avoid timezone issues
+        const startDate = new Date('2026-05-02T00:00:00Z'); // May 2, 2026
+        const endDate = new Date('2026-10-31T23:59:59Z'); // October 31, 2026
         
         let currentDate = new Date(startDate);
+        let saturdayCount = 0;
+        
         while (currentDate <= endDate) {
-            // Check if it's a Saturday (day 6)
+            // Check if it's a Saturday (day 6, where 0=Sunday, 6=Saturday)
             if (currentDate.getDay() === 6) {
                 marketDates.push(new Date(currentDate));
+                saturdayCount++;
             }
             // Move to next day
             currentDate.setDate(currentDate.getDate() + 1);
         }
         
+        console.log(`Found ${saturdayCount} Saturdays between ${startDate.toISOString().split('T')[0]} and ${endDate.toISOString().split('T')[0]}`);
+        
         console.log(`Calculated ${marketDates.length} market dates (Saturdays)`);
         console.log('Dates:', marketDates.map(d => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })));
         
-        // If we have exactly 27 records and matching dates, update them
-        if (results.items.length === marketDates.length) {
-            console.log('✅ Record count matches date count. Updating existing records...');
+        // Update records - handle mismatch by updating what we can
+        if (results.items.length >= marketDates.length) {
+            console.log(`Updating ${marketDates.length} records with calculated dates...`);
+            console.log(`(${results.items.length - marketDates.length} extra record(s) will be skipped)`);
             
-            const updatePromises = results.items.map(async (item, index) => {
+            const updatePromises = results.items.slice(0, marketDates.length).map(async (item, index) => {
                 const date = marketDates[index];
                 const dateObj = new Date(date);
                 
@@ -61,12 +68,18 @@ $w.onReady(async function () {
             
             await Promise.all(updatePromises);
             
-            console.log(`✅ Successfully restored ${results.items.length} records with dates and titles.`);
+            console.log(`✅ Successfully restored ${marketDates.length} records with dates and titles.`);
+            
+            if (results.items.length > marketDates.length) {
+                console.log(`⚠️  Note: ${results.items.length - marketDates.length} record(s) were not updated.`);
+                console.log('You may need to manually set the date for the extra record(s) in CMS.');
+            }
+            
             console.log('✅ Check the MarketDates2026 collection in CMS to verify.');
             
         } else {
-            console.log(`⚠️  Record count (${results.items.length}) doesn't match date count (${marketDates.length})`);
-            console.log('You may need to manually match records to dates, or delete extra records.');
+            console.log(`⚠️  More dates (${marketDates.length}) than records (${results.items.length})`);
+            console.log('This is unusual - you may need to create more records in CMS.');
         }
         
     } catch (error) {
