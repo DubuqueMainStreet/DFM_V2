@@ -132,30 +132,44 @@ async function populateDateRepeater() {
 					console.warn('Class methods not available:', e);
 				}
 				
-				// Style the border indicator element (more reliable than container border)
+				// PRIMARY: Try to style the container border (now that border exists in editor)
+				if (container.style) {
+					try {
+						// Ensure borderColor is in correct format (#RRGGBB)
+						const borderColor = itemData.borderColor.startsWith('#') 
+							? itemData.borderColor 
+							: `#${itemData.borderColor}`;
+						
+						// Set border color - try multiple approaches
+						container.style.borderColor = borderColor;
+						container.style.borderWidth = '3px';
+						container.style.borderStyle = 'solid';
+						
+						// Also try setting as single border property
+						container.style.border = `3px solid ${borderColor}`;
+						
+						console.log(`✅ Applied container border color ${borderColor} (${itemData.status}) to ${itemData.label}`);
+					} catch (e) {
+						console.warn('Failed to set container border:', e);
+					}
+					
+					// Apply opacity for full dates
+					if (itemData.status === 'full') {
+						container.style.opacity = '0.6';
+					} else {
+						container.style.opacity = '1';
+					}
+				}
+				
+				// FALLBACK: Style the border indicator element (in case container border doesn't work)
 				const borderIndicator = $item('#itemBorderIndicator');
 				if (borderIndicator && borderIndicator.style) {
 					try {
 						// Set background color based on availability status
 						borderIndicator.style.backgroundColor = itemData.borderColor;
-						
-						// Ensure it's visible
 						borderIndicator.style.display = 'block';
-						
-						console.log(`✅ Applied border indicator color ${itemData.borderColor} (${itemData.status}) to ${itemData.label}`);
 					} catch (e) {
 						console.warn('Failed to style border indicator:', e);
-					}
-				} else {
-					console.warn('Border indicator element not found for:', itemData.label);
-				}
-				
-				// Apply opacity for full dates (on container)
-				if (container.style) {
-					if (itemData.status === 'full') {
-						container.style.opacity = '0.6';
-					} else {
-						container.style.opacity = '1';
 					}
 				}
 				
