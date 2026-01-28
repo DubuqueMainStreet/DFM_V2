@@ -434,10 +434,26 @@ function setupCalendarItem($item, itemData) {
 						console.log('Expanding details, populating content...');
 						populateDetails(detailsContent, itemData);
 						
-						// Ensure content element is visible
+						// Ensure content element is visible BEFORE expanding container
 						if (typeof detailsContent.show === 'function') {
 							detailsContent.show();
+							console.log('Content element shown');
 						}
+						
+						// Set content element visibility via style if available
+						if (detailsContent.style) {
+							try {
+								detailsContent.style.display = 'block';
+								detailsContent.style.visibility = 'visible';
+								detailsContent.style.opacity = '1';
+								console.log('Content element styled for visibility');
+							} catch (e) {
+								console.warn('Could not style content element:', e);
+							}
+						}
+						
+						// Small delay to ensure content is set before expanding container
+						await new Promise(resolve => setTimeout(resolve, 50));
 						
 						// Try multiple methods to expand/show container
 						if (typeof detailsContainer.expand === 'function') {
@@ -449,6 +465,13 @@ function setupCalendarItem($item, itemData) {
 						} else if (detailsContainer.style) {
 							detailsContainer.style.display = 'block';
 							console.log('Container shown via style.display');
+						}
+						
+						// Double-check content is visible after container expansion
+						if (detailsContent.text && detailsContent.text.length > 0) {
+							console.log('Content verified after expansion, length:', detailsContent.text.length);
+						} else {
+							console.warn('WARNING: Content appears empty after expansion!');
 						}
 						
 						isExpanded = true;
@@ -616,10 +639,30 @@ function populateDetails(container, itemData) {
 		container.text = textContent;
 		console.log('Content set via .text property');
 		
-		// Ensure element is visible
+		// Ensure element is visible and styled
 		if (typeof container.show === 'function') {
 			container.show();
 		}
+		
+		// Try to set styling to ensure visibility
+		if (container.style) {
+			try {
+				container.style.display = 'block';
+				container.style.visibility = 'visible';
+				container.style.opacity = '1';
+				container.style.height = 'auto';
+				container.style.minHeight = '50px';
+			} catch (e) {
+				console.warn('Could not set style properties:', e);
+			}
+		}
+		
+		// Log element state for debugging
+		console.log('Content element state:', {
+			text: container.text ? container.text.substring(0, 50) : 'no text',
+			visible: container.visible !== undefined ? container.visible : 'unknown',
+			style: container.style ? 'has style' : 'no style'
+		});
 	} else if (container.html !== undefined) {
 		// HTML Component - convert text to HTML
 		const htmlContent = textContent
