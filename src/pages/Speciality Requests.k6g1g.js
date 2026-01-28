@@ -428,12 +428,6 @@ function setupRepeaterItem($item, itemData) {
 	if (btnConfirm && typeof btnConfirm.hide === 'function') {
 		btnConfirm.hide();
 	}
-	
-	// Hide Assign Location button (redundant with dropdown)
-	const btnAssignLocation = $item('#btnAssignLocation');
-	if (btnAssignLocation && typeof btnAssignLocation.hide === 'function') {
-		btnAssignLocation.hide();
-	}
 }
 
 async function updateAssignmentStatus(assignmentId, newStatus) {

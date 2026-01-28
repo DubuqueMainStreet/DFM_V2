@@ -26,8 +26,6 @@ Make sure your repeater has these element IDs:
 ### Action Buttons (Optional but Recommended):
 - `#btnApprove` - Button - Approve assignment
 - `#btnReject` - Button - Reject assignment
-- `#btnConfirm` - Button - Confirm assignment (shown only when Approved)
-- `#btnAssignLocation` - Button - Assign location
 
 ---
 
@@ -47,11 +45,12 @@ Make sure your repeater has these element IDs:
 
 4. **Status Updates:**
    - Use dropdown or buttons to change status
-   - Statuses: Pending → Approved → Confirmed, or Rejected
+   - Statuses: Pending, Approved, or Rejected
 
-5. **Location Assignment:**
-   - Use dropdown or button to assign location
+5. **Location Assignment (Musicians Only):**
+   - Use dropdown to assign location (only visible for Musicians)
    - Locations: Unassigned, Default, Location A, B, C
+   - Automatically hidden for Volunteers and Non-Profits
 
 ---
 
@@ -61,8 +60,9 @@ Make sure your repeater has these element IDs:
 - [ ] Date filter populates with all market dates
 - [ ] Date filter filters assignments correctly
 - [ ] Repeater displays assignments for selected type
-- [ ] Status updates work (Pending/Approved/Rejected/Confirmed)
-- [ ] Location assignment works
+- [ ] Status updates work (Pending/Approved/Rejected)
+- [ ] Location assignment works (Musicians only)
+- [ ] Location dropdown is hidden for Volunteers and Non-Profits
 - [ ] Contact info displays correctly
 - [ ] Type-specific details show correctly (role, shift, etc.)
 
