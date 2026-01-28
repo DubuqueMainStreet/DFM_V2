@@ -5,11 +5,15 @@ import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 // Track selected dates (since we're using a repeater instead of selection tags)
 let selectedDateIds = [];
 
+// Track if onItemReady has been set up
+let repeaterSetupComplete = false;
+
 $w.onReady(function () {
 	populateMusicianTypeDropdown();
 	populateLocationDropdown();
 	populateDurationDropdown();
 	populateGenreDropdown();
+	setupRepeaterHandlers();
 	populateDateRepeater();
 	setupSubmitHandler();
 	
@@ -19,7 +23,104 @@ $w.onReady(function () {
 	});
 });
 
+// Set up repeater handlers once (not every time data is updated)
+function setupRepeaterHandlers() {
+	if (repeaterSetupComplete) return;
+	
+	$w('#dateRepeater').onItemReady(($item, itemData, index) => {
+		try {
+			// Set label text
+			$item('#itemLabel').text = itemData.label;
+			
+			// Get container element
+			const container = $item('#itemContainer');
+			
+			if (!container) {
+				console.error('Container element not found for item:', itemData.label);
+				return;
+			}
+			
+			// Style the container border based on availability status
+			if (container.style) {
+				try {
+					// Ensure borderColor is in correct format (#RRGGBB)
+					const borderColor = itemData.borderColor.startsWith('#') 
+						? itemData.borderColor 
+						: `#${itemData.borderColor}`;
+					
+					// Set border color
+					container.style.borderColor = borderColor;
+					container.style.borderWidth = '3px';
+					container.style.borderStyle = 'solid';
+					
+					// Apply opacity for full dates
+					if (itemData.status === 'full') {
+						container.style.opacity = '0.6';
+					} else {
+						container.style.opacity = '1';
+					}
+					
+					console.log(`✅ Applied border color ${borderColor} (${itemData.status}) to ${itemData.label}`);
+				} catch (e) {
+					console.warn('Failed to set container border:', e);
+				}
+			}
+			
+			// Set initial selection state (preserve selection across location changes)
+			const isCurrentlySelected = selectedDateIds.includes(itemData._id);
+			if (isCurrentlySelected) {
+				try {
+					container.style.backgroundColor = '#E3F2FD';
+				} catch (e) {
+					console.warn('Failed to set selection background:', e);
+				}
+			}
+			
+			// Make entire container clickable to toggle selection
+			$item('#itemContainer').onClick(() => {
+				const container = $item('#itemContainer');
+				const dateId = itemData._id; // Capture the ID in a local variable
+				const isSelected = selectedDateIds.includes(dateId);
+				
+				console.log('Date clicked:', itemData.label, 'ID:', dateId, 'Currently selected:', isSelected);
+				console.log('Current selectedDateIds before update:', [...selectedDateIds]);
+				
+				if (isSelected) {
+					// Deselect: remove from array and clear background
+					const newArray = selectedDateIds.filter(id => id !== dateId);
+					selectedDateIds = newArray;
+					try {
+						container.style.backgroundColor = '';
+					} catch (e) {
+						// Ignore if can't clear background
+					}
+				} else {
+					// Select: add to array and highlight
+					if (!selectedDateIds.includes(dateId)) {
+						selectedDateIds.push(dateId);
+					}
+					try {
+						container.style.backgroundColor = '#E3F2FD';
+					} catch (e) {
+						console.warn('Failed to set selection background:', e);
+					}
+				}
+				
+				console.log('Selected dates after update:', [...selectedDateIds]);
+			});
+		} catch (error) {
+			console.error('Error setting up repeater item:', error);
+		}
+	});
+	
+	repeaterSetupComplete = true;
+}
+
 async function populateDateRepeater() {
+	// Preserve selected dates before any operations
+	const preservedSelections = [...selectedDateIds];
+	console.log('populateDateRepeater called. Preserving selections:', preservedSelections);
+	
 	try {
 		const results = await wixData.query('MarketDates2026')
 			.find();
@@ -122,84 +223,22 @@ async function populateDateRepeater() {
 			};
 		});
 		
-		// Don't reset selected dates - preserve user selections when repopulating
+		// Ensure selectedDateIds hasn't been cleared
+		if (selectedDateIds.length === 0 && preservedSelections.length > 0) {
+			console.warn('⚠️ selectedDateIds was cleared! Restoring from preserved selections.');
+			selectedDateIds = [...preservedSelections];
+		}
 		
-		// Set up repeater
-		$w('#dateRepeater').onItemReady(($item, itemData, index) => {
-			try {
-				// Set label text
-				$item('#itemLabel').text = itemData.label;
-				
-				// Get container element
-				const container = $item('#itemContainer');
-				
-				if (!container) {
-					console.error('Container element not found for item:', itemData.label);
-					return;
-				}
-				
-				// Style the container border based on availability status
-				if (container.style) {
-					try {
-						// Ensure borderColor is in correct format (#RRGGBB)
-						const borderColor = itemData.borderColor.startsWith('#') 
-							? itemData.borderColor 
-							: `#${itemData.borderColor}`;
-						
-						// Set border color
-						container.style.borderColor = borderColor;
-						container.style.borderWidth = '3px';
-						container.style.borderStyle = 'solid';
-						
-						// Apply opacity for full dates
-						if (itemData.status === 'full') {
-							container.style.opacity = '0.6';
-						} else {
-							container.style.opacity = '1';
-						}
-						
-						console.log(`✅ Applied border color ${borderColor} (${itemData.status}) to ${itemData.label}`);
-					} catch (e) {
-						console.warn('Failed to set container border:', e);
-					}
-				}
-				
-				// Set initial selection state (preserve selection across location changes)
-				const isCurrentlySelected = selectedDateIds.includes(itemData._id);
-				if (isCurrentlySelected) {
-					container.style.backgroundColor = '#E3F2FD';
-				}
-				
-				// Make entire container clickable to toggle selection
-				$item('#itemContainer').onClick(() => {
-					const container = $item('#itemContainer');
-					const isSelected = selectedDateIds.includes(itemData._id);
-					
-					if (isSelected) {
-						// Deselect: remove from array and clear background
-						selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-						try {
-							container.style.backgroundColor = '';
-						} catch (e) {
-							// Ignore if can't clear background
-						}
-					} else {
-						// Select: add to array and highlight
-						if (!selectedDateIds.includes(itemData._id)) {
-							selectedDateIds.push(itemData._id);
-						}
-						container.style.backgroundColor = '#E3F2FD';
-					}
-					
-					console.log('Selected dates:', selectedDateIds);
-				});
-			} catch (error) {
-				console.error('Error setting up repeater item:', error);
-			}
-		});
-		
-		// Populate repeater with data
+		// Populate repeater with data (this will trigger onItemReady handlers)
 		$w('#dateRepeater').data = repeaterData;
+		
+		// Double-check after setting data
+		if (selectedDateIds.length === 0 && preservedSelections.length > 0) {
+			console.warn('⚠️ selectedDateIds was cleared after setting data! Restoring.');
+			selectedDateIds = [...preservedSelections];
+		}
+		
+		console.log('Repeater data updated. Selected dates preserved:', selectedDateIds);
 		
 	} catch (error) {
 		console.error('Failed to load dates:', error);
