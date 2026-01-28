@@ -96,27 +96,50 @@ async function populateDateRepeater() {
 				const container = $item('#itemContainer');
 				
 				if (!container) {
-					console.error('Container element not found for item:', itemData.label);
+					console.error('❌ Container element not found for item:', itemData.label);
 					return;
 				}
 				
-				// Remove any existing availability classes
-				container.removeClass('availability-available');
-				container.removeClass('availability-limited');
-				container.removeClass('availability-full');
+				// Debug: Log container properties
+				console.log(`📦 Container found for ${itemData.label}:`, {
+					id: container.id,
+					type: container.type,
+					hasStyle: !!container.style,
+					borderColor: itemData.borderColor,
+					status: itemData.status
+				});
 				
-				// Add status class for CSS fallback
-				container.addClass(`availability-${itemData.status}`);
+				// Try to add CSS class (if supported)
+				try {
+					if (typeof container.addClass === 'function') {
+						container.removeClass('availability-available');
+						container.removeClass('availability-limited');
+						container.removeClass('availability-full');
+						container.addClass(`availability-${itemData.status}`);
+					}
+				} catch (e) {
+					console.warn('Class methods not available:', e);
+				}
 				
 				// Apply border styling - try multiple approaches for compatibility
 				if (container.style) {
 					// Method 1: Set border as single property (most reliable)
-					container.style.border = `3px solid ${itemData.borderColor}`;
+					try {
+						container.style.border = `3px solid ${itemData.borderColor}`;
+						console.log(`✅ Set border: 3px solid ${itemData.borderColor}`);
+					} catch (e) {
+						console.warn('Failed to set border property:', e);
+					}
 					
 					// Method 2: Also set individual properties
-					container.style.borderColor = itemData.borderColor;
-					container.style.borderWidth = '3px';
-					container.style.borderStyle = 'solid';
+					try {
+						container.style.borderColor = itemData.borderColor;
+						container.style.borderWidth = '3px';
+						container.style.borderStyle = 'solid';
+						console.log(`✅ Set individual border properties`);
+					} catch (e) {
+						console.warn('Failed to set individual border properties:', e);
+					}
 					
 					// Apply opacity for full dates
 					if (itemData.status === 'full') {
@@ -125,9 +148,13 @@ async function populateDateRepeater() {
 						container.style.opacity = '1';
 					}
 					
-					console.log(`Applied border color ${itemData.borderColor} (${itemData.status}) to date ${itemData.label}`);
+					// Verify the style was applied
+					setTimeout(() => {
+						const computedBorder = container.style.border || container.style.borderColor;
+						console.log(`🔍 Verification for ${itemData.label}: border = ${computedBorder}`);
+					}, 100);
 				} else {
-					console.warn('Container style property not available');
+					console.error('❌ Container.style property not available');
 				}
 				
 				// Set initial checkbox state (preserve selection across role changes)
