@@ -390,7 +390,10 @@ function setupRepeaterItem($item, itemData) {
 			}
 		} else if ($item('#itemLocation')) {
 			// Hide location dropdown for Volunteers and Non-Profits
-			$item('#itemLocation').hide();
+			const locationElement = $item('#itemLocation');
+			if (locationElement && typeof locationElement.hide === 'function') {
+				locationElement.hide();
+			}
 		}
 	
 	// Set up action buttons - check if they exist and are buttons before setting onClick
@@ -422,13 +425,13 @@ function setupRepeaterItem($item, itemData) {
 	
 	// Hide Confirm button (removed from workflow)
 	const btnConfirm = $item('#btnConfirm');
-	if (btnConfirm) {
+	if (btnConfirm && typeof btnConfirm.hide === 'function') {
 		btnConfirm.hide();
 	}
 	
 	// Hide Assign Location button (redundant with dropdown)
 	const btnAssignLocation = $item('#btnAssignLocation');
-	if (btnAssignLocation) {
+	if (btnAssignLocation && typeof btnAssignLocation.hide === 'function') {
 		btnAssignLocation.hide();
 	}
 }
