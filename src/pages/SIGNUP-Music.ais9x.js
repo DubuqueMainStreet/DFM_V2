@@ -283,9 +283,10 @@ async function handleSubmit() {
 		const techNeeds = $w('#inputNeedsElectric').checked || false;
 		const preferredLocation = $w('#inputLocation').value?.trim();
 		const bio = $w('#inputBio').value?.trim();
-		const website = $w('#inputWebsite').value?.trim();
-		const duration = $w('#inputDuration').value?.trim();
-		const genre = $w('#inputGenre').value?.trim();
+		// Optional fields
+		const website = $w('#inputWebsite').value?.trim() || null;
+		const duration = $w('#inputDuration').value?.trim() || null;
+		const genre = $w('#inputGenre').value?.trim() || null;
 		
 		// Get selected dates from our tracked array (instead of selection tags)
 		const dateIds = [...selectedDateIds];
@@ -293,6 +294,7 @@ async function handleSubmit() {
 		console.log('Selected dates for submission:', dateIds);
 		console.log('Number of dates selected:', dateIds.length);
 		
+		// Validate required fields (website is optional)
 		if (!organizationName || !contactEmail || !contactPhone || !musicianType || !preferredLocation || !bio) {
 			throw new Error('Name, email, phone, musician type, location, and bio are required.');
 		}
@@ -319,9 +321,9 @@ async function handleSubmit() {
 			techNeeds: techNeeds,
 			preferredLocation: preferredLocation,
 			bio: bio,
-			website: website || null,
-			duration: duration || null,
-			genre: genre || null
+			website: website, // Optional
+			duration: duration, // Optional
+			genre: genre // Optional
 		};
 		
 		const result = await submitSpecialtyProfile(profileData, dateIds);

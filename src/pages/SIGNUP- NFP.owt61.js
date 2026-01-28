@@ -198,7 +198,8 @@ async function handleSubmit() {
 		const contactPhone = $w('#inputPhone').value?.trim();
 		const nonProfitType = $w('#inputNonProfitType').value?.trim();
 		const bio = $w('#inputBio').value?.trim();
-		const website = $w('#inputWebsite').value?.trim();
+		// Optional field
+		const website = $w('#inputWebsite').value?.trim() || null;
 		
 		// Get selected dates from our tracked array
 		const dateIds = [...selectedDateIds];
@@ -206,6 +207,7 @@ async function handleSubmit() {
 		console.log('Selected dates for submission:', dateIds);
 		console.log('Number of dates selected:', dateIds.length);
 		
+		// Validate required fields (website is optional)
 		if (!organizationName || !contactEmail || !contactPhone || !nonProfitType || !bio) {
 			throw new Error('Organization name, email, phone, non-profit type, and description are required.');
 		}
@@ -222,7 +224,7 @@ async function handleSubmit() {
 			contactPhone: contactPhone,
 			nonProfitType: nonProfitType,
 			bio: bio,
-			website: website || null
+			website: website // Optional
 		};
 		
 		const result = await submitSpecialtyProfile(profileData, dateIds);
