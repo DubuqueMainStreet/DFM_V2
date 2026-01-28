@@ -187,7 +187,8 @@ async function populateDateRepeater() {
 				if (itemData.isSelected) {
 					container.style.backgroundColor = '#E3F2FD';
 				} else {
-					container.style.backgroundColor = 'transparent';
+					// Use rgba format for transparent (Wix requirement)
+					container.style.backgroundColor = 'rgba(255, 255, 255, 0)';
 				}
 			} catch (error) {
 				console.error('Error styling repeater item:', error, itemData);
@@ -204,7 +205,7 @@ async function populateDateRepeater() {
 					container.style.backgroundColor = '#E3F2FD';
 				} else {
 					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-					container.style.backgroundColor = 'transparent';
+					container.style.backgroundColor = 'rgba(255, 255, 255, 0)';
 				}
 				console.log('Selected dates:', selectedDateIds);
 			});
@@ -222,7 +223,7 @@ async function populateDateRepeater() {
 					container.style.backgroundColor = '#E3F2FD';
 				} else {
 					selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-					container.style.backgroundColor = 'transparent';
+					container.style.backgroundColor = 'rgba(255, 255, 255, 0)';
 				}
 				console.log('Selected dates:', selectedDateIds);
 			});
@@ -344,6 +345,6 @@ function resetForm() {
 	// Reset repeater checkboxes and styling
 	$w('#dateRepeater').forEachItem(($item, itemData, index) => {
 		$item('#itemCheckbox').checked = false;
-		$item('#itemContainer').style.backgroundColor = 'transparent';
+		$item('#itemContainer').style.backgroundColor = 'rgba(255, 255, 255, 0)';
 	});
 }
