@@ -64,15 +64,37 @@ $w.onReady(async function () {
             .map(item => {
                 const date = item.date;
                 if (!date) return null;
-                // Ensure date is a Date object
-                const dateObj = date instanceof Date ? date : new Date(date);
-                // Return date in YYYY-MM-DD format for allowedDates
-                return dateObj.toISOString().split('T')[0];
+                
+                // Parse date properly to avoid timezone issues
+                let dateObj;
+                if (typeof date === 'string') {
+                    // If it's a date string like "2026-05-02", parse it as local time
+                    const dateStr = date.split('T')[0]; // Get YYYY-MM-DD part
+                    const [year, month, day] = dateStr.split('-').map(Number);
+                    dateObj = new Date(year, month - 1, day, 12, 0, 0, 0); // Use noon local time
+                } else {
+                    // If it's already a Date object
+                    dateObj = new Date(date);
+                    // Set to noon local time to avoid timezone edge cases
+                    dateObj.setHours(12, 0, 0, 0);
+                }
+                
+                return dateObj;
             })
             .filter(date => date !== null);
         
         console.log(`Velo (Map Page): Configuring date picker with ${allowedDates.length} allowed dates.`);
-        datePicker.allowedDates = allowedDates;
+        console.log(`Velo (Map Page): Sample dates:`, allowedDates.slice(0, 5).map(d => d.toISOString().split('T')[0]));
+        
+        // Try setting allowedDates - Wix DatePicker may accept Date objects or strings
+        try {
+            datePicker.allowedDates = allowedDates;
+        } catch (e) {
+            // If Date objects don't work, try strings
+            console.log("Velo (Map Page): Trying string format for allowedDates...");
+            const dateStrings = allowedDates.map(d => d.toISOString().split('T')[0]);
+            datePicker.allowedDates = dateStrings;
+        }
     } catch (error) {
         console.error("Velo (Map Page): Error loading market dates for date picker:", error);
         // Continue without restriction if there's an error
