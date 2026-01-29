@@ -1,121 +1,121 @@
 VendorID,Vendor,VendorType,Description,Website,Tags,DefaultStall
-VENDOR-001,Green Grove,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic",A1
-VENDOR-002,River Gardens,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie, pie",A2
-VENDOR-003,Prairie Meadows,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte",A3
-VENDOR-004,Valley Meadows,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef",A4
-VENDOR-005,Meadow Grove,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://meadowgrove.com,"cheese, dairy, milk",A5
-VENDOR-006,Grandma's Waffle House,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",A6
-VENDOR-007,Robert's Coffee,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts",A7
-VENDOR-008,Sunrise Farm,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam, jelly, syrup",A8
-VENDOR-009,Cedar Meadows,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh",A9
-VENDOR-010,Oak Gardens,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie, pie, cake",A10
-VENDOR-011,Maple Ranch,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso",A11
-VENDOR-012,Willow Gardens,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,https://willowgardens.com,"meat, beef",A12
-VENDOR-013,Pine Homestead,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk, yogurt, butter",A13
-VENDOR-014,Uncle Crepe Corner,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich, burger, pizza",A14
-VENDOR-015,Barbara's Kitchen,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts, artisan, handmade",A15
-VENDOR-016,Happy Meadows,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax",A16
-VENDOR-017,Lucky Orchards,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh",A17
-VENDOR-018,Golden Meadows,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie, pie",A18
-VENDOR-019,Silver Farm,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte",A19
-VENDOR-020,Blue Homestead,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork, chicken",A20
-VENDOR-021,Green Farm,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://greenfarm.com,"cheese, dairy, milk",A21
-VENDOR-022,Aunt Waffle House,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich, burger",A22
-VENDOR-023,Michael's Crafts Co.,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts, artisan",A23
-VENDOR-024,Valley Ranch,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://valleyranch.com,"honey, beeswax",A24
-VENDOR-025,Meadow Acres,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,https://meadowacres.com,"vegetables, fruits, organic, fresh, local",A25
-VENDOR-026,Hill Meadows,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,https://hillmeadows.com,"bakery, bread, cookie, pie",A26
-VENDOR-027,Sunset Farmstead,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://sunsetfarmstead.com,"coffee, espresso, latte, cappuccino, cold brew",A27
-VENDOR-028,Sunrise Orchards,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,https://sunriseorchards.com,"meat, beef, pork",A28
-VENDOR-029,Cedar Ranch,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk, yogurt, butter",A29
-VENDOR-030,The Burger Joint,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos",A30
-VENDOR-031,John's Bakery Co.,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts, artisan",A31
-VENDOR-032,Willow Meadows,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax",A32
-VENDOR-033,Pine Gardens,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits",A33
-VENDOR-034,Birch Ranch,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread",A34
-VENDOR-035,Wild Farmstead,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://wildfarmstead.com,"coffee, espresso, latte, cappuccino, cold brew",A35
-VENDOR-036,Happy Acres,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",A36
-VENDOR-037,Lucky Ranch,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://luckyranch.com,"cheese, dairy, milk",A37
-VENDOR-038,Grandma's Crepe Corner,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",A38
-VENDOR-039,Nancy's Shop,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts",A39
-VENDOR-040,Blue Ranch,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://blueranch.com,"honey, beeswax, jam, jelly, syrup",A40
-VENDOR-041,Green Grove,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits",A41
-VENDOR-042,River Fields,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread",A42
-VENDOR-043,Prairie Ranch,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso",A43
-VENDOR-044,Valley Ranch,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,https://valleyranch.com,"meat, beef, pork, chicken",A44
-VENDOR-045,Meadow Acres,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk, yogurt",A45
-VENDOR-046,The Taco Stand,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",A46
-VENDOR-047,Robert's Specialties,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry",A47
-VENDOR-048,Sunrise Orchards,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam",A48
-VENDOR-049,Cedar Acres,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits",A49
-VENDOR-050,Oak Acres,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,https://oakacres.com,"bakery, bread, cookie, pie, cake",A50
-VENDOR-051,Maple Ranch,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://mapleranch.com,"coffee, espresso, latte, cappuccino, cold brew",B1
-VENDOR-052,Willow Fields,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",B2
-VENDOR-053,Pine Fields,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk",B3
-VENDOR-054,Uncle Pizza Place,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,https://unclepizzaplace.com,"tacos, burritos, sandwich",B4
-VENDOR-055,Barbara's Goods,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,https://barbara'sgoods.com,"pottery, jewelry, crafts, artisan, handmade",B5
-VENDOR-056,Happy Gardens,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax",B6
-VENDOR-057,Lucky Meadows,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,https://luckymeadows.com,"vegetables, fruits, organic, fresh",B7
-VENDOR-058,Golden Farmstead,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie",B8
-VENDOR-059,Silver Grove,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://silvergrove.com,"coffee, espresso, latte, cappuccino, cold brew",B9
-VENDOR-060,Blue Homestead,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",B10
-VENDOR-061,Green Acres,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy",B11
-VENDOR-062,Aunt Waffle House,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich, burger",B12
-VENDOR-063,Michael's Bakery Co.,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts",B13
-VENDOR-064,Valley Meadows,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://valleymeadows.com,"honey, beeswax, jam, jelly",B14
-VENDOR-065,Meadow Farmstead,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic",B15
-VENDOR-066,Hill Farm,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,https://hillfarm.com,"bakery, bread, cookie, pie",B16
-VENDOR-067,Sunset Homestead,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso",B17
-VENDOR-068,Sunrise Farm,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork, chicken",B18
-VENDOR-069,Cedar Grove,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://cedargrove.com,"cheese, dairy, milk, yogurt, butter",B19
-VENDOR-070,Grandma's Burrito Bar,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich, burger",B20
-VENDOR-071,John's Stand,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,https://john'sstand.com,"pottery, jewelry, crafts",B21
-VENDOR-072,Willow Gardens,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam",B22
-VENDOR-073,Pine Orchards,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh",B23
-VENDOR-074,Birch Fields,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie",B24
-VENDOR-075,Wild Ranch,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte, cappuccino, cold brew",B25
-VENDOR-076,Happy Fields,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",B26
-VENDOR-077,Lucky Acres,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy",B27
-VENDOR-078,Uncle Waffle House,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich, burger",B28
-VENDOR-079,Nancy's Market,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,https://nancy'smarket.com,"pottery, jewelry, crafts",B29
-VENDOR-080,Blue Meadows,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam",B30
-VENDOR-081,Green Orchards,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,https://greenorchards.com,"vegetables, fruits, organic, fresh",B31
-VENDOR-082,River Farmstead,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,https://riverfarmstead.com,"bakery, bread, cookie, pie",B32
-VENDOR-083,Prairie Meadows,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte, cappuccino, cold brew",B33
-VENDOR-084,Valley Meadows,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,https://valleymeadows.com,"meat, beef, pork",B34
-VENDOR-085,Meadow Fields,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk",B35
-VENDOR-086,Big Waffle House,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",B36
-VENDOR-087,Robert's Kitchen,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts",B37
-VENDOR-088,Sunrise Gardens,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://sunrisegardens.com,"honey, beeswax",B38
-VENDOR-089,Cedar Gardens,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh, local",B39
-VENDOR-090,Oak Farmstead,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie",B40
-VENDOR-091,Maple Homestead,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://maplehomestead.com,"coffee, espresso",B41
-VENDOR-092,Willow Farmstead,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,https://willowfarmstead.com,"meat, beef",B42
-VENDOR-093,Pine Fields,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://pinefields.com,"cheese, dairy, milk",B43
-VENDOR-094,Big Waffle House,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,https://bigwafflehouse.com,"tacos, burritos, sandwich, burger, pizza",B44
-VENDOR-095,Barbara's Shop,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts",B45
-VENDOR-096,Happy Farmstead,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam, jelly",B46
-VENDOR-097,Lucky Grove,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh, local",B47
-VENDOR-098,Golden Orchards,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,https://goldenorchards.com,"bakery, bread, cookie, pie, cake",B48
-VENDOR-099,Silver Orchards,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte",B49
-VENDOR-100,Blue Gardens,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef",B50
-VENDOR-101,Green Meadows,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk, yogurt, butter",C1
-VENDOR-102,Uncle Waffle House,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,https://unclewafflehouse.com,"tacos, burritos, sandwich, burger",C2
-VENDOR-103,Michael's Kitchen,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts, artisan",C3
-VENDOR-104,Valley Farm,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam, jelly",C4
-VENDOR-105,Meadow Orchards,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits",C5
-VENDOR-106,Hill Ranch,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie, pie",C6
-VENDOR-107,Sunset Orchards,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://sunsetorchards.com,"coffee, espresso, latte, cappuccino",C7
-VENDOR-108,Sunrise Homestead,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",C8
-VENDOR-109,Cedar Farm,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk, yogurt",C9
-VENDOR-110,Aunt Crepe Corner,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",C10
-VENDOR-111,John's Coffee,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry",C11
-VENDOR-112,Willow Grove,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://willowgrove.com,"honey, beeswax, jam, jelly, syrup",C12
-VENDOR-113,Pine Orchards,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic",C13
-VENDOR-114,Birch Homestead,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie",C14
-VENDOR-115,Wild Gardens,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte",C15
-VENDOR-116,Happy Fields,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork, chicken",C16
-VENDOR-117,Lucky Grove,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://luckygrove.com,"cheese, dairy, milk, yogurt, butter",C17
-VENDOR-118,The Ice Cream Parlor,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,https://theicecreamparlor.com,"tacos, burritos, sandwich",C18
-VENDOR-119,Nancy's Kitchen,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry",C19
-VENDOR-120,Blue Fields,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://bluefields.com,"honey, beeswax, jam, jelly",C20
+VENDOR-001,Green Fields,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh",A12
+VENDOR-002,River Gardens,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,https://rivergardens.com,"bakery, bread, cookie, pie",A13
+VENDOR-003,Prairie Acres,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte, cappuccino",A14
+VENDOR-004,Valley Gardens,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,https://valleygardens.com,"meat, beef",A15
+VENDOR-005,Meadow Fields,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://meadowfields.com,"cheese, dairy, milk",A16
+VENDOR-006,Uncle Crepe Corner,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,https://unclecrepecorner.com,"tacos, burritos, sandwich, burger",A17
+VENDOR-007,Robert's Crafts Co.,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts, artisan",A18
+VENDOR-008,Sunrise Homestead,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://sunrisehomestead.com,"honey, beeswax, jam, jelly",A19
+VENDOR-009,Cedar Ranch,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh",A20
+VENDOR-010,Oak Farmstead,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie, pie",A21
+VENDOR-011,Maple Farm,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://maplefarm.com,"coffee, espresso, latte, cappuccino, cold brew",A22
+VENDOR-012,Willow Orchards,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,https://willoworchards.com,"meat, beef, pork, chicken, turkey",L1
+VENDOR-013,Pine Farm,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://pinefarm.com,"cheese, dairy, milk, yogurt",L2
+VENDOR-014,Big BBQ Pit,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",L3
+VENDOR-015,Barbara's Coffee Co.,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,https://barbara'scoffeeco..com,"pottery, jewelry, crafts",L4
+VENDOR-016,Happy Grove,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://happygrove.com,"honey, beeswax",L6
+VENDOR-017,Lucky Orchards,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh, local",L7
+VENDOR-018,Golden Fields,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,https://goldenfields.com,"bakery, bread, cookie, pie",L8
+VENDOR-019,Silver Meadows,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://silvermeadows.com,"coffee, espresso, latte",A12
+VENDOR-020,Blue Meadows,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef",K1
+VENDOR-021,Green Farm,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk",K2
+VENDOR-022,Grandma's Waffle House,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos",K3
+VENDOR-023,Michael's Goods,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry",K4
+VENDOR-024,Valley Acres,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://valleyacres.com,"honey, beeswax, jam",K5
+VENDOR-025,Meadow Homestead,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,https://meadowhomestead.com,"vegetables, fruits, organic, fresh",K6
+VENDOR-026,Hill Gardens,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,https://hillgardens.com,"bakery, bread, cookie",K7
+VENDOR-027,Sunset Ranch,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://sunsetranch.com,"coffee, espresso",K8
+VENDOR-028,Sunrise Farmstead,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",K9
+VENDOR-029,Cedar Homestead,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://cedarhomestead.com,"cheese, dairy, milk",K10
+VENDOR-030,The Taco Stand,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",B12
+VENDOR-031,John's Crafts,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts, artisan",B15
+VENDOR-032,Willow Gardens,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam, jelly",B14
+VENDOR-033,Pine Gardens,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic",B13
+VENDOR-034,Birch Homestead,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie",B16
+VENDOR-035,Wild Gardens,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://wildgardens.com,"coffee, espresso, latte, cappuccino, cold brew",B17
+VENDOR-036,Happy Fields,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",B18
+VENDOR-037,Lucky Fields,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy",B19
+VENDOR-038,The Sandwich Shop,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich, burger",B20
+VENDOR-039,Nancy's Crafts,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry",B21
+VENDOR-040,Blue Farmstead,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax",B22
+VENDOR-041,Green Fields,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh, local",B2
+VENDOR-042,River Grove,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,https://rivergrove.com,"bakery, bread",B3
+VENDOR-043,Prairie Acres,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso",B4
+VENDOR-044,Valley Farm,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork, chicken, turkey",B5
+VENDOR-045,Meadow Grove,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://meadowgrove.com,"cheese, dairy, milk, yogurt, butter",B6
+VENDOR-046,Big Burger Joint,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",B7
+VENDOR-047,Robert's Crafts Co.,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,https://robert'scraftsco..com,"pottery, jewelry, crafts",B8
+VENDOR-048,Sunrise Farm,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://sunrisefarm.com,"honey, beeswax, jam, jelly",B9
+VENDOR-049,Cedar Meadows,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits",B10
+VENDOR-050,Oak Homestead,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie",B11
+VENDOR-051,Maple Gardens,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte, cappuccino",C1
+VENDOR-052,Willow Grove,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",C2
+VENDOR-053,Pine Meadows,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk",G1
+VENDOR-054,Uncle Pizza Place,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",G2
+VENDOR-055,Barbara's Market,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts, artisan",G3
+VENDOR-056,Happy Fields,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://happyfields.com,"honey, beeswax, jam, jelly, syrup",G4
+VENDOR-057,Lucky Homestead,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,https://luckyhomestead.com,"vegetables, fruits, organic",G5
+VENDOR-058,Golden Farmstead,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie, pie, cake",G6
+VENDOR-059,Silver Fields,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte, cappuccino, cold brew",G7
+VENDOR-060,Blue Ranch,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",G8
+VENDOR-061,Green Ranch,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk, yogurt, butter",G9
+VENDOR-062,Little Burger Joint,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",G10
+VENDOR-063,Michael's Kitchen,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,https://michael'skitchen.com,"pottery, jewelry",G11
+VENDOR-064,Valley Farm,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax",G12
+VENDOR-065,Meadow Gardens,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits",G13
+VENDOR-066,Hill Gardens,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie",G14
+VENDOR-067,Sunset Acres,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://sunsetacres.com,"coffee, espresso",G15
+VENDOR-068,Sunrise Farmstead,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef",G16
+VENDOR-069,Cedar Grove,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk, yogurt, butter",G17
+VENDOR-070,Big Sandwich Shop,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich, burger, pizza",G18
+VENDOR-071,John's Market,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry",H1
+VENDOR-072,Willow Ranch,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam, jelly, syrup",H2
+VENDOR-073,Pine Meadows,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits",H3
+VENDOR-074,Birch Fields,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread",H4
+VENDOR-075,Wild Homestead,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://wildhomestead.com,"coffee, espresso, latte, cappuccino, cold brew",H5
+VENDOR-076,Happy Gardens,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef",H6
+VENDOR-077,Lucky Homestead,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk, yogurt",H13
+VENDOR-078,Grandma's Ice Cream Parlor,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich, burger",H12
+VENDOR-079,Nancy's Market,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts, artisan, handmade",H11
+VENDOR-080,Blue Farm,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam, jelly, syrup",H10
+VENDOR-081,Green Homestead,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,https://greenhomestead.com,"vegetables, fruits, organic, fresh, local",H9
+VENDOR-082,River Acres,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie",H8
+VENDOR-083,Prairie Fields,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte, cappuccino, cold brew",D1
+VENDOR-084,Valley Homestead,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef",D2
+VENDOR-085,Meadow Gardens,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://meadowgardens.com,"cheese, dairy, milk, yogurt, butter",D4
+VENDOR-086,The Waffle House,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos",D3
+VENDOR-087,Robert's Shop,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts, artisan, handmade",D5
+VENDOR-088,Sunrise Grove,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax",D6
+VENDOR-089,Cedar Ranch,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh, local",D7
+VENDOR-090,Oak Gardens,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread",D8
+VENDOR-091,Maple Acres,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://mapleacres.com,"coffee, espresso, latte, cappuccino, cold brew",D9
+VENDOR-092,Willow Ranch,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef",D10
+VENDOR-093,Pine Farm,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk, yogurt",D11
+VENDOR-094,The Burrito Bar,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich",D13
+VENDOR-095,Barbara's Crafts Co.,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,https://barbara'scraftsco..com,"pottery, jewelry, crafts, artisan",D14
+VENDOR-096,Happy Ranch,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam, jelly, syrup",D15
+VENDOR-097,Lucky Acres,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic",D16
+VENDOR-098,Golden Ranch,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread, cookie, pie",D17
+VENDOR-099,Silver Ranch,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://silverranch.com,"coffee, espresso, latte",D18
+VENDOR-100,Blue Gardens,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",D19
+VENDOR-101,Green Farm,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy, milk, yogurt",D20
+VENDOR-102,The Pizza Place,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos",D21
+VENDOR-103,Michael's Bakery Co.,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,https://michael'sbakeryco..com,"pottery, jewelry, crafts, artisan",D22
+VENDOR-104,Valley Gardens,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax",J1
+VENDOR-105,Meadow Orchards,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic",J2
+VENDOR-106,Hill Meadows,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,,"bakery, bread",J3
+VENDOR-107,Sunset Farm,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,https://sunsetfarm.com,"coffee, espresso, latte",J4
+VENDOR-108,Sunrise Farmstead,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef",J5
+VENDOR-109,Cedar Gardens,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,https://cedargardens.com,"cheese, dairy",J6
+VENDOR-110,Grandma's Waffle House,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich, burger, pizza",J7
+VENDOR-111,John's Coffee,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry",J8
+VENDOR-112,Willow Farmstead,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,,"honey, beeswax, jam, jelly, syrup",J9
+VENDOR-113,Pine Farmstead,Grower/Producer/Processor,Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.,,"vegetables, fruits, organic, fresh",J10
+VENDOR-114,Birch Fields,Grower/Producer/Processor,Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.,https://birchfields.com,"bakery, bread, cookie, pie",J20
+VENDOR-115,Wild Gardens,Grower/Producer/Processor,Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.,,"coffee, espresso, latte, cappuccino",J19
+VENDOR-116,Happy Meadows,Grower/Producer/Processor,Farm-fresh meat and beef. All from our family farm just outside Dubuque.,,"meat, beef, pork",J18
+VENDOR-117,Lucky Gardens,Grower/Producer/Processor,Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.,,"cheese, dairy",J17
+VENDOR-118,Grandma's BBQ Pit,On-site Prepared Food Vendor,Fresh tacos made to order. Using locally sourced ingredients whenever possible.,,"tacos, burritos, sandwich, burger",J11
+VENDOR-119,Nancy's Specialties,Crafter/Artisan,Handmade pottery and unique gifts. Supporting local artists and craftspeople.,,"pottery, jewelry, crafts, artisan",J12
+VENDOR-120,Blue Fields,Grower/Producer/Processor,Local honey and specialty products. Made with care and attention to quality.,https://bluefields.com,"honey, beeswax, jam, jelly",J13

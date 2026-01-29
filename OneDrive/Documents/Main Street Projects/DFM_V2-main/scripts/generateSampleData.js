@@ -9,6 +9,31 @@
 // Dubuque Farmers Market approximate center coordinates
 const MARKET_CENTER = { lat: 42.5000, lng: -90.6644 };
 
+// Load real stall layout data
+const fs = require('fs');
+const path = require('path');
+let REAL_STALLS = [];
+let REAL_POIS = [];
+
+try {
+    const stallListPath = path.join(__dirname, 'output', 'stall_list_REAL.json');
+    const stallGeoJSONPath = path.join(__dirname, 'output', 'stall_layouts_REAL.geojson');
+    const poiGeoJSONPath = path.join(__dirname, 'output', 'pois_REAL.geojson');
+    
+    if (fs.existsSync(stallListPath)) {
+        REAL_STALLS = JSON.parse(fs.readFileSync(stallListPath, 'utf8'));
+        console.log(`✅ Loaded ${REAL_STALLS.length} real stalls from layout`);
+    }
+    
+    if (fs.existsSync(poiGeoJSONPath)) {
+        const poiData = JSON.parse(fs.readFileSync(poiGeoJSONPath, 'utf8'));
+        REAL_POIS = poiData.features || [];
+        console.log(`✅ Loaded ${REAL_POIS.length} real POIs from layout`);
+    }
+} catch (e) {
+    console.warn('⚠️  Could not load real stall layout, using generated data:', e.message);
+}
+
 // Vendor types from the code
 const VENDOR_TYPES = [
     "Grower/Producer/Processor",
@@ -94,11 +119,28 @@ function generateDescription(name, category, keywords) {
     return descriptions[category] || `Quality products from ${name}. Supporting the local community.`;
 }
 
-// Generate stall IDs (A1-A50, B1-B50, etc.)
+// Generate stall IDs using real layout or fallback
 function generateStallId(index) {
+    if (REAL_STALLS.length > 0 && index < REAL_STALLS.length) {
+        return REAL_STALLS[index].id;
+    }
+    // Fallback: generate stall IDs
     const row = String.fromCharCode(65 + Math.floor(index / 50)); // A, B, C, etc.
     const col = (index % 50) + 1;
     return `${row}${col}`;
+}
+
+// Get stall coordinates from real layout
+function getStallCoordinates(stallId) {
+    const stall = REAL_STALLS.find(s => s.id === stallId);
+    if (stall && stall.coords) {
+        return { lng: stall.coords[0], lat: stall.coords[1] };
+    }
+    // Fallback: generate coordinates around market center
+    return {
+        lng: MARKET_CENTER.lng + (Math.random() - 0.5) * 0.01,
+        lat: MARKET_CENTER.lat + (Math.random() - 0.5) * 0.01
+    };
 }
 
 // Generate GeoJSON Point for a stall (distributed around market center)
@@ -168,7 +210,9 @@ function generateMarketAttendance(vendors, startDate, numWeeks = 12) {
             const baseStallIndex = vendors.indexOf(vendor);
             
             for (let s = 0; s < numStalls; s++) {
-                const stallId = generateStallId(baseStallIndex + s);
+                // Use real stall IDs, but ensure we don't exceed available stalls
+            const stallIndex = (baseStallIndex + s) % (REAL_STALLS.length || 200);
+            const stallId = REAL_STALLS.length > 0 ? REAL_STALLS[stallIndex].id : generateStallId(stallIndex);
                 attendance.push({
                     VendorID: vendor.VendorID,
                     Vendor: vendor.Vendor,
@@ -183,13 +227,32 @@ function generateMarketAttendance(vendors, startDate, numWeeks = 12) {
     return attendance;
 }
 
-// Generate StallLayouts GeoJSON
+// Generate StallLayouts GeoJSON using real stall data
 function generateStallLayouts(count = 200) {
     const features = [];
     
-    for (let i = 0; i < count; i++) {
-        const stallId = generateStallId(i);
-        features.push(generateStallGeoJSON(stallId, i));
+    // Use real stalls if available
+    if (REAL_STALLS.length > 0) {
+        REAL_STALLS.forEach(stall => {
+            features.push({
+                type: "Feature",
+                properties: {
+                    title: stall.id,
+                    stallId: stall.id
+                },
+                geometry: {
+                    type: "Point",
+                    coordinates: [stall.coords[0], stall.coords[1]] // [lng, lat]
+                }
+            });
+        });
+        console.log(`   Using ${REAL_STALLS.length} real stalls from layout`);
+    } else {
+        // Fallback: generate stalls
+        for (let i = 0; i < count; i++) {
+            const stallId = generateStallId(i);
+            features.push(generateStallGeoJSON(stallId, i));
+        }
     }
     
     return {
@@ -198,46 +261,60 @@ function generateStallLayouts(count = 200) {
     };
 }
 
-// Generate POIs
+// Generate POIs using real POI data
 function generatePOIs() {
-    const pois = [
-        {
-            title: "Public Parking Area",
-            poiType: "PublicParkingArea",
-            description: "Main public parking area for market visitors",
-            coordinates: [MARKET_CENTER.lng - 0.0005, MARKET_CENTER.lat - 0.0005]
-        },
-        {
-            title: "Vendor Parking",
-            poiType: "VendorParkingArea",
-            description: "Designated parking area for vendors",
-            coordinates: [MARKET_CENTER.lng + 0.0005, MARKET_CENTER.lat - 0.0005]
-        },
-        {
-            title: "Restroom",
-            poiType: "Restroom",
-            description: "Public restroom facilities",
-            coordinates: [MARKET_CENTER.lng, MARKET_CENTER.lat + 0.0003]
-        },
-        {
-            title: "Seating Area",
-            poiType: "SeatingArea",
-            description: "Public seating area for visitors",
-            coordinates: [MARKET_CENTER.lng - 0.0002, MARKET_CENTER.lat]
-        },
-        {
-            title: "Market Information",
-            poiType: "Information",
-            description: "Market information booth",
-            coordinates: [MARKET_CENTER.lng, MARKET_CENTER.lat]
-        },
-        {
-            title: "Market Tokens",
-            poiType: "Market Tokens",
-            description: "Purchase market tokens here",
-            coordinates: [MARKET_CENTER.lng + 0.0002, MARKET_CENTER.lat]
-        }
-    ];
+    let pois = [];
+    
+    // Use real POIs if available
+    if (REAL_POIS.length > 0) {
+        pois = REAL_POIS.map(poi => ({
+            title: poi.properties.title,
+            poiType: poi.properties.poiType,
+            description: poi.properties.description || poi.properties.title,
+            coordinates: poi.geometry.coordinates // [lng, lat]
+        }));
+        console.log(`   Using ${REAL_POIS.length} real POIs from layout`);
+    } else {
+        // Fallback: generate default POIs
+        pois = [
+            {
+                title: "Public Parking Area",
+                poiType: "PublicParkingArea",
+                description: "Main public parking area for market visitors",
+                coordinates: [MARKET_CENTER.lng - 0.0005, MARKET_CENTER.lat - 0.0005]
+            },
+            {
+                title: "Vendor Parking",
+                poiType: "VendorParkingArea",
+                description: "Designated parking area for vendors",
+                coordinates: [MARKET_CENTER.lng + 0.0005, MARKET_CENTER.lat - 0.0005]
+            },
+            {
+                title: "Restroom",
+                poiType: "Restroom",
+                description: "Public restroom facilities",
+                coordinates: [MARKET_CENTER.lng, MARKET_CENTER.lat + 0.0003]
+            },
+            {
+                title: "Seating Area",
+                poiType: "SeatingArea",
+                description: "Public seating area for visitors",
+                coordinates: [MARKET_CENTER.lng - 0.0002, MARKET_CENTER.lat]
+            },
+            {
+                title: "Market Information",
+                poiType: "Information",
+                description: "Market information booth",
+                coordinates: [MARKET_CENTER.lng, MARKET_CENTER.lat]
+            },
+            {
+                title: "Market Tokens",
+                poiType: "Market Tokens",
+                description: "Purchase market tokens here",
+                coordinates: [MARKET_CENTER.lng + 0.0002, MARKET_CENTER.lat]
+            }
+        ];
+    }
     
     return {
         type: "FeatureCollection",

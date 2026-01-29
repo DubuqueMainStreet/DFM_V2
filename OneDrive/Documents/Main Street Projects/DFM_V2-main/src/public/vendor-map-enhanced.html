@@ -774,14 +774,25 @@
             poiMarkerRefs = {};
             let allDrawnFeaturesForBounds = [];
 
-            // 1. Process Stall Geometry (Normalize IDs)
+            // 1. Process Stall Geometry (Normalize IDs) and track which stalls have vendors
             stallIdToFeatureMap.clear();
+            const stallsWithVendors = new Set();
+            (vendorsOnDate || []).forEach(vendor => {
+                if (vendor.StallList && vendor.StallList.length > 0) {
+                    vendor.StallList.forEach(stallId => {
+                        stallsWithVendors.add(stallId.trim().toUpperCase());
+                    });
+                }
+            });
+            
             (allStallLayouts || []).forEach(stallItem => {
                 try {
                     const stallKey = stallItem.title ? stallItem.title.trim().toUpperCase() : "";
                     if (stallKey && stallItem.geoJsonFeature) {
                         const feature = JSON.parse(stallItem.geoJsonFeature);
                         stallIdToFeatureMap.set(stallKey, feature);
+                        
+                        // Add stall outline/polygon
                         const layer = L.geoJSON(feature, { 
                             style: { 
                                 fillColor: "#D4C4A0", 
@@ -793,6 +804,22 @@
                             interactive: false 
                         }).addTo(baseStallLayerGroup);
                         allDrawnFeaturesForBounds.push(layer);
+                        
+                        // Add grey pin marker for empty stalls (stalls without vendors)
+                        if (!stallsWithVendors.has(stallKey) && feature.geometry && feature.geometry.coordinates) {
+                            const latlng = L.latLng(
+                                feature.geometry.coordinates[1], 
+                                feature.geometry.coordinates[0]
+                            );
+                            const emptyStallMarker = L.marker(latlng, {
+                                icon: createEmptyStallIcon(stallKey),
+                                zIndexOffset: 10 // Below vendor markers
+                            });
+                            emptyStallMarker.bindPopup(`<div class="popup-header"><h3 class="popup-title">Stall ${stallKey}</h3><p class="popup-stall-id">Available</p></div>`, {
+                                className: 'custom-popup'
+                            });
+                            emptyStallMarker.addTo(baseStallLayerGroup);
+                        }
                     }
                 } catch(e) { 
                     console.error("Bad Stall GeoJSON:", stallItem.title); 
@@ -1084,6 +1111,31 @@
         
         function createMultiStallPillIcon(data, features, isHigh, isDim) {
             return createIconBase(data.vendorType, determineVendorFaClass(data), isHigh, isDim, true, features.length);
+        }
+
+        function createEmptyStallIcon(stallId) {
+            const zoom = map ? map.getZoom() : 17;
+            if (zoom < MIN_ZOOM_VENDOR_VISIBLE) {
+                return L.divIcon({ className: 'hidden-icon', iconSize: [0,0] });
+            }
+            
+            let scale = 1;
+            if (zoom < MAX_ZOOM_VENDOR_FULL_SIZE) {
+                scale = 0.75 + (zoom - MIN_ZOOM_VENDOR_VISIBLE)/(MAX_ZOOM_VENDOR_FULL_SIZE-MIN_ZOOM_VENDOR_VISIBLE)*0.25;
+            }
+            
+            const size = Math.max(24, 28 * scale);
+            const fontSize = Math.max(10, 12 * scale);
+            
+            return L.divIcon({
+                className: 'empty-stall-marker',
+                html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background-color:#9E9E9E;border-radius:50%;border:2px solid #FFFFFF;box-shadow:0 2px 4px rgba(0,0,0,0.3);opacity:0.7;">
+                    <span style="font-size:${fontSize}px;font-weight:bold;color:#FFFFFF;text-shadow:0 1px 2px rgba(0,0,0,0.5);">${stallId}</span>
+                </div>`,
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2],
+                popupAnchor: [0, -size/2-5]
+            });
         }
 
         function createDynamicPoiIcon(props, isHigh, isDim) {
