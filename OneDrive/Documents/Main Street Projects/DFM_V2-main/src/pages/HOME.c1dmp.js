@@ -37,9 +37,16 @@ $w.onReady(function () {
         }
     }
     
-    // Make function available globally for console access
-    window.runImport = runImport;
-    window.importAllSampleData = importAllSampleData;
+    // Make function available globally for console access (Wix-safe way)
+    try {
+        if (typeof window !== 'undefined') {
+            window.runImport = runImport;
+            window.importAllSampleData = importAllSampleData;
+        }
+    } catch (e) {
+        // window not available, that's okay - functions are still accessible via import
+    }
     
-    console.log("💡 Tip: You can also call runImport() or importAllSampleData() from the console");
+    console.log("💡 Tip: You can call importAllSampleData() directly from the console");
+    console.log("💡 Or use: await import { importAllSampleData } from 'backend/importSampleData'; importAllSampleData()");
 });
