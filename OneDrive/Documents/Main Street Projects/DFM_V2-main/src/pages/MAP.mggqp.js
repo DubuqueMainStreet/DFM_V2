@@ -130,68 +130,89 @@ function formatDateToYYYYMMDD(dateObject) {
 }
 
 
-// OPTIMIZED: Finds the next market date with a single query instead of looping
-// Falls back to most recent past date if no future dates exist (for testing with old data)
+// OPTIMIZED: Finds the next market date from MarketDates2026 collection
+// Uses the same collection that musician/volunteer signups use
 async function findNextMarketDate(startDate) {
-    console.log("Velo (Map Page): Searching for next market date (Optimized)...");
+    console.log("Velo (Map Page): Searching for next market date from MarketDates2026...");
     let today = new Date(startDate);
     today.setUTCHours(0, 0, 0, 0);
     console.log(`Velo (Map Page): Today's date for query: ${today.toISOString()}`);
 
-    // Minimum valid date - ignore dates before 2020 (likely bad data)
-    const minValidDate = new Date('2020-01-01');
-    minValidDate.setUTCHours(0, 0, 0, 0);
-
     try {
-        // First, try to find a future date (but only valid dates after 2020)
-        const futureResult = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
-            .ge("marketDate", today)
-            .ge("marketDate", minValidDate) // Filter out obviously bad dates
-            .ascending("marketDate")
+        // Query MarketDates2026 collection (same as musician/volunteer forms use)
+        const futureResult = await wixData.query('MarketDates2026')
+            .ge("date", today)
+            .ascending("date")
             .limit(1)
             .find();
             
         console.log(`Velo (Map Page): Future date query returned ${futureResult.items.length} items`);
         if (futureResult.items.length > 0) {
-            const foundDate = futureResult.items[0].marketDate;
-            console.log(`Velo (Map Page): Found next market date: ${foundDate.toISOString().slice(0,10)}`);
-            return foundDate;
+            // Parse date similar to how other forms do it
+            let dateObj = futureResult.items[0].date;
+            if (typeof dateObj === 'string') {
+                const dateStr = dateObj.split('T')[0];
+                const [year, month, day] = dateStr.split('-').map(Number);
+                dateObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+            } else {
+                dateObj = new Date(dateObj);
+                dateObj.setHours(12, 0, 0, 0);
+            }
+            // Convert to UTC for consistency with MarketAttendance queries
+            const utcDate = new Date(Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()));
+            console.log(`Velo (Map Page): Found next market date: ${utcDate.toISOString().slice(0,10)}`);
+            return utcDate;
         }
         
-        // Fallback: If no future dates, get the most recent past date (but only valid dates after 2020)
+        // Fallback: If no future dates, get the most recent past date
         console.log("Velo (Map Page): No future dates found, checking for most recent past date...");
-        const pastResult = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
-            .lt("marketDate", today)
-            .ge("marketDate", minValidDate) // Filter out obviously bad dates
-            .descending("marketDate")
+        const pastResult = await wixData.query('MarketDates2026')
+            .lt("date", today)
+            .descending("date")
             .limit(1)
             .find();
             
         console.log(`Velo (Map Page): Past date query returned ${pastResult.items.length} items`);
         if (pastResult.items.length > 0) {
-            const foundDate = pastResult.items[0].marketDate;
-            console.log(`Velo (Map Page): Found most recent past date: ${foundDate.toISOString().slice(0,10)} (using for testing)`);
-            return foundDate;
+            let dateObj = pastResult.items[0].date;
+            if (typeof dateObj === 'string') {
+                const dateStr = dateObj.split('T')[0];
+                const [year, month, day] = dateStr.split('-').map(Number);
+                dateObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+            } else {
+                dateObj = new Date(dateObj);
+                dateObj.setHours(12, 0, 0, 0);
+            }
+            const utcDate = new Date(Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()));
+            console.log(`Velo (Map Page): Found most recent past date: ${utcDate.toISOString().slice(0,10)} (using for testing)`);
+            return utcDate;
         }
         
-        // Debug: Check if collection has ANY valid data at all
-        const allDataCheck = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
-            .ge("marketDate", minValidDate)
-            .ascending("marketDate")
+        // Debug: Check if MarketDates2026 has ANY data at all
+        const allDataCheck = await wixData.query('MarketDates2026')
+            .ascending("date")
             .limit(10)
             .find();
-        console.log(`Velo (Map Page): Collection has ${allDataCheck.items.length} valid records (after 2020, checking first 10)`);
+        console.log(`Velo (Map Page): MarketDates2026 has ${allDataCheck.items.length} total records (checking first 10)`);
         if (allDataCheck.items.length > 0) {
-            console.log(`Velo (Map Page): Sample record dates:`, allDataCheck.items.map(item => ({
-                date: item.marketDate ? item.marketDate.toISOString().slice(0,10) : 'NO DATE',
-                vendor: item.vendorRef ? 'has vendor' : 'no vendor',
-                stall: item.stallId || 'no stall'
-            })));
+            console.log(`Velo (Map Page): Sample dates from MarketDates2026:`, allDataCheck.items.map(item => {
+                const d = typeof item.date === 'string' ? new Date(item.date.split('T')[0]) : new Date(item.date);
+                return d.toISOString().slice(0,10);
+            }));
             
-            // Return the earliest valid date found
-            const earliestDate = allDataCheck.items[0].marketDate;
-            console.log(`Velo (Map Page): Using earliest valid date found: ${earliestDate.toISOString().slice(0,10)}`);
-            return earliestDate;
+            // Return the earliest date found
+            let earliestDate = allDataCheck.items[0].date;
+            if (typeof earliestDate === 'string') {
+                const dateStr = earliestDate.split('T')[0];
+                const [year, month, day] = dateStr.split('-').map(Number);
+                earliestDate = new Date(year, month - 1, day, 12, 0, 0, 0);
+            } else {
+                earliestDate = new Date(earliestDate);
+                earliestDate.setHours(12, 0, 0, 0);
+            }
+            const utcDate = new Date(Date.UTC(earliestDate.getFullYear(), earliestDate.getMonth(), earliestDate.getDate()));
+            console.log(`Velo (Map Page): Using earliest date found: ${utcDate.toISOString().slice(0,10)}`);
+            return utcDate;
         }
     } catch (e) {
         console.error("Velo (Map Page): Error finding date", e);
