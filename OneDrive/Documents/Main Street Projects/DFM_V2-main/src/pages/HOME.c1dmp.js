@@ -7,14 +7,10 @@ $w.onReady(function () {
     // TEMPORARY: Sample Data Import
     // Remove this code after importing data
     
-    console.log("🏠 Homepage loaded - Import function ready!");
-    console.log("📋 To import sample data, run this in the console:");
-    console.log("   await importAllSampleData()");
-    console.log("");
-    console.log("Or uncomment the line below to auto-run on page load:");
+    console.log("🏠 Homepage loaded - Starting automatic import...");
     
-    // Uncomment the line below to automatically run import when homepage loads:
-    // runImport();
+    // Auto-run import on page load (remove this code after import is complete)
+    runImport();
     
     // Function to run the import
     async function runImport() {
