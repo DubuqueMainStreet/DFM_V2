@@ -138,45 +138,60 @@ async function findNextMarketDate(startDate) {
     today.setUTCHours(0, 0, 0, 0);
     console.log(`Velo (Map Page): Today's date for query: ${today.toISOString()}`);
 
+    // Minimum valid date - ignore dates before 2020 (likely bad data)
+    const minValidDate = new Date('2020-01-01');
+    minValidDate.setUTCHours(0, 0, 0, 0);
+
     try {
-        // First, try to find a future date
+        // First, try to find a future date (but only valid dates after 2020)
         const futureResult = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
             .ge("marketDate", today)
+            .ge("marketDate", minValidDate) // Filter out obviously bad dates
             .ascending("marketDate")
             .limit(1)
             .find();
             
         console.log(`Velo (Map Page): Future date query returned ${futureResult.items.length} items`);
         if (futureResult.items.length > 0) {
-            console.log(`Velo (Map Page): Found next market date: ${futureResult.items[0].marketDate.toISOString().slice(0,10)}`);
-            return futureResult.items[0].marketDate;
+            const foundDate = futureResult.items[0].marketDate;
+            console.log(`Velo (Map Page): Found next market date: ${foundDate.toISOString().slice(0,10)}`);
+            return foundDate;
         }
         
-        // Fallback: If no future dates, get the most recent past date (for testing with old data)
+        // Fallback: If no future dates, get the most recent past date (but only valid dates after 2020)
         console.log("Velo (Map Page): No future dates found, checking for most recent past date...");
         const pastResult = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
             .lt("marketDate", today)
+            .ge("marketDate", minValidDate) // Filter out obviously bad dates
             .descending("marketDate")
             .limit(1)
             .find();
             
         console.log(`Velo (Map Page): Past date query returned ${pastResult.items.length} items`);
         if (pastResult.items.length > 0) {
-            console.log(`Velo (Map Page): Found most recent past date: ${pastResult.items[0].marketDate.toISOString().slice(0,10)} (using for testing)`);
-            return pastResult.items[0].marketDate;
+            const foundDate = pastResult.items[0].marketDate;
+            console.log(`Velo (Map Page): Found most recent past date: ${foundDate.toISOString().slice(0,10)} (using for testing)`);
+            return foundDate;
         }
         
-        // Debug: Check if collection has ANY data at all
+        // Debug: Check if collection has ANY valid data at all
         const allDataCheck = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
-            .limit(5)
+            .ge("marketDate", minValidDate)
+            .ascending("marketDate")
+            .limit(10)
             .find();
-        console.log(`Velo (Map Page): Collection has ${allDataCheck.items.length} total records (checking first 5)`);
+        console.log(`Velo (Map Page): Collection has ${allDataCheck.items.length} valid records (after 2020, checking first 10)`);
         if (allDataCheck.items.length > 0) {
             console.log(`Velo (Map Page): Sample record dates:`, allDataCheck.items.map(item => ({
                 date: item.marketDate ? item.marketDate.toISOString().slice(0,10) : 'NO DATE',
                 vendor: item.vendorRef ? 'has vendor' : 'no vendor',
                 stall: item.stallId || 'no stall'
             })));
+            
+            // Return the earliest valid date found
+            const earliestDate = allDataCheck.items[0].marketDate;
+            console.log(`Velo (Map Page): Using earliest valid date found: ${earliestDate.toISOString().slice(0,10)}`);
+            return earliestDate;
         }
     } catch (e) {
         console.error("Velo (Map Page): Error finding date", e);
