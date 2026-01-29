@@ -131,26 +131,41 @@ function formatDateToYYYYMMDD(dateObject) {
 
 
 // OPTIMIZED: Finds the next market date with a single query instead of looping
+// Falls back to most recent past date if no future dates exist (for testing with old data)
 async function findNextMarketDate(startDate) {
     console.log("Velo (Map Page): Searching for next market date (Optimized)...");
     let today = new Date(startDate);
     today.setUTCHours(0, 0, 0, 0);
 
     try {
-        const result = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
+        // First, try to find a future date
+        const futureResult = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
             .ge("marketDate", today)
             .ascending("marketDate")
             .limit(1)
             .find();
             
-        if (result.items.length > 0) {
-            console.log(`Velo (Map Page): Found next market date: ${result.items[0].marketDate.toISOString().slice(0,10)}`);
-            return result.items[0].marketDate;
+        if (futureResult.items.length > 0) {
+            console.log(`Velo (Map Page): Found next market date: ${futureResult.items[0].marketDate.toISOString().slice(0,10)}`);
+            return futureResult.items[0].marketDate;
+        }
+        
+        // Fallback: If no future dates, get the most recent past date (for testing with old data)
+        console.log("Velo (Map Page): No future dates found, checking for most recent past date...");
+        const pastResult = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
+            .lt("marketDate", today)
+            .descending("marketDate")
+            .limit(1)
+            .find();
+            
+        if (pastResult.items.length > 0) {
+            console.log(`Velo (Map Page): Found most recent past date: ${pastResult.items[0].marketDate.toISOString().slice(0,10)} (using for testing)`);
+            return pastResult.items[0].marketDate;
         }
     } catch (e) {
-        console.error("Velo (Map Page): Error finding next date", e);
+        console.error("Velo (Map Page): Error finding date", e);
     }
-    console.warn("Velo (Map Page): No future market dates found.");
+    console.warn("Velo (Map Page): No market dates found (future or past).");
     return null;
 }
 
