@@ -1,435 +1,287 @@
-// In Velo Page Code for your MAP DISPLAY page
+// Velo Page Code for MAP page - Full Iframe Architecture
+// All UI controls (date, search, filters) are handled within the iframe
+// This code only manages data fetching and communication with the iframe
+
 import wixData from 'wix-data';
 
-// ----- Constants for your Collection IDs -----
+// ----- Constants for Collection IDs -----
 const VENDORS_COLLECTION = "Vendors";
 const MARKET_ATTENDANCE_COLLECTION = "MarketAttendance";
 const STALL_LAYOUTS_COLLECTION = "StallLayouts";
 const POIS_COLLECTION = "POIs";
+const MARKET_DATES_COLLECTION = "MarketDates2026";
 
-// ----- HTML Component and UI Element IDs -----
+// ----- HTML Component ID -----
 const HTML_COMPONENT_ID = "#mapFrame";
-const DATE_PICKER_ID = "#datepicker1"; // Can be DatePicker or Dropdown
-const SEARCH_INPUT_ID = "#searchInput";
-const CLEAR_ALL_BUTTON_ID = "#clearAllButton";
 
-// Filter Button Configuration (Modern Agrarian - Deep Green Active State)
-const FILTER_BUTTONS = [
-    { id: "#readyToEatButton", type: "vendorType", val: "On-site Prepared Food Vendor" },
-    { id: "#farmFreshProduceButton", type: "vendorType", val: "Grower/Producer/Processor" },
-    { id: "#bakedGoodsSweetsButton", type: "keyword", val: "bakery bread cookie pie cake sweet pastry donut muffin scone" },
-    { id: "#coffeeButton", type: "keyword", val: "coffee espresso latte cappuccino cold brew roaster bean tea chai" },
-    { id: "#snapEBTButton", type: "keyword", val: "snap ebt dufb double up food bucks" },
-    { id: "#informationButton", type: "poiType", val: "Information" },
-    { id: "#specialEventButton", type: "poiType", val: "Special Event" },
-    { id: "#marketMerchButton", type: "poiType", val: "Market Merchandise" },
-    { id: "#restroomButton", type: "poiType", val: "Restroom"},
-    { id: "#seatingButton", type: "poiType", val: "SeatingArea"},
-    { id: "#parkingButton", type: "poiType", val: "PublicParkingArea"},
-    { id: "#vendorParkingButton", type: "poiType", val: "VendorParkingArea" },
-    { id: "#marketTokensButton", type: "poiType", val: "Market Tokens"}
-];
-
-// --- Global variables for state management ---
+// --- Global State ---
 let htmlComponent;
-let searchTimeoutId = null;
-let activeHighlightButtonId = null;
 let isMapIframeReady = false;
 let currentlyLoadingDate = null;
-let staticDataCache = null; // Caches non-date-specific data like stalls and POIs
-
-// --- Modern Agrarian Styling for Active/Inactive Buttons ---
-const ACTIVE_BUTTON_BG_COLOR = "#2D5016"; // Deep forest green (Modern Agrarian)
-const INACTIVE_BUTTON_BG_COLOR = "#FFFFFF"; // Clean white
-const ACTIVE_BUTTON_TEXT_COLOR = "#FFFFFF"; // White text on dark green for high contrast
-const INACTIVE_BUTTON_TEXT_COLOR = "#2C2C2C"; // Charcoal text on white
-
+let staticDataCache = null;
 
 $w.onReady(async function () {
     console.log("Velo (Map Page): Page Ready.");
-
-    // --- Element Initialization ---
+    
     htmlComponent = $w(HTML_COMPONENT_ID);
-    const datePicker = $w(DATE_PICKER_ID);
-    const searchInput = $w(SEARCH_INPUT_ID);
-    const clearAllButton = $w(CLEAR_ALL_BUTTON_ID);
-
-    // --- Populate Date Selector (works with both Dropdown and DatePicker) ---
-    try {
-        const marketDatesResult = await wixData.query("MarketDates2026")
-            .limit(1000)
-            .find();
-        
-        // Parse and sort dates
-        const dateItems = marketDatesResult.items
-            .map(item => {
-                const date = item.date;
-                if (!date) return null;
-                
-                // Parse date properly to avoid timezone issues
-                let dateObj;
-                if (typeof date === 'string') {
-                    const dateStr = date.split('T')[0];
-                    const [year, month, day] = dateStr.split('-').map(Number);
-                    dateObj = new Date(year, month - 1, day, 12, 0, 0, 0);
-                } else {
-                    dateObj = new Date(date);
-                    dateObj.setHours(12, 0, 0, 0);
-                }
-                
-                return {
-                    _id: item._id,
-                    date: dateObj,
-                    dateString: dateObj.toISOString().split('T')[0]
-                };
-            })
-            .filter(item => item !== null)
-            .sort((a, b) => a.date - b.date);
-        
-        console.log(`Velo (Map Page): Found ${dateItems.length} market dates.`);
-        
-        // Check if element is a Dropdown (has .options) or DatePicker (has .value only)
-        if (datePicker.options !== undefined) {
-            // It's a Dropdown - populate options
-            const options = dateItems.map(item => ({
-                label: item.date.toLocaleDateString('en-US', { 
-                    weekday: 'short',
-                    month: 'short', 
-                    day: 'numeric',
-                    year: 'numeric'
-                }),
-                value: item.dateString // Store as YYYY-MM-DD string
-            }));
-            
-            datePicker.options = options;
-            console.log(`Velo (Map Page): Configured dropdown with ${options.length} date options.`);
-            
-            // Set to first date
-            if (options.length > 0) {
-                datePicker.value = options[0].value;
-            }
-        } else {
-            // It's a DatePicker - set min/max dates only (allowedDates not supported)
-            if (dateItems.length > 0) {
-                datePicker.minDate = dateItems[0].date;
-                datePicker.maxDate = dateItems[dateItems.length - 1].date;
-                console.log(`Velo (Map Page): Configured date picker with min/max dates.`);
-            }
-        }
-    } catch (error) {
-        console.error("Velo (Map Page): Error configuring date selector:", error);
-    }
-
+    
     // --- Message Handling from HTML Component ---
     htmlComponent.onMessage(async (event) => {
-        if (event.data && event.data.type === "iframeReady") {
-            console.log("Velo (Map Page): Leaflet map iframe is ready.");
-            isMapIframeReady = true;
-
-            // Optimized date finding - use single query instead of loop
-            let dateToLoad;
-            if (datePicker.value) {
-                // Handle both Dropdown (string) and DatePicker (Date object)
-                if (typeof datePicker.value === 'string') {
-                    // Dropdown: value is YYYY-MM-DD string
-                    const [year, month, day] = datePicker.value.split('-').map(Number);
-                    dateToLoad = new Date(year, month - 1, day, 12, 0, 0, 0);
-                } else {
-                    // DatePicker: value is Date object
-                    dateToLoad = new Date(datePicker.value);
-                }
-            } else {
-                dateToLoad = await findNextMarketDate(new Date());
-            }
-
-            if (dateToLoad) {
-                console.log("Velo (Map Page): Setting initial date to:", dateToLoad.toISOString().slice(0, 10));
-                const originalOnChange = datePicker.onChange;
-                datePicker.onChange(() => {});
-                
-                // Set value based on element type
-                if (datePicker.options !== undefined) {
-                    // Dropdown: set to YYYY-MM-DD string
-                    datePicker.value = formatDateToYYYYMMDD(dateToLoad);
-                } else {
-                    // DatePicker: set to Date object
-                    datePicker.value = dateToLoad;
-                }
-                
-                datePicker.onChange(originalOnChange);
-                await loadAndSendDataToMap(formatDateToYYYYMMDD(dateToLoad));
-            } else {
-                console.warn("Velo (Map Page): No upcoming market data found. Loading empty map.");
-                await loadAndSendDataToMap(null);
-            }
-        }
-    });
-
-    // --- UI Element Event Handlers ---
-    datePicker.onChange(() => {
-        if (!datePicker.value) return;
+        if (!event.data || !event.data.type) return;
         
-        // Handle both Dropdown (value is string) and DatePicker (value is Date)
-        let selectedDateStr;
-        if (typeof datePicker.value === 'string') {
-            // Dropdown: value is already YYYY-MM-DD format
-            selectedDateStr = datePicker.value;
-        } else {
-            // DatePicker: value is a Date object
-            selectedDateStr = formatDateToYYYYMMDD(datePicker.value);
-        }
+        const { type, payload } = event.data;
+        console.log(`Velo (Map Page): Received message: ${type}`);
         
-        if (isMapIframeReady) {
-            clearSearchAndHighlights(false); // Clear filters when date changes
-            loadAndSendDataToMap(selectedDateStr);
-        }
-    });
-
-    searchInput.onInput(() => {
-        if (searchTimeoutId) { clearTimeout(searchTimeoutId); }
-        searchTimeoutId = setTimeout(() => {
-            if (isMapIframeReady) {
-                htmlComponent.postMessage({ type: "searchText", payload: { term: searchInput.value } });
-                console.log(`Velo (Map Page): Sent 'searchText': ${searchInput.value}`);
-            }
-            if (searchInput.value && activeHighlightButtonId) {
-                updateButtonActiveStyles(null);
-            }
-        }, 400); // Debounce for 400ms
-    });
-
-    clearAllButton.onClick(() => {
-        clearSearchAndHighlights(true);
-    });
-
-    // --- Setup for all filter buttons ---
-    FILTER_BUTTONS.forEach(config => {
-        const btn = $w(config.id);
-        if(btn && btn.onClick) {
-            btn.onClick(() => handleHighlightButtonClick(config.id, config.type, config.val));
-        } else if(btn) {
-            console.warn(`Velo: Button with ID '${config.id}' found but onClick not available.`);
+        switch (type) {
+            case "iframeReady":
+                console.log("Velo (Map Page): Iframe is ready.");
+                isMapIframeReady = true;
+                await sendMarketDatesToIframe();
+                await sendInitialDataToIframe();
+                break;
+                
+            case "requestDateData":
+                if (payload?.date) {
+                    console.log(`Velo (Map Page): Iframe requested data for: ${payload.date}`);
+                    await loadAndSendDataToMap(payload.date);
+                }
+                break;
         }
     });
 });
 
 
-// Helper function to format a Date object to 'YYYY-MM-DD' string (UTC to avoid timezone issues)
+// Send all market dates to the iframe for the dropdown
+async function sendMarketDatesToIframe() {
+    console.log("Velo (Map Page): Fetching market dates...");
+    
+    try {
+        const marketDatesResult = await wixData.query(MARKET_DATES_COLLECTION)
+            .ascending("date")
+            .limit(1000)
+            .find();
+        
+        const dateOptions = marketDatesResult.items
+            .map(item => {
+                if (!item.date) return null;
+                
+                // Parse date properly to avoid timezone issues
+                let dateObj;
+                if (typeof item.date === 'string') {
+                    const dateStr = item.date.split('T')[0];
+                    const [year, month, day] = dateStr.split('-').map(Number);
+                    dateObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+                } else {
+                    dateObj = new Date(item.date);
+                    dateObj.setHours(12, 0, 0, 0);
+                }
+                
+                return {
+                    label: dateObj.toLocaleDateString('en-US', { 
+                        weekday: 'short',
+                        month: 'short', 
+                        day: 'numeric',
+                        year: 'numeric'
+                    }),
+                    value: dateObj.toISOString().split('T')[0] // YYYY-MM-DD format
+                };
+            })
+            .filter(item => item !== null);
+        
+        console.log(`Velo (Map Page): Sending ${dateOptions.length} market dates to iframe.`);
+        htmlComponent.postMessage({ 
+            type: "setMarketDates", 
+            payload: { dates: dateOptions } 
+        });
+        
+        return dateOptions;
+        
+    } catch (error) {
+        console.error("Velo (Map Page): Error fetching market dates:", error);
+        return [];
+    }
+}
+
+
+// Send initial data (first available date) to the iframe
+async function sendInitialDataToIframe() {
+    const firstDate = await findNextMarketDate(new Date());
+    
+    if (firstDate) {
+        const dateStr = formatDateToYYYYMMDD(firstDate);
+        console.log(`Velo (Map Page): Loading initial data for: ${dateStr}`);
+        await loadAndSendDataToMap(dateStr);
+    } else {
+        console.warn("Velo (Map Page): No market dates found. Loading empty map.");
+        await loadAndSendDataToMap(null);
+    }
+}
+
+
+// Format a Date object to 'YYYY-MM-DD' string
 function formatDateToYYYYMMDD(dateObject) {
     if (!dateObject) return null;
     const date = new Date(dateObject);
-    // Use UTC methods to avoid timezone conversion issues
-    const year = date.getUTCFullYear();
-    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
-    const day = date.getUTCDate().toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 
 
-// OPTIMIZED: Finds the next market date from MarketDates2026 collection
-// Uses the same collection that musician/volunteer signups use
+// Find the next upcoming market date (or most recent if none upcoming)
 async function findNextMarketDate(startDate) {
-    console.log("Velo (Map Page): Searching for next market date from MarketDates2026...");
-    let today = new Date(startDate);
-    today.setUTCHours(0, 0, 0, 0);
-    console.log(`Velo (Map Page): Today's date for query: ${today.toISOString()}`);
-
+    const today = new Date(startDate);
+    today.setHours(0, 0, 0, 0);
+    
     try {
-        // Query MarketDates2026 collection (same as musician/volunteer forms use)
-        const futureResult = await wixData.query('MarketDates2026')
+        // Try to find a future date first
+        const futureResult = await wixData.query(MARKET_DATES_COLLECTION)
             .ge("date", today)
             .ascending("date")
             .limit(1)
             .find();
-            
-        console.log(`Velo (Map Page): Future date query returned ${futureResult.items.length} items`);
+        
         if (futureResult.items.length > 0) {
-            // Parse date similar to how other forms do it
-            let dateObj = futureResult.items[0].date;
-            if (typeof dateObj === 'string') {
-                const dateStr = dateObj.split('T')[0];
-                const [year, month, day] = dateStr.split('-').map(Number);
-                dateObj = new Date(year, month - 1, day, 12, 0, 0, 0);
-            } else {
-                dateObj = new Date(dateObj);
-                dateObj.setHours(12, 0, 0, 0);
-            }
-            // Convert to UTC for consistency with MarketAttendance queries
-            const utcDate = new Date(Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()));
-            console.log(`Velo (Map Page): Found next market date: ${utcDate.toISOString().slice(0,10)}`);
-            return utcDate;
+            return parseCollectionDate(futureResult.items[0].date);
         }
         
-        // Fallback: If no future dates, get the most recent past date
-        console.log("Velo (Map Page): No future dates found, checking for most recent past date...");
-        const pastResult = await wixData.query('MarketDates2026')
+        // Fallback: Get most recent past date (for testing)
+        const pastResult = await wixData.query(MARKET_DATES_COLLECTION)
             .lt("date", today)
             .descending("date")
             .limit(1)
             .find();
-            
-        console.log(`Velo (Map Page): Past date query returned ${pastResult.items.length} items`);
+        
         if (pastResult.items.length > 0) {
-            let dateObj = pastResult.items[0].date;
-            if (typeof dateObj === 'string') {
-                const dateStr = dateObj.split('T')[0];
-                const [year, month, day] = dateStr.split('-').map(Number);
-                dateObj = new Date(year, month - 1, day, 12, 0, 0, 0);
-            } else {
-                dateObj = new Date(dateObj);
-                dateObj.setHours(12, 0, 0, 0);
-            }
-            const utcDate = new Date(Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()));
-            console.log(`Velo (Map Page): Found most recent past date: ${utcDate.toISOString().slice(0,10)} (using for testing)`);
-            return utcDate;
+            return parseCollectionDate(pastResult.items[0].date);
         }
         
-        // Debug: Check if MarketDates2026 has ANY data at all
-        const allDataCheck = await wixData.query('MarketDates2026')
+        // Last resort: Get any date from the collection
+        const anyResult = await wixData.query(MARKET_DATES_COLLECTION)
             .ascending("date")
-            .limit(10)
+            .limit(1)
             .find();
-        console.log(`Velo (Map Page): MarketDates2026 has ${allDataCheck.items.length} total records (checking first 10)`);
-        if (allDataCheck.items.length > 0) {
-            console.log(`Velo (Map Page): Sample dates from MarketDates2026:`, allDataCheck.items.map(item => {
-                const d = typeof item.date === 'string' ? new Date(item.date.split('T')[0]) : new Date(item.date);
-                return d.toISOString().slice(0,10);
-            }));
-            
-            // Return the earliest date found
-            let earliestDate = allDataCheck.items[0].date;
-            if (typeof earliestDate === 'string') {
-                const dateStr = earliestDate.split('T')[0];
-                const [year, month, day] = dateStr.split('-').map(Number);
-                earliestDate = new Date(year, month - 1, day, 12, 0, 0, 0);
-            } else {
-                earliestDate = new Date(earliestDate);
-                earliestDate.setHours(12, 0, 0, 0);
-            }
-            const utcDate = new Date(Date.UTC(earliestDate.getFullYear(), earliestDate.getMonth(), earliestDate.getDate()));
-            console.log(`Velo (Map Page): Using earliest date found: ${utcDate.toISOString().slice(0,10)}`);
-            return utcDate;
+        
+        if (anyResult.items.length > 0) {
+            return parseCollectionDate(anyResult.items[0].date);
         }
-    } catch (e) {
-        console.error("Velo (Map Page): Error finding date", e);
+        
+    } catch (error) {
+        console.error("Velo (Map Page): Error finding market date:", error);
     }
-    console.warn("Velo (Map Page): No market dates found (future or past).");
+    
     return null;
 }
 
 
-// Main function to fetch all data from Wix Collections and send to the map
+// Parse a date from Wix collection (handles both string and Date object)
+function parseCollectionDate(dateValue) {
+    if (!dateValue) return null;
+    
+    let dateObj;
+    if (typeof dateValue === 'string') {
+        const dateStr = dateValue.split('T')[0];
+        const [year, month, day] = dateStr.split('-').map(Number);
+        dateObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+    } else {
+        dateObj = new Date(dateValue);
+        dateObj.setHours(12, 0, 0, 0);
+    }
+    
+    return dateObj;
+}
+
+
+// Main data loading function - fetches all data and sends to iframe
 async function loadAndSendDataToMap(dateStringYYYYMMDD) {
+    // Prevent duplicate loads
     if (currentlyLoadingDate === dateStringYYYYMMDD) return;
     currentlyLoadingDate = dateStringYYYYMMDD;
-
-    if (!isMapIframeReady) { console.warn("Velo (Map Page): Map iframe not ready, deferring data load."); return; }
-    console.log(`Velo (Map Page): Loading data for date: ${dateStringYYYYMMDD || 'Empty Date (showing base map)'}`);
-    htmlComponent.postMessage({ type: "mapLoading" });
-
+    
+    if (!isMapIframeReady) {
+        console.warn("Velo (Map Page): Iframe not ready, deferring data load.");
+        currentlyLoadingDate = null;
+        return;
+    }
+    
+    console.log(`Velo (Map Page): Loading data for: ${dateStringYYYYMMDD || '(no date)'}`);
+    
     try {
-        // Cache Static Data (Stalls/POIs) - Only fetch once per session using Promise.all for parallel loading
+        // Cache static data (stalls/POIs) - only fetch once per session
         if (!staticDataCache) {
-            console.log("Velo (Map Page): Fetching and caching static data (Stalls, POIs)...");
+            console.log("Velo (Map Page): Fetching static data (stalls, POIs)...");
+            
             const [stallsResult, poisResult] = await Promise.all([
                 wixData.query(STALL_LAYOUTS_COLLECTION).limit(1000).find(),
                 wixData.query(POIS_COLLECTION).limit(1000).find()
             ]);
-            staticDataCache = { allStallLayouts: stallsResult.items, allPOIs: poisResult.items };
-            console.log(`Velo (Map Page): Cached ${staticDataCache.allStallLayouts.length} stalls and ${staticDataCache.allPOIs.length} POIs.`);
+            
+            staticDataCache = {
+                allStallLayouts: stallsResult.items,
+                allPOIs: poisResult.items
+            };
+            
+            console.log(`Velo (Map Page): Cached ${staticDataCache.allStallLayouts.length} stalls, ${staticDataCache.allPOIs.length} POIs.`);
         }
-
-        let vendorsForDateArray = [];
+        
+        // Fetch vendors for the selected date
+        let vendorsForDate = [];
+        
         if (dateStringYYYYMMDD) {
-            const parts = dateStringYYYYMMDD.split('-').map(part => parseInt(part, 10));
-            const queryDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
-            const queryEndDate = new Date(queryDate.getTime() + (24 * 60 * 60 * 1000));
-
+            const [year, month, day] = dateStringYYYYMMDD.split('-').map(Number);
+            const queryDate = new Date(Date.UTC(year, month - 1, day));
+            const queryEndDate = new Date(queryDate.getTime() + 24 * 60 * 60 * 1000);
+            
             const attendanceResult = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
                 .between("marketDate", queryDate, queryEndDate)
-                .include("vendorRef").limit(1000).find();
+                .include("vendorRef")
+                .limit(1000)
+                .find();
             
-            console.log(`Velo (Map Page): Found ${attendanceResult.items.length} attendance records for ${dateStringYYYYMMDD}.`);
+            console.log(`Velo (Map Page): Found ${attendanceResult.items.length} attendance records.`);
             
-            // Process attendance records into vendor map
-            const vendorsForDateMap = new Map();
-            attendanceResult.items.forEach(att => {
-                if (att.vendorRef && att.stallId) {
-                    const vid = att.vendorRef._id;
-                    if (!vendorsForDateMap.has(vid)) {
-                        vendorsForDateMap.set(vid, { ...att.vendorRef, StallList: [] });
-                    }
-                    // Clean Stall ID for consistency
-                    const cleanedStall = att.stallId.trim().toUpperCase();
-                    if (cleanedStall) {
-                        vendorsForDateMap.get(vid).StallList.push(cleanedStall);
-                    }
+            // Group by vendor and collect stall IDs
+            const vendorMap = new Map();
+            
+            attendanceResult.items.forEach(record => {
+                if (!record.vendorRef || !record.stallId) return;
+                
+                const vendorId = record.vendorRef._id;
+                
+                if (!vendorMap.has(vendorId)) {
+                    vendorMap.set(vendorId, {
+                        ...record.vendorRef,
+                        StallList: []
+                    });
+                }
+                
+                const cleanStallId = record.stallId.trim().toUpperCase();
+                if (cleanStallId) {
+                    vendorMap.get(vendorId).StallList.push(cleanStallId);
                 }
             });
-            vendorsForDateArray = Array.from(vendorsForDateMap.values());
-            console.log(`Velo (Map Page): Processed ${vendorsForDateArray.length} unique vendors for this date.`);
+            
+            vendorsForDate = Array.from(vendorMap.values());
+            console.log(`Velo (Map Page): Processed ${vendorsForDate.length} vendors.`);
         }
-
-        const payload = {
-            vendorsOnDate: vendorsForDateArray,
-            allStallLayouts: staticDataCache.allStallLayouts,
-            allPois: staticDataCache.allPOIs,
-            currentDate: dateStringYYYYMMDD
-        };
-
-        htmlComponent.postMessage({ type: "loadMapData", payload });
-        console.log(`Velo (Map Page): Data loaded for ${dateStringYYYYMMDD} (${vendorsForDateArray.length} vendors)`);
-
+        
+        // Send data to iframe
+        htmlComponent.postMessage({
+            type: "loadMapData",
+            payload: {
+                vendorsOnDate: vendorsForDate,
+                allStallLayouts: staticDataCache.allStallLayouts,
+                allPois: staticDataCache.allPOIs,
+                currentDate: dateStringYYYYMMDD
+            }
+        });
+        
+        console.log(`Velo (Map Page): Data sent to iframe for ${dateStringYYYYMMDD}.`);
+        
     } catch (error) {
-        console.error(`Velo (Map Page): Error in loadAndSendDataToMap for date ${dateStringYYYYMMDD}:`, error);
-        htmlComponent.postMessage({ type: "mapDataError", payload: { message: error.toString()} });
+        console.error(`Velo (Map Page): Error loading data:`, error);
     } finally {
         currentlyLoadingDate = null;
     }
-}
-
-
-// --- Functions to manage filter buttons ---
-function handleHighlightButtonClick(btnId, type, val) {
-    if (!isMapIframeReady) { 
-        console.warn("Velo: Iframe not ready, highlight click ignored."); 
-        return; 
-    }
-    
-    const searchInput = $w(SEARCH_INPUT_ID);
-
-    if (activeHighlightButtonId === btnId) {
-        // Toggle Off
-        htmlComponent.postMessage({ type: "clearHighlight" });
-        updateButtonActiveStyles(null);
-    } else {
-        // Toggle On
-        htmlComponent.postMessage({ type: "setHighlight", payload: { type: type, id: val } });
-        updateButtonActiveStyles(btnId);
-        if (searchInput.value) {
-            searchInput.value = "";
-        }
-    }
-}
-
-function updateButtonActiveStyles(activeId) {
-    FILTER_BUTTONS.forEach(cfg => {
-        const btn = $w(cfg.id);
-        if(btn && btn.style) {
-            const isActive = cfg.id === activeId;
-            btn.style.backgroundColor = isActive ? ACTIVE_BUTTON_BG_COLOR : INACTIVE_BUTTON_BG_COLOR;
-            btn.style.color = isActive ? ACTIVE_BUTTON_TEXT_COLOR : INACTIVE_BUTTON_TEXT_COLOR;
-        }
-    });
-    activeHighlightButtonId = activeId;
-}
-
-function clearSearchAndHighlights(sendMessageToIframe = true) {
-    if (sendMessageToIframe && isMapIframeReady) {
-        htmlComponent.postMessage({ type: "clearHighlight" });
-        console.log("Velo: Sent 'clearHighlight' from Clear All function");
-    }
-    const searchInput = $w(SEARCH_INPUT_ID);
-    if (searchInput) searchInput.value = ""; 
-    updateButtonActiveStyles(null); 
 }
