@@ -1,0 +1,124 @@
+/**
+ * Import Sample Data for Dubuque Farmers' Market Map
+ * 
+ * This function imports all sample data using the URLs from Wix Site Files.
+ * Run this once to populate your collections with test data.
+ * 
+ * Usage: Call importAllSampleData() from Velo console or a test page
+ */
+
+import { importVendorRoster, importStallAssignments, importGeoJsonFeatures } from 'backend/importData';
+
+// URLs from Wix Site Files
+const FILE_URLS = {
+    vendors: "https://f27fe605-f286-4253-afdd-4a6aa3e7b454.usrfiles.com/ugd/f27fe6_72fc1947bf0a42748080de9741777eba.csv",
+    marketAttendance: "https://f27fe605-f286-4253-afdd-4a6aa3e7b454.usrfiles.com/ugd/f27fe6_1050fe8bd7404ab78f9c9f622e225b3e.csv",
+    stallLayouts: "https://f27fe605-f286-4253-afdd-4a6aa3e7b454.usrfiles.com/ugd/f27fe6_5851218d5ca346ab9263027f0a218238.json",
+    pois: "https://f27fe605-f286-4253-afdd-4a6aa3e7b454.usrfiles.com/ugd/f27fe6_3c742ddaccf54b0a883c851d86e188fe.json"
+};
+
+/**
+ * Import all sample data in the correct order
+ * @returns {Promise<Object>} Import results for each collection
+ */
+export async function importAllSampleData() {
+    const results = {
+        vendors: null,
+        stalls: null,
+        pois: null,
+        attendance: null,
+        success: false,
+        message: ""
+    };
+    
+    try {
+        console.log("🚀 Starting sample data import...");
+        
+        // Step 1: Import Vendors (MUST be done first - attendance references vendors)
+        console.log("📦 Step 1/4: Importing vendors...");
+        results.vendors = await importVendorRoster(FILE_URLS.vendors);
+        console.log("✅ Vendors import complete:", results.vendors);
+        
+        if (!results.vendors.success) {
+            throw new Error(`Vendor import failed: ${results.vendors.message}`);
+        }
+        
+        // Step 2: Import Stall Layouts (can be done in parallel with POIs)
+        console.log("📦 Step 2/4: Importing stall layouts...");
+        results.stalls = await importGeoJsonFeatures(FILE_URLS.stallLayouts, "StallLayouts");
+        console.log("✅ Stall layouts import complete:", results.stalls);
+        
+        // Step 3: Import POIs (can be done in parallel with stalls)
+        console.log("📦 Step 3/4: Importing POIs...");
+        results.pois = await importGeoJsonFeatures(FILE_URLS.pois, "POIs");
+        console.log("✅ POIs import complete:", results.pois);
+        
+        // Step 4: Import Market Attendance (MUST be done AFTER vendors)
+        console.log("📦 Step 4/4: Importing market attendance...");
+        results.attendance = await importStallAssignments(FILE_URLS.marketAttendance);
+        console.log("✅ Market attendance import complete:", results.attendance);
+        
+        // Summary
+        const summary = {
+            vendors: `${results.vendors.inserted || 0} inserted, ${results.vendors.updated || 0} updated`,
+            stalls: `${results.stalls.inserted || 0} inserted, ${results.stalls.updated || 0} updated`,
+            pois: `${results.pois.inserted || 0} inserted, ${results.pois.updated || 0} updated`,
+            attendance: `${results.attendance.successfullyInserted || 0} records created`
+        };
+        
+        results.success = true;
+        results.message = `✅ Import complete! ${summary.vendors} vendors, ${summary.stalls} stalls, ${summary.pois} POIs, ${summary.attendance} attendance records.`;
+        
+        console.log("🎉 " + results.message);
+        console.log("📊 Full results:", results);
+        
+        return results;
+        
+    } catch (error) {
+        console.error("❌ Import error:", error);
+        results.success = false;
+        results.message = `Import failed: ${error.message}`;
+        results.error = error.toString();
+        return results;
+    }
+}
+
+/**
+ * Import only vendors (useful for testing or re-importing)
+ */
+export async function importVendorsOnly() {
+    console.log("📦 Importing vendors only...");
+    const result = await importVendorRoster(FILE_URLS.vendors);
+    console.log("✅ Vendors import complete:", result);
+    return result;
+}
+
+/**
+ * Import only stall layouts
+ */
+export async function importStallsOnly() {
+    console.log("📦 Importing stall layouts only...");
+    const result = await importGeoJsonFeatures(FILE_URLS.stallLayouts, "StallLayouts");
+    console.log("✅ Stall layouts import complete:", result);
+    return result;
+}
+
+/**
+ * Import only POIs
+ */
+export async function importPOIsOnly() {
+    console.log("📦 Importing POIs only...");
+    const result = await importGeoJsonFeatures(FILE_URLS.pois, "POIs");
+    console.log("✅ POIs import complete:", result);
+    return result;
+}
+
+/**
+ * Import only market attendance (requires vendors to exist first)
+ */
+export async function importAttendanceOnly() {
+    console.log("📦 Importing market attendance only...");
+    const result = await importStallAssignments(FILE_URLS.marketAttendance);
+    console.log("✅ Market attendance import complete:", result);
+    return result;
+}
