@@ -57,8 +57,10 @@
    - Upload all 4 files:
      - `vendors.csv`
      - `market_attendance.csv`
-     - `stall_layouts.geojson`
-     - `pois.geojson`
+     - `stall_layouts.json` (GeoJSON format, renamed to .json for Wix compatibility)
+     - `pois.json` (GeoJSON format, renamed to .json for Wix compatibility)
+   
+   **Note:** Wix Media Manager doesn't support `.geojson` files, but GeoJSON is valid JSON. Use the `.json` versions of these files.
 
 2. **Get the URLs:**
    - Click on each uploaded file

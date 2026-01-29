@@ -12,8 +12,10 @@ This guide walks you through importing the sample data (120 vendors, 1,254 atten
 
 1. **vendors.csv** - 120 vendors
 2. **market_attendance.csv** - 1,254 market attendance records
-3. **stall_layouts.geojson** - 134 stall locations
-4. **pois.geojson** - 7 Points of Interest
+3. **stall_layouts.json** - 134 stall locations (GeoJSON format, renamed to .json for Wix compatibility)
+4. **pois.json** - 7 Points of Interest (GeoJSON format, renamed to .json for Wix compatibility)
+
+**Note:** Wix Media Manager doesn't support `.geojson` files, but GeoJSON is valid JSON. The files have been renamed to `.json` for compatibility. Both `.json` files are available in `scripts/output/`.
 
 ---
 
@@ -33,8 +35,8 @@ You need to host the files somewhere publicly accessible. Here are your options:
    - Upload all 4 files:
      - `vendors.csv`
      - `market_attendance.csv`
-     - `stall_layouts.geojson`
-     - `pois.geojson`
+     - `stall_layouts.json` (GeoJSON format, renamed for Wix compatibility)
+     - `pois.json` (GeoJSON format, renamed for Wix compatibility)
 
 2. **Get the URLs:**
    - Click on each uploaded file
@@ -86,7 +88,7 @@ export async function importAllSampleData() {
         // Step 2: Import Stall Layouts (can be done anytime)
         console.log("Starting stall layouts import...");
         results.stalls = await importGeoJsonFeatures(
-            "YOUR_STALL_LAYOUTS_GEOJSON_URL_HERE", // Replace with your stall_layouts.geojson URL
+            "YOUR_STALL_LAYOUTS_JSON_URL_HERE", // Replace with your stall_layouts.json URL
             "StallLayouts"
         );
         console.log("Stall layouts import result:", results.stalls);
@@ -94,7 +96,7 @@ export async function importAllSampleData() {
         // Step 3: Import POIs (can be done anytime)
         console.log("Starting POIs import...");
         results.pois = await importGeoJsonFeatures(
-            "YOUR_POIS_GEOJSON_URL_HERE", // Replace with your pois.geojson URL
+            "YOUR_POIS_JSON_URL_HERE", // Replace with your pois.json URL
             "POIs"
         );
         console.log("POIs import result:", results.pois);
@@ -189,10 +191,11 @@ If you prefer to import manually or the backend functions aren't working:
 
 **Option A: Using Backend Function (Easier)**
 - Use `importGeoJsonFeatures()` as described in Method 1
+- Note: Upload `stall_layouts.json` (not `.geojson`) to Wix Media Manager
 
 **Option B: Manual Import**
 1. Open **StallLayouts** collection
-2. For each stall in `stall_layouts.geojson`:
+2. For each stall in `stall_layouts.json`:
    - Create a new item
    - Set `title` to the stall ID (e.g., "A1", "B12")
    - Set `geoJsonFeature` to the JSON string from the GeoJSON file
@@ -204,10 +207,11 @@ If you prefer to import manually or the backend functions aren't working:
 
 **Option A: Using Backend Function (Easier)**
 - Use `importGeoJsonFeatures()` with `"POIs"` as the second parameter
+- Note: Upload `pois.json` (not `.geojson`) to Wix Media Manager
 
 **Option B: Manual Import**
 1. Open **POIs** collection
-2. For each POI in `pois.geojson`:
+2. For each POI in `pois.json`:
    - Create a new item
    - Set `title` to the POI name
    - Set `poiType` to the type (Restroom, Information, etc.)
@@ -254,7 +258,7 @@ console.log(result);
 import { importGeoJsonFeatures } from 'backend/importData';
 
 const result = await importGeoJsonFeatures(
-    "YOUR_STALL_LAYOUTS_GEOJSON_URL",
+    "YOUR_STALL_LAYOUTS_JSON_URL", // Use .json file (GeoJSON is valid JSON)
     "StallLayouts"
 );
 console.log(result);
@@ -267,7 +271,7 @@ console.log(result);
 import { importGeoJsonFeatures } from 'backend/importData';
 
 const result = await importGeoJsonFeatures(
-    "YOUR_POIS_GEOJSON_URL",
+    "YOUR_POIS_JSON_URL", // Use .json file (GeoJSON is valid JSON)
     "POIs"
 );
 console.log(result);
