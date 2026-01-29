@@ -1,0 +1,300 @@
+.responsive_nav.horizontal-menu {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid #222;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.responsive_nav .horizontal-menu__item {
+  padding: 14px 24px;
+  border-radius: 0;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.responsive_nav .horizontal-menu__item-label {
+  font-family: sans-serif;
+  font-weight: 600;
+  font-size: 1.1em;
+  color: #222;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  transition: color 0.2s;
+}
+
+.responsive_nav .horizontal-menu__item:hover,
+.responsive_nav .horizontal-menu__item:focus {
+  background: #f0f0f0;
+}
+
+.responsive_nav .horizontal-menu__item-label:hover,
+.responsive_nav .horizontal-menu__item-label:focus {
+  color: #0077ff;
+}
+
+.responsive_nav .horizontal-menu__submenu-container {
+  background: #f8f8ff;
+  border-radius: 0 0 12px 12px;
+  min-width: 180px;
+}
+
+.responsive_nav .horizontal-menu__submenu-item {
+  border-radius: 0;
+}
+
+.responsive_nav .horizontal-menu__submenu-item-label {
+  font-family: sans-serif;
+  font-size: 1em;
+  color: #333;
+  background: transparent;
+  padding: 10px 20px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.responsive_nav .horizontal-menu__submenu-item-label:hover,
+.responsive_nav .horizontal-menu__submenu-item-label:focus {
+  background: #e6f0ff;
+  color: #0077ff;
+}
+
+/* Responsive styles */
+@media (max-width: 900px) {
+  .responsive_nav.horizontal-menu {
+    flex-direction: column;
+    align-items: stretch;
+    border-bottom: none;
+    border-top: 2px solid #222;
+  }
+  .responsive_nav .horizontal-menu__item {
+    padding: 16px 18px;
+    border-bottom: 1px solid #eee;
+    border-radius: 0;
+  }
+  .responsive_nav .horizontal-menu__item-label {
+    font-size: 1.15em;
+  }
+  .responsive_nav .horizontal-menu__submenu-container {
+    position: static;
+    border-radius: 0 0 12px 12px;
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .responsive_nav.horizontal-menu {
+    flex-direction: column;
+    align-items: stretch;
+    border-top: 2px solid #222;
+    border-bottom: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .responsive_nav .horizontal-menu__item {
+    padding: 18px 12px;
+    font-size: 1.2em;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 0;
+  }
+  .responsive_nav .horizontal-menu__item-label {
+    font-size: 1.2em;
+    color: #222;
+  }
+  .responsive_nav .horizontal-menu__submenu-container {
+    min-width: 100%;
+    border-radius: 0 0 12px 12px;
+  }
+}
+
+/* Date Selection Tags Styling */
+/* Target the component directly by ID */
+#dateSelectionTags,
+.date-selection-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+/* Base tag styling - target selection tags component structure */
+#dateSelectionTags .tag-item,
+#dateSelectionTags button,
+#dateSelectionTags [role="button"],
+.date-selection-tags .tag-item,
+.date-selection-tags button,
+.date-selection-tags [role="button"] {
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background-color: #f5f5f5;
+}
+
+/* Month-based color styling using attribute selectors where possible */
+/* Note: CSS :contains() is not standard - using alternative selectors */
+#dateSelectionTags button[aria-label*="May"],
+.date-selection-tags button[aria-label*="May"] {
+  background-color: #E8F5E9 !important;
+  border-color: #4CAF50 !important;
+  color: #2E7D32 !important;
+}
+
+#dateSelectionTags button[aria-label*="June"],
+#dateSelectionTags button[aria-label*="July"],
+#dateSelectionTags button[aria-label*="August"],
+.date-selection-tags button[aria-label*="June"],
+.date-selection-tags button[aria-label*="July"],
+.date-selection-tags button[aria-label*="August"] {
+  background-color: #E3F2FD !important;
+  border-color: #2196F3 !important;
+  color: #1565C0 !important;
+}
+
+#dateSelectionTags button[aria-label*="September"],
+#dateSelectionTags button[aria-label*="October"],
+.date-selection-tags button[aria-label*="September"],
+.date-selection-tags button[aria-label*="October"] {
+  background-color: #FFF3E0 !important;
+  border-color: #FF9800 !important;
+  color: #E65100 !important;
+}
+
+/* Selected state */
+#dateSelectionTags .tag-item.selected,
+#dateSelectionTags button.selected,
+#dateSelectionTags [role="button"].selected,
+#dateSelectionTags .tag-item[aria-selected="true"],
+#dateSelectionTags button[aria-selected="true"],
+.date-selection-tags .tag-item.selected,
+.date-selection-tags button.selected,
+.date-selection-tags [role="button"].selected,
+.date-selection-tags .tag-item[aria-selected="true"],
+.date-selection-tags button[aria-selected="true"] {
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Hover state */
+#dateSelectionTags .tag-item:hover,
+#dateSelectionTags button:hover,
+#dateSelectionTags [role="button"]:hover,
+.date-selection-tags .tag-item:hover,
+.date-selection-tags button:hover,
+.date-selection-tags [role="button"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* Availability Status Indicators */
+/* Target tags based on emoji content in their labels using attribute selectors */
+/* Available - Green border/accent (✓ emoji) */
+#dateSelectionTags button[aria-label*="✓"],
+#dateSelectionTags [role="button"][aria-label*="✓"],
+.date-selection-tags button[aria-label*="✓"],
+.date-selection-tags [role="button"][aria-label*="✓"] {
+  border-left: 4px solid #4CAF50 !important;
+  border-left-width: 4px !important;
+}
+
+/* Limited - Yellow/Orange border/accent (⚠ emoji) */
+#dateSelectionTags button[aria-label*="⚠"],
+#dateSelectionTags [role="button"][aria-label*="⚠"],
+.date-selection-tags button[aria-label*="⚠"],
+.date-selection-tags [role="button"][aria-label*="⚠"] {
+  border-left: 4px solid #FF9800 !important;
+  border-left-width: 4px !important;
+}
+
+/* Full - Red border/accent (✕ emoji) */
+#dateSelectionTags button[aria-label*="✕"],
+#dateSelectionTags [role="button"][aria-label*="✕"],
+.date-selection-tags button[aria-label*="✕"],
+.date-selection-tags [role="button"][aria-label*="✕"] {
+  border-left: 4px solid #F44336 !important;
+  border-left-width: 4px !important;
+  opacity: 0.7 !important;
+}
+
+/* Also target by text content for broader compatibility */
+#dateSelectionTags button:has-text("✓"),
+#dateSelectionTags [role="button"]:has-text("✓") {
+  border-left: 4px solid #4CAF50 !important;
+}
+
+#dateSelectionTags button:has-text("⚠"),
+#dateSelectionTags [role="button"]:has-text("⚠") {
+  border-left: 4px solid #FF9800 !important;
+}
+
+#dateSelectionTags button:has-text("✕"),
+#dateSelectionTags [role="button"]:has-text("✕") {
+  border-left: 4px solid #F44336 !important;
+  opacity: 0.7 !important;
+}
+
+/* Repeater-based Date Selection Styling */
+/* Target by CSS class */
+#dateRepeater .availability-available,
+#dateRepeater [class*="availability-available"] {
+  border: 3px solid #4CAF50 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
+}
+
+#dateRepeater .availability-limited,
+#dateRepeater [class*="availability-limited"] {
+  border: 3px solid #FF9800 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
+}
+
+#dateRepeater .availability-full,
+#dateRepeater [class*="availability-full"] {
+  border: 3px solid #F44336 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
+  opacity: 0.6 !important;
+}
+
+/* Target by data attribute */
+#dateRepeater [data-availability-status="available"] {
+  border: 3px solid #4CAF50 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
+}
+
+#dateRepeater [data-availability-status="limited"] {
+  border: 3px solid #FF9800 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
+}
+
+#dateRepeater [data-availability-status="full"] {
+  border: 3px solid #F44336 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
+  opacity: 0.6 !important;
+}
+
+/* Ensure repeater items have visible borders */
+#dateRepeater [id*="itemContainer"],
+#dateRepeater [id*="itemContainer"] * {
+  box-sizing: border-box;
+}
+
+#dateRepeater [id*="itemContainer"] {
+  border-style: solid !important;
+  border-width: 3px !important;
+  border-radius: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  display: block;
+  position: relative;
+}
+
+/* Repeater container border styling is handled via JavaScript */

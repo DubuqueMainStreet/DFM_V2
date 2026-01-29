@@ -1,0 +1,122 @@
+import wixData from 'wix-data';
+
+/**
+ * Calculate availability status for all market dates
+ * Returns availability counts for musicians, non-profits, and volunteers by role
+ * @returns {Promise<Object>} Object with dateId as key and availability data as value
+ */
+export async function getDateAvailability() {
+	try {
+		// Get all approved assignments
+		const assignments = await wixData.query('WeeklyAssignments')
+			.eq('applicationStatus', 'Approved')
+			.include('profileRef')
+			.find();
+		
+		// Initialize availability object
+		const availability = {};
+		
+		// Process each assignment
+		for (const assignment of assignments.items) {
+			const dateId = assignment.dateRef;
+			const profile = assignment.profileRef;
+			
+			if (!dateId || !profile) continue;
+			
+			// Initialize date entry if needed
+			if (!availability[dateId]) {
+				availability[dateId] = {
+					musicians: 0,
+					musiciansByLocation: {
+						'Location A': 0,  // 13th Street
+						'Location B': 0,  // Food Court
+						'Location C': 0   // 10th & Iowa St
+					},
+					nonProfits: 0,
+					volunteers: {
+						'Token Sales': 0,
+						'Merch Sales': 0,
+						'Setup': 0,
+						'Teardown': 0,
+						'Hospitality Support': 0,
+						'No Preference': 0
+					}
+				};
+			}
+			
+			// Count by type
+			const type = profile.type;
+			if (type === 'Musician') {
+				availability[dateId].musicians++;
+				// Track by location - only count if assignedMapId is set (confirmed location assignment)
+				// assignedMapId is set when admin assigns location in admin dashboard
+				const location = assignment.assignedMapId;
+				if (location && availability[dateId].musiciansByLocation[location] !== undefined) {
+					availability[dateId].musiciansByLocation[location]++;
+				}
+			} else if (type === 'NonProfit') {
+				availability[dateId].nonProfits++;
+			} else if (type === 'Volunteer') {
+				const role = profile.volunteerRole || 'No Preference';
+				if (availability[dateId].volunteers[role] !== undefined) {
+					availability[dateId].volunteers[role]++;
+				}
+			}
+		}
+		
+		return availability;
+	} catch (error) {
+		console.error('Error calculating date availability:', error);
+		return {};
+	}
+}
+
+/**
+ * Get availability status for a specific date and type
+ * @param {string} dateId - The date ID
+ * @param {string} type - 'Musician', 'NonProfit', or 'Volunteer'
+ * @param {string} volunteerRole - Optional volunteer role for volunteer-specific status
+ * @returns {Promise<string>} Status: 'available', 'limited', or 'full'
+ */
+export async function getDateStatus(dateId, type, volunteerRole = null) {
+	try {
+		const availability = await getDateAvailability();
+		const dateData = availability[dateId];
+		
+		if (!dateData) {
+			return 'available'; // No data means available
+		}
+		
+		if (type === 'Musician') {
+			// 0-1 = available, 2 = limited, 3+ = full
+			if (dateData.musicians >= 3) return 'full';
+			if (dateData.musicians === 2) return 'limited';
+			return 'available';
+		} else if (type === 'NonProfit') {
+			// 0 = available, 1+ = full (only one non-profit per week)
+			return dateData.nonProfits >= 1 ? 'full' : 'available';
+		} else if (type === 'Volunteer' && volunteerRole) {
+			// Role-specific limits
+			const roleLimits = {
+				'Token Sales': 2,
+				'Merch Sales': 2,
+				'Setup': 2,
+				'Teardown': 2,
+				'Hospitality Support': 2,
+				'No Preference': 1
+			};
+			
+			const limit = roleLimits[volunteerRole] || 2;
+			const count = dateData.volunteers[volunteerRole] || 0;
+			
+			if (count >= limit) return 'full';
+			if (count >= Math.floor(limit * 0.7)) return 'limited';
+			return 'available';
+		}
+		
+		return 'available';
+	} catch (error) {
+		console.error('Error getting date status:', error);
+		return 'available';
+	}
+}
