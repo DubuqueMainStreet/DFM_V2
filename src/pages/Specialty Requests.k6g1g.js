@@ -1,10 +1,36 @@
 import wixData from 'wix-data';
+import { sendStatusNotificationEmail } from 'backend/emailNotifications.jsw';
+
+// ============================================
+// EMAIL NOTIFICATIONS ENABLED - VERSION 2.0
+// ============================================
+console.log('📧📧📧 EMAIL NOTIFICATION CODE LOADED 📧📧📧');
+console.log('📧 sendStatusNotificationEmail imported:', typeof sendStatusNotificationEmail);
 
 // Global state
 let currentType = 'Musician';
 let currentAssignments = [];
 
+// Track recent status updates to prevent duplicate email sends
+// Key: `${assignmentId}-${status}`, Value: timestamp
+const recentStatusUpdates = new Map();
+const STATUS_UPDATE_DEDUP_WINDOW_MS = 10 * 1000; // 10 seconds
+
+// Clean up old entries from the cache periodically
+function cleanupStatusUpdateCache() {
+	const now = Date.now();
+	for (const [key, timestamp] of recentStatusUpdates.entries()) {
+		if (now - timestamp > STATUS_UPDATE_DEDUP_WINDOW_MS) {
+			recentStatusUpdates.delete(key);
+		}
+	}
+}
+
+// Clean up cache every 30 seconds
+setInterval(cleanupStatusUpdateCache, 30 * 1000);
+
 $w.onReady(function () {
+	console.log('📧 Page ready - Email notifications are active');
 	initializeDashboard();
 });
 
@@ -431,10 +457,29 @@ function setupRepeaterItem($item, itemData) {
 }
 
 async function updateAssignmentStatus(assignmentId, newStatus) {
+	console.log(`[UPDATE-STATUS] ===== FUNCTION CALLED ===== assignmentId=${assignmentId}, newStatus=${newStatus}`);
 	try {
 		// Normalize status
 		const normalizedStatus = (newStatus || 'Pending').toString().trim();
-		console.log(`Updating assignment ${assignmentId} to status: "${normalizedStatus}"`);
+		console.log(`[UPDATE-STATUS] Updating assignment ${assignmentId} to status: "${normalizedStatus}"`);
+		
+		// EARLY DEDUPLICATION CHECK: If this is an Approved/Rejected status update, check for duplicates BEFORE any async operations
+		// This prevents race conditions where multiple calls happen before the first one completes
+		if (normalizedStatus === 'Approved' || normalizedStatus === 'Rejected') {
+			const updateKey = `${assignmentId}-${normalizedStatus}`;
+			const now = Date.now();
+			const lastUpdateTime = recentStatusUpdates.get(updateKey);
+			
+			if (lastUpdateTime && (now - lastUpdateTime) < STATUS_UPDATE_DEDUP_WINDOW_MS) {
+				const timeSinceLastUpdate = Math.round((now - lastUpdateTime) / 1000);
+				console.log(`[UPDATE-STATUS] ⏭️ EARLY DUPLICATE PREVENTION: ${assignmentId} to ${normalizedStatus} was updated ${timeSinceLastUpdate} seconds ago. Skipping entire function to prevent duplicate.`);
+				return; // Exit early - don't update status or send email
+			}
+			
+			// Set cache IMMEDIATELY to prevent other parallel calls from proceeding
+			recentStatusUpdates.set(updateKey, now);
+			console.log(`[UPDATE-STATUS] 🔒 Lock acquired for ${assignmentId}-${normalizedStatus} - preventing duplicates`);
+		}
 		
 		// Get current status filter before update
 		const currentStatusFilter = ($w('#filterStatus')?.value || 'all').toString().trim();
@@ -451,10 +496,47 @@ async function updateAssignmentStatus(assignmentId, newStatus) {
 		
 		const result = await wixData.update('WeeklyAssignments', existingRecord);
 		
-		console.log('Update result:', result);
-		console.log('Updated assignment status:', result.applicationStatus);
-		console.log('dateRef preserved:', result.dateRef);
-		console.log('profileRef preserved:', result.profileRef);
+		console.log('[UPDATE-STATUS] Update result:', result);
+		console.log('[UPDATE-STATUS] Updated assignment status:', result.applicationStatus);
+		console.log('[UPDATE-STATUS] dateRef preserved:', result.dateRef);
+		console.log('[UPDATE-STATUS] profileRef preserved:', result.profileRef);
+		
+		console.log(`[UPDATE-STATUS] Checking if email needed. normalizedStatus="${normalizedStatus}", isApproved=${normalizedStatus === 'Approved'}, isRejected=${normalizedStatus === 'Rejected'}`);
+		
+		// Send email notification if status is Approved or Rejected
+		// Note: Deduplication check already happened at the start of the function
+		if (normalizedStatus === 'Approved' || normalizedStatus === 'Rejected') {
+			console.log(`[UPDATE-STATUS] ✅ Status requires email! Proceeding with email notification...`);
+			console.log(`[EMAIL] Starting email notification for assignment ${assignmentId}, status: ${normalizedStatus}`);
+			try {
+				// Verify the function is available
+				if (typeof sendStatusNotificationEmail !== 'function') {
+					console.error('[EMAIL] ERROR: sendStatusNotificationEmail is not a function!', typeof sendStatusNotificationEmail);
+					throw new Error('Email notification function not available');
+				}
+				
+				console.log('[EMAIL] Calling sendStatusNotificationEmail...');
+				const emailResult = await sendStatusNotificationEmail(assignmentId, normalizedStatus);
+				console.log('[EMAIL] Email function returned:', emailResult);
+				
+				if (emailResult.success && emailResult.emailSent) {
+					console.log(`[EMAIL] ✅ Email notification sent to ${emailResult.recipient}`);
+				} else if (emailResult.skipped) {
+					console.log('[EMAIL] ⏭️ Email notification skipped:', emailResult.reason);
+				} else {
+					console.warn('[EMAIL] ❌ Email notification failed:', emailResult.error);
+					// Don't show error to user - status update succeeded
+				}
+			} catch (emailError) {
+				console.error('[EMAIL] ❌ Exception caught while sending email notification:', emailError);
+				console.error('[EMAIL] Error details:', {
+					name: emailError?.name,
+					message: emailError?.message,
+					stack: emailError?.stack
+				});
+				// Don't throw - we don't want email failures to break the status update
+			}
+		}
 		
 		// If filter is set to a specific status and item changed to different status,
 		// automatically adjust filter to show the new status
@@ -463,9 +545,11 @@ async function updateAssignmentStatus(assignmentId, newStatus) {
 			if ($w('#filterStatus')) {
 				$w('#filterStatus').value = normalizedStatus;
 			}
-			showSuccess(`Status updated to ${normalizedStatus}. Filter adjusted to show ${normalizedStatus} items.`);
+			const emailNote = (normalizedStatus === 'Approved' || normalizedStatus === 'Rejected') ? ' - Email notification sent' : '';
+			showSuccess(`Status updated to ${normalizedStatus}${emailNote}. Filter adjusted to show ${normalizedStatus} items.`);
 		} else {
-			showSuccess(`Status updated to ${normalizedStatus}`);
+			const emailNote = (normalizedStatus === 'Approved' || normalizedStatus === 'Rejected') ? ' - Email notification sent' : '';
+			showSuccess(`Status updated to ${normalizedStatus}${emailNote}`);
 		}
 		
 		// Small delay to ensure database is updated

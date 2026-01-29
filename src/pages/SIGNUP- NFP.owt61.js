@@ -109,6 +109,11 @@ async function populateDateRepeater() {
 							container.style.opacity = '1';
 						}
 						
+						// Ensure proper mobile touch handling
+						container.style.touchAction = 'manipulation';
+						container.style.cursor = 'pointer';
+						container.style.userSelect = 'none';
+						
 						console.log(`✅ Applied border color ${borderColor} (${itemData.status}) to ${itemData.label}`);
 					} catch (e) {
 						console.warn('Failed to set container border:', e);
@@ -122,26 +127,36 @@ async function populateDateRepeater() {
 				}
 				
 				// Make entire container clickable to toggle selection
+				// Use explicit dateId to avoid closure issues
+				const dateId = itemData._id;
 				$item('#itemContainer').onClick(() => {
-					const isSelected = selectedDateIds.includes(itemData._id);
+					const container = $item('#itemContainer');
+					const isSelected = selectedDateIds.includes(dateId);
+					
+					console.log('Date clicked:', itemData.label, 'ID:', dateId, 'Currently selected:', isSelected);
 					
 					if (isSelected) {
 						// Deselect: remove from array and clear background
-						selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
+						selectedDateIds = selectedDateIds.filter(id => id !== dateId);
 						try {
-							container.style.backgroundColor = '';
+							// Use explicit white color instead of empty string for better mobile compatibility
+							container.style.backgroundColor = '#FFFFFF';
 						} catch (e) {
-							// Ignore if can't clear background
+							console.warn('Failed to clear background:', e);
 						}
 					} else {
 						// Select: add to array and highlight
-						if (!selectedDateIds.includes(itemData._id)) {
-							selectedDateIds.push(itemData._id);
+						if (!selectedDateIds.includes(dateId)) {
+							selectedDateIds.push(dateId);
 						}
-						container.style.backgroundColor = '#E3F2FD';
+						try {
+							container.style.backgroundColor = '#E3F2FD';
+						} catch (e) {
+							console.warn('Failed to set selection background:', e);
+						}
 					}
 					
-					console.log('Selected dates:', selectedDateIds);
+					console.log('Selected dates:', [...selectedDateIds]);
 				});
 			} catch (error) {
 				console.error('Error setting up repeater item:', error);
@@ -258,7 +273,8 @@ function resetForm() {
 	// Reset repeater selection styling
 	$w('#dateRepeater').forEachItem(($item, itemData, index) => {
 		try {
-			$item('#itemContainer').style.backgroundColor = '';
+			// Use explicit white color instead of empty string for better mobile compatibility
+			$item('#itemContainer').style.backgroundColor = '#FFFFFF';
 		} catch (e) {
 			// Ignore if can't clear background
 		}

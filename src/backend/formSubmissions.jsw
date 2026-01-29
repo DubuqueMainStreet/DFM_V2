@@ -1,4 +1,5 @@
 import wixData from 'wix-data';
+import wixCrmBackend from 'wix-crm-backend';
 
 /**
  * Backend function to create a specialty profile and weekly assignments
@@ -15,6 +16,26 @@ export async function submitSpecialtyProfile(profileData, dateIds) {
 		}
 		if (!dateIds || dateIds.length === 0) {
 			throw new Error('At least one date must be selected');
+		}
+		
+		// Create or update Wix CRM contact for email notifications
+		// This ensures the contact exists when we need to send approval/rejection emails
+		if (profileData.contactEmail) {
+			try {
+				console.log(`[FORM-SUBMISSION] Creating/updating contact for: ${profileData.contactEmail}`);
+				await wixCrmBackend.contacts.appendOrCreateContact({
+					email: profileData.contactEmail,
+					name: {
+						first: profileData.organizationName || 'Market',
+						last: 'Participant'
+					},
+					subscriptionStatus: 'NOT_SET' // Allow emails to be sent
+				});
+				console.log(`[FORM-SUBMISSION] Contact created/updated successfully`);
+			} catch (contactError) {
+				// Don't fail form submission if contact creation fails
+				console.warn(`[FORM-SUBMISSION] Warning: Failed to create contact:`, contactError.message);
+			}
 		}
 		
 		// Save the profile

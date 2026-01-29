@@ -1,4 +1,5 @@
 import wixData from 'wix-data';
+import { sendStatusNotificationEmail } from 'backend/emailNotifications.jsw';
 
 // Global state
 let currentType = 'Musician';
@@ -324,16 +325,53 @@ function setupRepeaterItem($item, itemData) {
 }
 
 async function updateAssignmentStatus(assignmentId, newStatus) {
+	console.log(`[STATUS-UPDATE] updateAssignmentStatus called: assignmentId=${assignmentId}, newStatus=${newStatus}`);
 	try {
+		// Update the status in the database
+		console.log(`[STATUS-UPDATE] Updating database...`);
 		await wixData.update('WeeklyAssignments', {
 			_id: assignmentId,
 			applicationStatus: newStatus
 		});
+		console.log(`[STATUS-UPDATE] Database updated successfully`);
+		
+		// Send email notification if status is Approved or Rejected
+		if (newStatus === 'Approved' || newStatus === 'Rejected') {
+			console.log(`[EMAIL] Starting email notification for assignment ${assignmentId}, status: ${newStatus}`);
+			try {
+				// Verify the function is available
+				if (typeof sendStatusNotificationEmail !== 'function') {
+					console.error('[EMAIL] ERROR: sendStatusNotificationEmail is not a function!', typeof sendStatusNotificationEmail);
+					throw new Error('Email notification function not available');
+				}
+				
+				console.log('[EMAIL] Calling sendStatusNotificationEmail...');
+				const emailResult = await sendStatusNotificationEmail(assignmentId, newStatus);
+				console.log('[EMAIL] Email function returned:', emailResult);
+				
+				if (emailResult.success && emailResult.emailSent) {
+					console.log(`[EMAIL] ✅ Email notification sent to ${emailResult.recipient}`);
+				} else if (emailResult.skipped) {
+					console.log('[EMAIL] ⏭️ Email notification skipped:', emailResult.reason);
+				} else {
+					console.warn('[EMAIL] ❌ Email notification failed:', emailResult.error);
+					// Don't show error to user - status update succeeded
+				}
+			} catch (emailError) {
+				console.error('[EMAIL] ❌ Exception caught while sending email notification:', emailError);
+				console.error('[EMAIL] Error details:', {
+					name: emailError?.name,
+					message: emailError?.message,
+					stack: emailError?.stack
+				});
+				// Don't throw - we don't want email failures to break the status update
+			}
+		}
 		
 		// Reload current view
 		await loadAssignments(currentType);
 		
-		showSuccess(`Status updated to ${newStatus}`);
+		showSuccess(`Status updated to ${newStatus}${(newStatus === 'Approved' || newStatus === 'Rejected') ? ' - Email notification sent' : ''}`);
 	} catch (error) {
 		console.error('Error updating status:', error);
 		showError('Failed to update status. Please try again.');
