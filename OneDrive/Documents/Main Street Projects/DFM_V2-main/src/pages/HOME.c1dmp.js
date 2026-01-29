@@ -22,14 +22,12 @@ $w.onReady(function () {
             
             if (result.success) {
                 console.log("🎉 " + result.message);
-                alert("✅ Import successful!\n\n" + result.message + "\n\nCheck the console for details.");
+                console.log("✅ SUCCESS: All data imported successfully!");
             } else {
                 console.error("❌ Import failed:", result.message);
-                alert("❌ Import failed:\n\n" + result.message + "\n\nCheck the console for details.");
             }
         } catch (error) {
             console.error("❌ Import error:", error);
-            alert("❌ Import error:\n\n" + error.message + "\n\nCheck the console for details.");
         }
     }
     
