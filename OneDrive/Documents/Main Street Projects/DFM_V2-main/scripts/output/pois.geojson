@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "Public Parking Area",
+        "poiType": "PublicParkingArea",
+        "description": "Main public parking area for market visitors"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.6649,
+          42.4995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "Vendor Parking",
+        "poiType": "VendorParkingArea",
+        "description": "Designated parking area for vendors"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.6639,
+          42.4995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "Restroom",
+        "poiType": "Restroom",
+        "description": "Public restroom facilities"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.6644,
+          42.5003
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "Seating Area",
+        "poiType": "SeatingArea",
+        "description": "Public seating area for visitors"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.66460000000001,
+          42.5
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "Market Information",
+        "poiType": "Information",
+        "description": "Market information booth"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.6644,
+          42.5
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "Market Tokens",
+        "poiType": "Market Tokens",
+        "description": "Purchase market tokens here"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.6642,
+          42.5
+        ]
+      }
+    }
+  ]
+}
