@@ -119,13 +119,14 @@ $w.onReady(function () {
 });
 
 
-// Helper function to format a Date object to 'YYYY-MM-DD' string
+// Helper function to format a Date object to 'YYYY-MM-DD' string (UTC to avoid timezone issues)
 function formatDateToYYYYMMDD(dateObject) {
     if (!dateObject) return null;
     const date = new Date(dateObject);
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
+    // Use UTC methods to avoid timezone conversion issues
+    const year = date.getUTCFullYear();
+    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = date.getUTCDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 

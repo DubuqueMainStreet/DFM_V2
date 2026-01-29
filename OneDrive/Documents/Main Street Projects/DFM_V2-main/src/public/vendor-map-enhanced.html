@@ -953,12 +953,18 @@
             
             // Show message if no vendors for selected date
             if (vendorsOnDate.length === 0 && selectedDate) {
-                mapMessageElement.textContent = "No vendors scheduled for this date.";
+                mapMessageElement.textContent = "No vendors scheduled for this date. All stalls are shown as available.";
                 mapMessageElement.style.display = 'block';
                 console.log("IFRAME (Map): No vendors found for date:", selectedDate);
             } else {
                 mapMessageElement.style.display = 'none';
                 console.log(`IFRAME (Map): Rendered ${vendorsOnDate.length} vendors, ${allStallLayouts.length} stalls, ${allPois.length} POIs.`);
+            }
+            
+            // Ensure map is interactive even with no vendors
+            if (map) {
+                map.invalidateSize(); // Force map to recalculate size
+                console.log("IFRAME (Map): Map is ready and interactive.");
             }
         }
         
