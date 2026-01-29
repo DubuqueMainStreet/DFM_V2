@@ -9,7 +9,7 @@ const POIS_COLLECTION = "POIs";
 
 // ----- HTML Component and UI Element IDs -----
 const HTML_COMPONENT_ID = "#mapFrame";
-const DATE_PICKER_ID = "#datepicker1";
+const DATE_PICKER_ID = "#datepicker1"; // Can be DatePicker or Dropdown
 const SEARCH_INPUT_ID = "#searchInput";
 const CLEAR_ALL_BUTTON_ID = "#clearAllButton";
 
@@ -54,13 +54,14 @@ $w.onReady(async function () {
     const searchInput = $w(SEARCH_INPUT_ID);
     const clearAllButton = $w(CLEAR_ALL_BUTTON_ID);
 
-    // --- Configure Date Picker to only allow market dates ---
+    // --- Populate Date Selector (works with both Dropdown and DatePicker) ---
     try {
         const marketDatesResult = await wixData.query("MarketDates2026")
             .limit(1000)
             .find();
         
-        const allowedDates = marketDatesResult.items
+        // Parse and sort dates
+        const dateItems = marketDatesResult.items
             .map(item => {
                 const date = item.date;
                 if (!date) return null;
@@ -68,36 +69,55 @@ $w.onReady(async function () {
                 // Parse date properly to avoid timezone issues
                 let dateObj;
                 if (typeof date === 'string') {
-                    // If it's a date string like "2026-05-02", parse it as local time
-                    const dateStr = date.split('T')[0]; // Get YYYY-MM-DD part
+                    const dateStr = date.split('T')[0];
                     const [year, month, day] = dateStr.split('-').map(Number);
-                    dateObj = new Date(year, month - 1, day, 12, 0, 0, 0); // Use noon local time
+                    dateObj = new Date(year, month - 1, day, 12, 0, 0, 0);
                 } else {
-                    // If it's already a Date object
                     dateObj = new Date(date);
-                    // Set to noon local time to avoid timezone edge cases
                     dateObj.setHours(12, 0, 0, 0);
                 }
                 
-                return dateObj;
+                return {
+                    _id: item._id,
+                    date: dateObj,
+                    dateString: dateObj.toISOString().split('T')[0]
+                };
             })
-            .filter(date => date !== null);
+            .filter(item => item !== null)
+            .sort((a, b) => a.date - b.date);
         
-        console.log(`Velo (Map Page): Configuring date picker with ${allowedDates.length} allowed dates.`);
-        console.log(`Velo (Map Page): Sample dates:`, allowedDates.slice(0, 5).map(d => d.toISOString().split('T')[0]));
+        console.log(`Velo (Map Page): Found ${dateItems.length} market dates.`);
         
-        // Try setting allowedDates - Wix DatePicker may accept Date objects or strings
-        try {
-            datePicker.allowedDates = allowedDates;
-        } catch (e) {
-            // If Date objects don't work, try strings
-            console.log("Velo (Map Page): Trying string format for allowedDates...");
-            const dateStrings = allowedDates.map(d => d.toISOString().split('T')[0]);
-            datePicker.allowedDates = dateStrings;
+        // Check if element is a Dropdown (has .options) or DatePicker (has .value only)
+        if (datePicker.options !== undefined) {
+            // It's a Dropdown - populate options
+            const options = dateItems.map(item => ({
+                label: item.date.toLocaleDateString('en-US', { 
+                    weekday: 'short',
+                    month: 'short', 
+                    day: 'numeric',
+                    year: 'numeric'
+                }),
+                value: item.dateString // Store as YYYY-MM-DD string
+            }));
+            
+            datePicker.options = options;
+            console.log(`Velo (Map Page): Configured dropdown with ${options.length} date options.`);
+            
+            // Set to first date
+            if (options.length > 0) {
+                datePicker.value = options[0].value;
+            }
+        } else {
+            // It's a DatePicker - set min/max dates only (allowedDates not supported)
+            if (dateItems.length > 0) {
+                datePicker.minDate = dateItems[0].date;
+                datePicker.maxDate = dateItems[dateItems.length - 1].date;
+                console.log(`Velo (Map Page): Configured date picker with min/max dates.`);
+            }
         }
     } catch (error) {
-        console.error("Velo (Map Page): Error loading market dates for date picker:", error);
-        // Continue without restriction if there's an error
+        console.error("Velo (Map Page): Error configuring date selector:", error);
     }
 
     // --- Message Handling from HTML Component ---
@@ -109,7 +129,15 @@ $w.onReady(async function () {
             // Optimized date finding - use single query instead of loop
             let dateToLoad;
             if (datePicker.value) {
-                dateToLoad = new Date(datePicker.value);
+                // Handle both Dropdown (string) and DatePicker (Date object)
+                if (typeof datePicker.value === 'string') {
+                    // Dropdown: value is YYYY-MM-DD string
+                    const [year, month, day] = datePicker.value.split('-').map(Number);
+                    dateToLoad = new Date(year, month - 1, day, 12, 0, 0, 0);
+                } else {
+                    // DatePicker: value is Date object
+                    dateToLoad = new Date(datePicker.value);
+                }
             } else {
                 dateToLoad = await findNextMarketDate(new Date());
             }
@@ -118,7 +146,16 @@ $w.onReady(async function () {
                 console.log("Velo (Map Page): Setting initial date to:", dateToLoad.toISOString().slice(0, 10));
                 const originalOnChange = datePicker.onChange;
                 datePicker.onChange(() => {});
-                datePicker.value = dateToLoad;
+                
+                // Set value based on element type
+                if (datePicker.options !== undefined) {
+                    // Dropdown: set to YYYY-MM-DD string
+                    datePicker.value = formatDateToYYYYMMDD(dateToLoad);
+                } else {
+                    // DatePicker: set to Date object
+                    datePicker.value = dateToLoad;
+                }
+                
                 datePicker.onChange(originalOnChange);
                 await loadAndSendDataToMap(formatDateToYYYYMMDD(dateToLoad));
             } else {
@@ -129,41 +166,17 @@ $w.onReady(async function () {
     });
 
     // --- UI Element Event Handlers ---
-    datePicker.onChange(async () => {
+    datePicker.onChange(() => {
         if (!datePicker.value) return;
         
-        // Validate that the selected date is a valid market date
-        const selectedDateStr = formatDateToYYYYMMDD(datePicker.value);
-        try {
-            const marketDatesResult = await wixData.query("MarketDates2026")
-                .limit(1000)
-                .find();
-            
-            const validDates = marketDatesResult.items
-                .map(item => {
-                    const date = item.date;
-                    if (!date) return null;
-                    if (typeof date === 'string') {
-                        return date.split('T')[0];
-                    }
-                    const dateObj = new Date(date);
-                    return dateObj.toISOString().split('T')[0];
-                })
-                .filter(date => date !== null);
-            
-            if (!validDates.includes(selectedDateStr)) {
-                console.warn(`Velo (Map Page): Invalid date selected: ${selectedDateStr}. Resetting to first valid date.`);
-                // Reset to first valid market date
-                const firstValidDate = new Date(validDates[0] + 'T12:00:00');
-                const originalOnChange = datePicker.onChange;
-                datePicker.onChange(() => {});
-                datePicker.value = firstValidDate;
-                datePicker.onChange(originalOnChange);
-                return;
-            }
-        } catch (error) {
-            console.error("Velo (Map Page): Error validating date:", error);
-            // Continue with date selection if validation fails
+        // Handle both Dropdown (value is string) and DatePicker (value is Date)
+        let selectedDateStr;
+        if (typeof datePicker.value === 'string') {
+            // Dropdown: value is already YYYY-MM-DD format
+            selectedDateStr = datePicker.value;
+        } else {
+            // DatePicker: value is a Date object
+            selectedDateStr = formatDateToYYYYMMDD(datePicker.value);
         }
         
         if (isMapIframeReady) {
