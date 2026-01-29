@@ -593,67 +593,99 @@
 
         function initMap() {
             console.log("IFRAME (Map): Initializing Dubuque Farmers' Market Map.");
-            let lastView = null;
-            try { 
-                const savedView = localStorage.getItem('farmersMarketMapView'); 
-                if (savedView) { 
-                    lastView = JSON.parse(savedView); 
-                }
-            } catch (e) {
-                console.warn("Could not restore saved map view:", e);
-            }
-
-            // Initialize map with saved view or default to Dubuque Farmers Market location
-            map = L.map('map', { 
-                preferCanvas: true, 
-                tap: true,
-                zoomControl: false
-            }).setView(
-                (lastView ? [lastView.lat, lastView.lng] : [42.5000, -90.6644]), 
-                (lastView ? lastView.zoom : 17)
-            );
             
-            L.control.zoom({ position: 'bottomleft' }).addTo(map);
-
-            // Light map tiles for Modern Agrarian aesthetic
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { 
-                attribution: '© OpenStreetMap, © CartoDB', 
-                subdomains: 'abcd', 
-                maxZoom: 21, 
-                minZoom: 15 
-            }).addTo(map);
-            
-            // Layer ordering (bottom to top)
-            parkingAreaLayerGroup = L.layerGroup().addTo(map);
-            baseStallLayerGroup = L.layerGroup().addTo(map);
-            poiLayerGroup = L.layerGroup().addTo(map);
-            vendorLayerGroup = L.layerGroup().addTo(map);
-
-            map.on('zoomend', handleZoomEnd);
-            map.on('moveend zoomend', function() {
-                if (map) {
-                    const center = map.getCenter(); 
-                    const zoom = map.getZoom();
-                    try {
-                        localStorage.setItem('farmersMarketMapView', JSON.stringify({ 
-                            lat: center.lat, 
-                            lng: center.lng, 
-                            zoom: zoom 
-                        }));
-                    } catch (e) {
-                        // localStorage may be full or unavailable
+            try {
+                let lastView = null;
+                try { 
+                    const savedView = localStorage.getItem('farmersMarketMapView'); 
+                    if (savedView) { 
+                        lastView = JSON.parse(savedView); 
                     }
+                } catch (e) {
+                    console.warn("Could not restore saved map view:", e);
                 }
-            });
 
-            setupGeolocation();
+                // Check if Leaflet is loaded
+                if (typeof L === 'undefined') {
+                    throw new Error("Leaflet.js library not loaded. Check CDN connection.");
+                }
 
-            // Handshake with Wix Velo
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ 
-                    type: "iframeReady", 
-                    payload: { status: "htmlComponentLoaded" } 
-                }, "*");
+                // Initialize map with saved view or default to Dubuque Farmers Market location
+                map = L.map('map', { 
+                    preferCanvas: true, 
+                    tap: true,
+                    zoomControl: false
+                }).setView(
+                    (lastView ? [lastView.lat, lastView.lng] : [42.5000, -90.6644]), 
+                    (lastView ? lastView.zoom : 17)
+                );
+                
+                console.log("IFRAME (Map): Leaflet map instance created successfully.");
+                
+                L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+                // Light map tiles for Modern Agrarian aesthetic
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { 
+                    attribution: '© OpenStreetMap, © CartoDB', 
+                    subdomains: 'abcd', 
+                    maxZoom: 21, 
+                    minZoom: 15 
+                }).addTo(map);
+                
+                console.log("IFRAME (Map): Map tiles loaded.");
+                
+                // Layer ordering (bottom to top)
+                parkingAreaLayerGroup = L.layerGroup().addTo(map);
+                baseStallLayerGroup = L.layerGroup().addTo(map);
+                poiLayerGroup = L.layerGroup().addTo(map);
+                vendorLayerGroup = L.layerGroup().addTo(map);
+
+                map.on('zoomend', handleZoomEnd);
+                map.on('moveend zoomend', function() {
+                    if (map) {
+                        const center = map.getCenter(); 
+                        const zoom = map.getZoom();
+                        try {
+                            localStorage.setItem('farmersMarketMapView', JSON.stringify({ 
+                                lat: center.lat, 
+                                lng: center.lng, 
+                                zoom: zoom 
+                            }));
+                        } catch (e) {
+                            // localStorage may be full or unavailable
+                        }
+                    }
+                });
+
+                // Hide loader now that map is initialized (will show again when data loads)
+                if (mapLoaderElement) {
+                    mapLoaderElement.style.display = 'none';
+                    console.log("IFRAME (Map): Map loader hidden - map is ready.");
+                }
+
+                setupGeolocation();
+
+                // Handshake with Wix Velo
+                if (window.parent && window.parent !== window) {
+                    console.log("IFRAME (Map): Sending iframeReady message to parent.");
+                    window.parent.postMessage({ 
+                        type: "iframeReady", 
+                        payload: { status: "htmlComponentLoaded" } 
+                    }, "*");
+                } else {
+                    console.warn("IFRAME (Map): No parent window found - running standalone.");
+                    // If running standalone, hide loader and show empty map
+                    if (mapLoaderElement) mapLoaderElement.style.display = 'none';
+                }
+            } catch (error) {
+                console.error("IFRAME (Map): Error initializing map:", error);
+                if (mapLoaderElement) {
+                    mapLoaderElement.innerHTML = '<div style="color: #d32f2f;">Error loading map: ' + error.message + '</div>';
+                }
+                if (mapMessageElement) {
+                    mapMessageElement.textContent = "Error: " + error.message;
+                    mapMessageElement.style.display = 'block';
+                }
             }
         }
 
@@ -680,6 +712,7 @@
                         }
                         break;
                     case "mapLoading":
+                        console.log("IFRAME (Map): Received mapLoading message - showing loader.");
                         if (mapLoaderElement) mapLoaderElement.style.display = 'flex';
                         break;
                     case "mapDataError":
@@ -714,6 +747,7 @@
                 }
 
                 if (needsReRender) { 
+                    console.log("IFRAME (Map): Rendering features...");
                     renderAllFeatures(); 
                 } else if (needsStyleUpdate) { 
                     updateExistingMarkerStyles(); 
@@ -722,6 +756,9 @@
                 if ((event.data.type === "setHighlight" || event.data.type === "searchText") && needsStyleUpdate) {
                     setTimeout(findAndFlyToTarget, 200); 
                 }
+            } else {
+                console.log("IFRAME (Map): Received message without type:", event.data);
+            }
             }
         });
 
@@ -882,10 +919,20 @@
                 }
             }
             
-            if (mapLoaderElement) mapLoaderElement.style.display = 'none';
-            mapMessageElement.style.display = vendorsOnDate.length === 0 && selectedDate ? 'block' : 'none';
+            // Always hide loader after rendering (even if no data)
+            if (mapLoaderElement) {
+                mapLoaderElement.style.display = 'none';
+                console.log("IFRAME (Map): Map loader hidden after rendering.");
+            }
+            
+            // Show message if no vendors for selected date
             if (vendorsOnDate.length === 0 && selectedDate) {
                 mapMessageElement.textContent = "No vendors scheduled for this date.";
+                mapMessageElement.style.display = 'block';
+                console.log("IFRAME (Map): No vendors found for date:", selectedDate);
+            } else {
+                mapMessageElement.style.display = 'none';
+                console.log(`IFRAME (Map): Rendered ${vendorsOnDate.length} vendors, ${allStallLayouts.length} stalls, ${allPois.length} POIs.`);
             }
         }
         
