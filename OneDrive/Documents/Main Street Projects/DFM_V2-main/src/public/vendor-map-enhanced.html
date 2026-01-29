@@ -1278,11 +1278,13 @@
                     return;
                 }
             }
-            // Try POIs
+            // Try POIs (only markers, not polygons)
             for(let k in poiMarkerRefs) {
                 const r = poiMarkerRefs[k];
+                // Skip polygon layers (parking areas) - they don't have getLatLng
+                if (!r.marker || typeof r.marker.getLatLng !== 'function') continue;
                 if(itemMatchesHighlight(null, 'poi', r.feature.properties) && (currentHighlight||activeSearchTerm)) {
-                    map.flyTo(r.marker.getLatLng(), Math.max(map.getZoom(), 18), {duration: 0.6}); 
+                    map.flyTo(r.marker.getLatLng(), Math.max(map.getZoom(), 18), {duration: 0.6});
                     return;
                 }
             }
