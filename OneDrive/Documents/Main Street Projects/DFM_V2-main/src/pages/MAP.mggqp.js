@@ -45,7 +45,7 @@ const ACTIVE_BUTTON_TEXT_COLOR = "#FFFFFF"; // White text on dark green for high
 const INACTIVE_BUTTON_TEXT_COLOR = "#2C2C2C"; // Charcoal text on white
 
 
-$w.onReady(function () {
+$w.onReady(async function () {
     console.log("Velo (Map Page): Page Ready.");
 
     // --- Element Initialization ---
@@ -53,6 +53,30 @@ $w.onReady(function () {
     const datePicker = $w(DATE_PICKER_ID);
     const searchInput = $w(SEARCH_INPUT_ID);
     const clearAllButton = $w(CLEAR_ALL_BUTTON_ID);
+
+    // --- Configure Date Picker to only allow market dates ---
+    try {
+        const marketDatesResult = await wixData.query("MarketDates2026")
+            .limit(1000)
+            .find();
+        
+        const allowedDates = marketDatesResult.items
+            .map(item => {
+                const date = item.date;
+                if (!date) return null;
+                // Ensure date is a Date object
+                const dateObj = date instanceof Date ? date : new Date(date);
+                // Return date in YYYY-MM-DD format for allowedDates
+                return dateObj.toISOString().split('T')[0];
+            })
+            .filter(date => date !== null);
+        
+        console.log(`Velo (Map Page): Configuring date picker with ${allowedDates.length} allowed dates.`);
+        datePicker.allowedDates = allowedDates;
+    } catch (error) {
+        console.error("Velo (Map Page): Error loading market dates for date picker:", error);
+        // Continue without restriction if there's an error
+    }
 
     // --- Message Handling from HTML Component ---
     htmlComponent.onMessage(async (event) => {
