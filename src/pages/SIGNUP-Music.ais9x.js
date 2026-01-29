@@ -8,6 +8,9 @@ let selectedDateIds = [];
 // Track if onItemReady has been set up
 let repeaterSetupComplete = false;
 
+// Track which items have handlers registered (to prevent duplicate handlers)
+const registeredHandlers = new Set();
+
 $w.onReady(function () {
 	populateMusicianTypeDropdown();
 	populateLocationDropdown();
@@ -76,38 +79,38 @@ function setupRepeaterHandlers() {
 				}
 			}
 			
-			// Make entire container clickable to toggle selection
-			$item('#itemContainer').onClick(() => {
-				const container = $item('#itemContainer');
-				const dateId = itemData._id; // Capture the ID in a local variable
-				const isSelected = selectedDateIds.includes(dateId);
+			// Only register onClick handler if not already registered for this item
+			const dateId = itemData._id;
+			if (!registeredHandlers.has(dateId)) {
+				registeredHandlers.add(dateId);
 				
-				console.log('Date clicked:', itemData.label, 'ID:', dateId, 'Currently selected:', isSelected);
-				console.log('Current selectedDateIds before update:', [...selectedDateIds]);
-				
-				if (isSelected) {
-					// Deselect: remove from array and clear background
-					const newArray = selectedDateIds.filter(id => id !== dateId);
-					selectedDateIds = newArray;
-					try {
-						container.style.backgroundColor = '';
-					} catch (e) {
-						// Ignore if can't clear background
-					}
-				} else {
-					// Select: add to array and highlight
-					if (!selectedDateIds.includes(dateId)) {
+				$item('#itemContainer').onClick(() => {
+					const container = $item('#itemContainer');
+					const isSelected = selectedDateIds.includes(dateId);
+					
+					console.log('Date clicked:', itemData.label, 'ID:', dateId, 'Currently selected:', isSelected);
+					
+					if (isSelected) {
+						// Deselect: remove from array and clear background
+						selectedDateIds = selectedDateIds.filter(id => id !== dateId);
+						try {
+							container.style.backgroundColor = '#FFFFFF';
+						} catch (e) {
+							// Ignore if can't clear background
+						}
+					} else {
+						// Select: add to array and highlight
 						selectedDateIds.push(dateId);
+						try {
+							container.style.backgroundColor = '#E3F2FD';
+						} catch (e) {
+							console.warn('Failed to set selection background:', e);
+						}
 					}
-					try {
-						container.style.backgroundColor = '#E3F2FD';
-					} catch (e) {
-						console.warn('Failed to set selection background:', e);
-					}
-				}
-				
-				console.log('Selected dates after update:', [...selectedDateIds]);
-			});
+					
+					console.log('Selected dates:', [...selectedDateIds]);
+				});
+			}
 		} catch (error) {
 			console.error('Error setting up repeater item:', error);
 		}
@@ -404,7 +407,7 @@ function resetForm() {
 	// Reset repeater selection styling
 	$w('#dateRepeater').forEachItem(($item, itemData, index) => {
 		try {
-			$item('#itemContainer').style.backgroundColor = '';
+			$item('#itemContainer').style.backgroundColor = '#FFFFFF';
 		} catch (e) {
 			// Ignore if can't clear background
 		}
