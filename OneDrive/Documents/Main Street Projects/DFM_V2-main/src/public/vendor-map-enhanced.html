@@ -763,7 +763,23 @@
 
         // ==================== RENDERING FUNCTIONS ====================
         function renderAllFeatures() {
-            if (!map || !allStallLayouts) return;
+            if (!map) {
+                console.warn("IFRAME (Map): Map not initialized yet, skipping render.");
+                if (mapLoaderElement) mapLoaderElement.style.display = 'none';
+                return;
+            }
+            
+            if (!allStallLayouts || allStallLayouts.length === 0) {
+                console.warn("IFRAME (Map): No stall layouts available, rendering empty map.");
+                // Still hide loader and show message
+                if (mapLoaderElement) mapLoaderElement.style.display = 'none';
+                if (mapMessageElement) {
+                    mapMessageElement.textContent = "Stall layout data not available.";
+                    mapMessageElement.style.display = 'block';
+                }
+                if (map) map.invalidateSize();
+                return;
+            }
 
             // Clean Slate
             vendorLayerGroup.clearLayers(); 
