@@ -136,6 +136,7 @@ async function findNextMarketDate(startDate) {
     console.log("Velo (Map Page): Searching for next market date (Optimized)...");
     let today = new Date(startDate);
     today.setUTCHours(0, 0, 0, 0);
+    console.log(`Velo (Map Page): Today's date for query: ${today.toISOString()}`);
 
     try {
         // First, try to find a future date
@@ -145,6 +146,7 @@ async function findNextMarketDate(startDate) {
             .limit(1)
             .find();
             
+        console.log(`Velo (Map Page): Future date query returned ${futureResult.items.length} items`);
         if (futureResult.items.length > 0) {
             console.log(`Velo (Map Page): Found next market date: ${futureResult.items[0].marketDate.toISOString().slice(0,10)}`);
             return futureResult.items[0].marketDate;
@@ -158,9 +160,23 @@ async function findNextMarketDate(startDate) {
             .limit(1)
             .find();
             
+        console.log(`Velo (Map Page): Past date query returned ${pastResult.items.length} items`);
         if (pastResult.items.length > 0) {
             console.log(`Velo (Map Page): Found most recent past date: ${pastResult.items[0].marketDate.toISOString().slice(0,10)} (using for testing)`);
             return pastResult.items[0].marketDate;
+        }
+        
+        // Debug: Check if collection has ANY data at all
+        const allDataCheck = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
+            .limit(5)
+            .find();
+        console.log(`Velo (Map Page): Collection has ${allDataCheck.items.length} total records (checking first 5)`);
+        if (allDataCheck.items.length > 0) {
+            console.log(`Velo (Map Page): Sample record dates:`, allDataCheck.items.map(item => ({
+                date: item.marketDate ? item.marketDate.toISOString().slice(0,10) : 'NO DATE',
+                vendor: item.vendorRef ? 'has vendor' : 'no vendor',
+                stall: item.stallId || 'no stall'
+            })));
         }
     } catch (e) {
         console.error("Velo (Map Page): Error finding date", e);
