@@ -702,6 +702,12 @@
                 switch (event.data.type) { 
                     case "loadMapData":
                         if (payload) {
+                            console.log("IFRAME (Map): Received loadMapData:", {
+                                vendorsCount: (payload.vendorsOnDate || []).length,
+                                stallsCount: (payload.allStallLayouts || []).length,
+                                poisCount: (payload.allPois || []).length,
+                                date: payload.currentDate
+                            });
                             vendorsOnDate = payload.vendorsOnDate || [];
                             allStallLayouts = payload.allStallLayouts || [];
                             allPois = payload.allPois || [];
@@ -748,7 +754,15 @@
 
                 if (needsReRender) { 
                     console.log("IFRAME (Map): Rendering features...");
-                    renderAllFeatures(); 
+                    try {
+                        renderAllFeatures(); 
+                    } catch (error) {
+                        console.error("IFRAME (Map): Error in renderAllFeatures:", error);
+                        // Always hide loader even on error
+                        if (mapLoaderElement) {
+                            mapLoaderElement.style.display = 'none';
+                        }
+                    }
                 } else if (needsStyleUpdate) { 
                     updateExistingMarkerStyles(); 
                 }
