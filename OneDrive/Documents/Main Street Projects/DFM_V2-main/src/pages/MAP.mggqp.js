@@ -129,10 +129,46 @@ $w.onReady(async function () {
     });
 
     // --- UI Element Event Handlers ---
-    datePicker.onChange(() => {
-        if (datePicker.value && isMapIframeReady) {
+    datePicker.onChange(async () => {
+        if (!datePicker.value) return;
+        
+        // Validate that the selected date is a valid market date
+        const selectedDateStr = formatDateToYYYYMMDD(datePicker.value);
+        try {
+            const marketDatesResult = await wixData.query("MarketDates2026")
+                .limit(1000)
+                .find();
+            
+            const validDates = marketDatesResult.items
+                .map(item => {
+                    const date = item.date;
+                    if (!date) return null;
+                    if (typeof date === 'string') {
+                        return date.split('T')[0];
+                    }
+                    const dateObj = new Date(date);
+                    return dateObj.toISOString().split('T')[0];
+                })
+                .filter(date => date !== null);
+            
+            if (!validDates.includes(selectedDateStr)) {
+                console.warn(`Velo (Map Page): Invalid date selected: ${selectedDateStr}. Resetting to first valid date.`);
+                // Reset to first valid market date
+                const firstValidDate = new Date(validDates[0] + 'T12:00:00');
+                const originalOnChange = datePicker.onChange;
+                datePicker.onChange(() => {});
+                datePicker.value = firstValidDate;
+                datePicker.onChange(originalOnChange);
+                return;
+            }
+        } catch (error) {
+            console.error("Velo (Map Page): Error validating date:", error);
+            // Continue with date selection if validation fails
+        }
+        
+        if (isMapIframeReady) {
             clearSearchAndHighlights(false); // Clear filters when date changes
-            loadAndSendDataToMap(formatDateToYYYYMMDD(datePicker.value));
+            loadAndSendDataToMap(selectedDateStr);
         }
     });
 
