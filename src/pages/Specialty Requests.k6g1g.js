@@ -751,25 +751,19 @@ function setupRepeaterItem($item, itemData) {
 		if (btnCopyEmail && emailAddress && typeof btnCopyEmail.onClick === 'function') {
 			btnCopyEmail.onClick(async () => {
 				try {
-					// Use Clipboard API if available
-					if (navigator.clipboard && navigator.clipboard.writeText) {
+					// Use Clipboard API - available in modern browsers and Wix environment
+					if (navigator && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
 						await navigator.clipboard.writeText(emailAddress);
 						showSuccess(`Copied ${emailAddress} to clipboard`);
 					} else {
-						// Fallback for older browsers
-						const textArea = document.createElement('textarea');
-						textArea.value = emailAddress;
-						textArea.style.position = 'fixed';
-						textArea.style.opacity = '0';
-						document.body.appendChild(textArea);
-						textArea.select();
-						document.execCommand('copy');
-						document.body.removeChild(textArea);
-						showSuccess(`Copied ${emailAddress} to clipboard`);
+						// If Clipboard API is not available, show email in a way user can copy manually
+						// In Wix, we can't use document.execCommand fallback
+						showSuccess(`Email: ${emailAddress} (select and copy manually)`);
 					}
 				} catch (error) {
 					console.error('[COPY-EMAIL] Error copying email:', error);
-					showError('Failed to copy email. Please try again.');
+					// Show the email address so user can copy it manually
+					showSuccess(`Email: ${emailAddress} (select and copy manually)`);
 				}
 			});
 			
