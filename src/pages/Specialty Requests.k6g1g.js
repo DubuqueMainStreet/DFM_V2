@@ -686,6 +686,49 @@ function getDaySuffix(day) {
 	}
 }
 
+function buildLocationOptions(assignments, currentLocation) {
+	// Standard location options
+	const standardLocations = [
+		{ value: 'Unassigned', label: 'Unassigned' },
+		{ value: 'Default', label: 'Default' },
+		{ value: 'Location A', label: 'Location A' },
+		{ value: 'Location B', label: 'Location B' },
+		{ value: 'Location C', label: 'Location C' }
+	];
+	
+	// Collect all unique actual location values from assignments
+	const actualLocations = new Set();
+	
+	if (assignments && Array.isArray(assignments)) {
+		assignments.forEach(assignment => {
+			if (assignment.profileType === 'Musician' && assignment.location) {
+				const loc = assignment.location.toString().trim();
+				if (loc && loc !== 'Unassigned') {
+					actualLocations.add(loc);
+				}
+			}
+		});
+	}
+	
+	// Add current location if it exists and isn't already in the set
+	if (currentLocation && currentLocation !== 'Unassigned') {
+		actualLocations.add(currentLocation.toString().trim());
+	}
+	
+	// Build final options list: standard locations first, then any additional actual locations
+	const options = [...standardLocations];
+	
+	// Add any actual locations that aren't in the standard list
+	actualLocations.forEach(loc => {
+		const exists = standardLocations.some(opt => opt.value === loc);
+		if (!exists) {
+			options.push({ value: loc, label: loc });
+		}
+	});
+	
+	return options;
+}
+
 function populateRepeater(data) {
 	const repeater = $w('#assignmentsRepeater');
 	if (!repeater) {
@@ -870,15 +913,23 @@ function setupRepeaterItem($item, itemData) {
 		if (itemData.profileType === 'Musician' && locationElement) {
 			if (locationElement.options) {
 				// It's a dropdown
-				locationElement.options = [
-					{ value: 'Unassigned', label: 'Unassigned' },
-					{ value: 'Default', label: 'Default' },
-					{ value: 'Location A', label: 'Location A' },
-					{ value: 'Location B', label: 'Location B' },
-					{ value: 'Location C', label: 'Location C' }
-				];
+				// Build location options dynamically to include all actual locations
+				const locationOptions = buildLocationOptions(currentAssignments, itemData.location);
 				
+				locationElement.options = locationOptions;
+				
+				// Set the current location value - ensure it matches exactly
 				const currentLocation = itemData.location || 'Unassigned';
+				// Check if current location exists in options, if not add it
+				const locationExists = locationOptions.some(opt => opt.value === currentLocation);
+				if (!locationExists && currentLocation !== 'Unassigned') {
+					// Add the actual location to options if it's not in the list
+					locationElement.options = [
+						...locationOptions,
+						{ value: currentLocation, label: currentLocation }
+					];
+				}
+				
 				locationElement.value = currentLocation;
 				
 				// Show the location dropdown for musicians
