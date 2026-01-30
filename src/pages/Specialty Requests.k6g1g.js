@@ -89,6 +89,17 @@ function setupClearFiltersButton() {
 			await loadAssignments(currentType);
 			showSuccess('Filters cleared');
 		});
+		
+		// Style the button to match UI
+		if (clearFiltersBtn.style) {
+			clearFiltersBtn.style.borderRadius = '12px';
+			clearFiltersBtn.style.backgroundColor = '#F5F5F5';
+			clearFiltersBtn.style.color = '#666666';
+			clearFiltersBtn.style.fontWeight = '500';
+			clearFiltersBtn.style.padding = '10px 20px';
+			clearFiltersBtn.style.border = '1px solid #E0E0E0';
+			clearFiltersBtn.style.transition = 'all 0.3s ease';
+		}
 	}
 }
 
@@ -100,6 +111,17 @@ function setupRefreshButton() {
 			await loadAssignments(currentType);
 			showSuccess('Refreshed');
 		});
+		
+		// Style the button to match UI
+		if (refreshBtn.style) {
+			refreshBtn.style.borderRadius = '12px';
+			refreshBtn.style.backgroundColor = '#2196F3';
+			refreshBtn.style.color = '#FFFFFF';
+			refreshBtn.style.fontWeight = '500';
+			refreshBtn.style.padding = '10px 20px';
+			refreshBtn.style.border = 'none';
+			refreshBtn.style.transition = 'all 0.3s ease';
+		}
 	}
 }
 
@@ -139,6 +161,18 @@ function setupTabHandlers() {
 	const tabNonProfits = $w('#tabNonProfits');
 	if (tabNonProfits && typeof tabNonProfits.onClick === 'function') {
 		tabNonProfits.onClick(() => switchTab('NonProfit'));
+	}
+	
+	// Special Events tab - gracefully handle when not yet set up
+	const tabSpecialEvents = $w('#tabSpecialEvents');
+	if (tabSpecialEvents && typeof tabSpecialEvents.onClick === 'function') {
+		tabSpecialEvents.onClick(() => {
+			// For now, show a message that this feature is coming soon
+			// When ready, switch to: switchTab('SpecialEvent');
+			showSuccess('Special Events feature coming soon!');
+			// Keep it styled as inactive for now
+			updateActiveTab('Musician'); // Keep current active tab
+		});
 	}
 }
 
@@ -200,6 +234,29 @@ function updateActiveTab(activeType) {
 			}
 		}
 	});
+	
+	// Handle Special Events tab - always show as inactive (coming soon)
+	const tabSpecialEvents = $w('#tabSpecialEvents');
+	if (tabSpecialEvents) {
+		if (typeof tabSpecialEvents.show === 'function') {
+			tabSpecialEvents.show();
+		}
+		
+		// Style as inactive (coming soon state)
+		if (tabSpecialEvents.style) {
+			tabSpecialEvents.style.borderRadius = '12px';
+			tabSpecialEvents.style.backgroundColor = '#F5F5F5';
+			tabSpecialEvents.style.color = '#999999'; // Even more muted for "coming soon"
+			tabSpecialEvents.style.fontWeight = '400';
+			tabSpecialEvents.style.borderBottom = '3px solid transparent';
+			tabSpecialEvents.style.opacity = '0.6'; // More transparent to indicate disabled
+		}
+		
+		if (tabSpecialEvents.classes) {
+			tabSpecialEvents.classes.add('tab-inactive');
+			tabSpecialEvents.classes.remove('tab-active');
+		}
+	}
 }
 
 async function populateDateFilter() {
@@ -422,6 +479,57 @@ function updateResultsCount(displayedCount, totalForType, selectedStatus, search
 	if (typeof resultsCountElement.show === 'function') {
 		resultsCountElement.show();
 	}
+	
+	// Update filter summary display
+	updateFilterSummary(selectedStatus, searchQuery);
+}
+
+function updateFilterSummary(selectedStatus, searchQuery) {
+	const filterSummaryElement = $w('#filterSummary');
+	if (!filterSummaryElement) return;
+	
+	const filters = [];
+	
+	// Add status filter
+	if (selectedStatus && selectedStatus !== 'all') {
+		filters.push(selectedStatus);
+	}
+	
+	// Add search filter
+	if (searchQuery && searchQuery.trim()) {
+		filters.push(`Search: "${searchQuery}"`);
+	}
+	
+	// Add date filter if not "all"
+	const selectedDateId = $w('#filterDate')?.value || 'all';
+	if (selectedDateId !== 'all') {
+		// Try to get the date label from the dropdown
+		const filterDate = $w('#filterDate');
+		if (filterDate && filterDate.options) {
+			const selectedOption = filterDate.options.find(opt => opt.value === selectedDateId);
+			if (selectedOption) {
+				filters.push(selectedOption.label);
+			} else {
+				filters.push('Specific Date');
+			}
+		} else {
+			filters.push('Specific Date');
+		}
+	}
+	
+	let summaryText = '';
+	if (filters.length === 0) {
+		summaryText = 'All filters cleared';
+	} else {
+		summaryText = `Active filters: ${filters.join(' • ')}`;
+	}
+	
+	if (filterSummaryElement.text !== undefined) {
+		filterSummaryElement.text = summaryText;
+	}
+	if (typeof filterSummaryElement.show === 'function') {
+		filterSummaryElement.show();
+	}
 }
 
 // Empty state is now handled by showLoading() with message
@@ -458,11 +566,16 @@ function prepareRepeaterItem(assignment) {
 	// Normalize status (trim and default to Pending)
 	const status = (assignment.applicationStatus || 'Pending').toString().trim();
 	
+	// Format date for display
+	const dateValue = dateRef.date || new Date(0);
+	const formattedDate = formatDateForDisplay(dateValue, dateRef.title);
+	
 	return {
 		_id: assignment._id,
 		name: profile.organizationName || 'Unknown',
-		date: dateRef.title || 'Unknown Date',
-		dateValue: dateRef.date || new Date(0),
+		date: formattedDate.display, // Formatted date string
+		dateValue: dateValue, // Original date for sorting
+		dateRelative: formattedDate.relative, // Relative date (e.g., "Next Saturday")
 		contactInfo: contactInfo,
 		details: details,
 		status: status,
@@ -511,6 +624,67 @@ function formatContactInfo(profile) {
 	return parts.join(' • ') || 'No contact info';
 }
 
+function formatDateForDisplay(dateValue, titleFallback) {
+	if (!dateValue || dateValue instanceof Date === false) {
+		return {
+			display: titleFallback || 'Unknown Date',
+			relative: null
+		};
+	}
+	
+	const date = new Date(dateValue);
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+	
+	// Calculate days difference
+	const daysDiff = Math.floor((dateOnly - today) / (1000 * 60 * 60 * 24));
+	
+	let relative = null;
+	if (daysDiff === 0) {
+		relative = 'Today';
+	} else if (daysDiff === 1) {
+		relative = 'Tomorrow';
+	} else if (daysDiff === -1) {
+		relative = 'Yesterday';
+	} else if (daysDiff > 1 && daysDiff <= 7) {
+		relative = `In ${daysDiff} days`;
+	} else if (daysDiff < -1 && daysDiff >= -7) {
+		relative = `${Math.abs(daysDiff)} days ago`;
+	} else if (daysDiff > 7 && daysDiff <= 30) {
+		const weeks = Math.floor(daysDiff / 7);
+		relative = `In ${weeks} week${weeks !== 1 ? 's' : ''}`;
+	}
+	
+	// Format display date: "May 2nd" or "May 2nd, 2026"
+	const day = date.getDate();
+	const daySuffix = getDaySuffix(day);
+	const month = date.toLocaleDateString('en-US', { month: 'short' });
+	const year = date.getFullYear();
+	const currentYear = now.getFullYear();
+	
+	const display = year === currentYear 
+		? `${month} ${day}${daySuffix}` 
+		: `${month} ${day}${daySuffix}, ${year}`;
+	
+	return {
+		display: display,
+		relative: relative
+	};
+}
+
+function getDaySuffix(day) {
+	if (day >= 11 && day <= 13) {
+		return 'th';
+	}
+	switch (day % 10) {
+		case 1: return 'st';
+		case 2: return 'nd';
+		case 3: return 'rd';
+		default: return 'th';
+	}
+}
+
 function populateRepeater(data) {
 	const repeater = $w('#assignmentsRepeater');
 	if (!repeater) {
@@ -546,9 +720,13 @@ function setupRepeaterItem($item, itemData) {
 		$item('#itemDate').text = itemData.date;
 	}
 	
+	// Set up contact info display with email copy button
 	if ($item('#itemContact')) {
 		// Format contact info with clickable email
 		const contactText = itemData.contactInfo;
+		const emailMatch = contactText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i);
+		const emailAddress = emailMatch ? emailMatch[1] : null;
+		
 		if ($item('#itemContact').html) {
 			// If HTML is supported, make email clickable
 			const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
@@ -557,6 +735,54 @@ function setupRepeaterItem($item, itemData) {
 		} else {
 			// Fallback to plain text
 			$item('#itemContact').text = contactText;
+		}
+		
+		// Set up email copy button if email exists and button element exists
+		const btnCopyEmail = $item('#btnCopyEmail');
+		if (btnCopyEmail && emailAddress && typeof btnCopyEmail.onClick === 'function') {
+			btnCopyEmail.onClick(async () => {
+				try {
+					// Use Clipboard API if available
+					if (navigator.clipboard && navigator.clipboard.writeText) {
+						await navigator.clipboard.writeText(emailAddress);
+						showSuccess(`Copied ${emailAddress} to clipboard`);
+					} else {
+						// Fallback for older browsers
+						const textArea = document.createElement('textarea');
+						textArea.value = emailAddress;
+						textArea.style.position = 'fixed';
+						textArea.style.opacity = '0';
+						document.body.appendChild(textArea);
+						textArea.select();
+						document.execCommand('copy');
+						document.body.removeChild(textArea);
+						showSuccess(`Copied ${emailAddress} to clipboard`);
+					}
+				} catch (error) {
+					console.error('[COPY-EMAIL] Error copying email:', error);
+					showError('Failed to copy email. Please try again.');
+				}
+			});
+			
+			// Style the copy button
+			if (btnCopyEmail.style) {
+				btnCopyEmail.style.borderRadius = '8px';
+				btnCopyEmail.style.backgroundColor = '#F5F5F5';
+				btnCopyEmail.style.color = '#666666';
+				btnCopyEmail.style.fontSize = '12px';
+				btnCopyEmail.style.padding = '6px 12px';
+				btnCopyEmail.style.border = '1px solid #E0E0E0';
+				btnCopyEmail.style.cursor = 'pointer';
+				btnCopyEmail.style.transition = 'all 0.2s ease';
+			}
+			
+			// Show the button
+			if (typeof btnCopyEmail.show === 'function') {
+				btnCopyEmail.show();
+			}
+		} else if (btnCopyEmail && typeof btnCopyEmail.hide === 'function') {
+			// Hide copy button if no email
+			btnCopyEmail.hide();
 		}
 	}
 	
