@@ -111,7 +111,7 @@ function updateActiveTab(activeType) {
 	const tabs = ['Musician', 'Volunteer', 'NonProfit'];
 	tabs.forEach(type => {
 		const tabElement = $w(`#tab${type}s`);
-		if (tabElement) {
+		if (tabElement && typeof tabElement.show === 'function') {
 			// Ensure tab is visible (don't collapse)
 			tabElement.show();
 			// You can add custom styling here if needed
@@ -120,7 +120,7 @@ function updateActiveTab(activeType) {
 	
 	// Mark active tab (you can add custom styling)
 	const activeTab = $w(`#tab${activeType}s`);
-	if (activeTab) {
+	if (activeTab && typeof activeTab.show === 'function') {
 		activeTab.show();
 		// Add any active state styling here if needed
 	}
@@ -311,10 +311,16 @@ function showEmptyState(isEmpty, selectedStatus, searchQuery) {
 			message = 'No requests found matching your filters. Try adjusting your filters or checking other tabs.';
 		}
 		
-		emptyStateElement.text = message;
-		emptyStateElement.show();
+		if (emptyStateElement.text !== undefined) {
+			emptyStateElement.text = message;
+		}
+		if (typeof emptyStateElement.show === 'function') {
+			emptyStateElement.show();
+		}
 	} else {
-		emptyStateElement.hide();
+		if (typeof emptyStateElement.hide === 'function') {
+			emptyStateElement.hide();
+		}
 	}
 }
 
@@ -391,14 +397,16 @@ function populateRepeater(data) {
 	repeater.data = data;
 	
 	// Set up repeater item ready handler
-	repeater.onItemReady(($item, itemData) => {
-		setupRepeaterItem($item, itemData);
-	});
+	if (typeof repeater.onItemReady === 'function') {
+		repeater.onItemReady(($item, itemData) => {
+			setupRepeaterItem($item, itemData);
+		});
+	}
 	
 	// Hide empty state if we have data
 	if (data.length > 0) {
 		const emptyStateElement = $w('#emptyState');
-		if (emptyStateElement) {
+		if (emptyStateElement && typeof emptyStateElement.hide === 'function') {
 			emptyStateElement.hide();
 		}
 	}
@@ -794,33 +802,52 @@ async function deleteAssignment(assignmentId, assignmentName) {
 }
 
 function showLoading(show) {
-	if ($w('#loadingIndicator')) {
+	const loadingIndicator = $w('#loadingIndicator');
+	if (loadingIndicator) {
 		if (show) {
-			$w('#loadingIndicator').show();
+			if (typeof loadingIndicator.show === 'function') {
+				loadingIndicator.show();
+			}
 		} else {
-			$w('#loadingIndicator').hide();
+			if (typeof loadingIndicator.hide === 'function') {
+				loadingIndicator.hide();
+			}
 		}
 	}
 }
 
 function showError(message) {
-	if ($w('#msgError')) {
-		$w('#msgError').text = message;
-		$w('#msgError').show();
-		setTimeout(() => {
-			$w('#msgError').hide();
-		}, 5000);
+	const errorElement = $w('#msgError');
+	if (errorElement) {
+		if (errorElement.text !== undefined) {
+			errorElement.text = message;
+		}
+		if (typeof errorElement.show === 'function') {
+			errorElement.show();
+			setTimeout(() => {
+				if (typeof errorElement.hide === 'function') {
+					errorElement.hide();
+				}
+			}, 5000);
+		}
 	}
 	console.error(message);
 }
 
 function showSuccess(message) {
-	if ($w('#msgSuccess')) {
-		$w('#msgSuccess').text = message;
-		$w('#msgSuccess').show();
-		setTimeout(() => {
-			$w('#msgSuccess').hide();
-		}, 3000);
+	const successElement = $w('#msgSuccess');
+	if (successElement) {
+		if (successElement.text !== undefined) {
+			successElement.text = message;
+		}
+		if (typeof successElement.show === 'function') {
+			successElement.show();
+			setTimeout(() => {
+				if (typeof successElement.hide === 'function') {
+					successElement.hide();
+				}
+			}, 3000);
+		}
 	}
 }
 
