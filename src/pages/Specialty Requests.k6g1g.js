@@ -687,14 +687,16 @@ function getDaySuffix(day) {
 }
 
 function buildLocationOptions(assignments, currentLocation) {
-	// Standard location options
+	// Standard location options - using actual location names
 	const standardLocations = [
 		{ value: 'Unassigned', label: 'Unassigned' },
-		{ value: 'Default', label: 'Default' },
-		{ value: 'Location A', label: 'Location A' },
-		{ value: 'Location B', label: 'Location B' },
-		{ value: 'Location C', label: 'Location C' }
+		{ value: 'Food Court', label: 'Food Court' },
+		{ value: '13th Street', label: '13th Street' },
+		{ value: '10th & Iowa St', label: '10th & Iowa St' }
 	];
+	
+	// Note: These are the only valid locations. Any other location values found in data
+	// will be added dynamically, but these three are the standard options.
 	
 	// Collect all unique actual location values from assignments
 	const actualLocations = new Set();
