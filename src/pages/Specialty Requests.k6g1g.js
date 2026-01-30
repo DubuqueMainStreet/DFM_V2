@@ -57,31 +57,40 @@ async function initializeDashboard() {
 
 function setupSearchHandler() {
 	// Set up search input handler if it exists
-	if ($w('#searchName')) {
-		$w('#searchName').onInput(() => {
+	const searchInput = $w('#searchName');
+	if (searchInput && typeof searchInput.onInput === 'function') {
+		searchInput.onInput(() => {
 			loadAssignments(currentType);
 		});
-		
-		// Add clear button handler if it exists
-		if ($w('#btnClearSearch')) {
-			$w('#btnClearSearch').onClick(() => {
-				$w('#searchName').value = '';
-				loadAssignments(currentType);
-			});
-		}
+	}
+	
+	// Add clear button handler if it exists and is clickable
+	const clearButton = $w('#btnClearSearch');
+	if (clearButton && typeof clearButton.onClick === 'function') {
+		clearButton.onClick(() => {
+			if (searchInput) {
+				searchInput.value = '';
+			}
+			loadAssignments(currentType);
+		});
 	}
 }
 
 function setupTabHandlers() {
-	// Tab buttons
-	if ($w('#tabMusicians')) {
-		$w('#tabMusicians').onClick(() => switchTab('Musician'));
+	// Tab buttons - check if they exist and have onClick method
+	const tabMusicians = $w('#tabMusicians');
+	if (tabMusicians && typeof tabMusicians.onClick === 'function') {
+		tabMusicians.onClick(() => switchTab('Musician'));
 	}
-	if ($w('#tabVolunteers')) {
-		$w('#tabVolunteers').onClick(() => switchTab('Volunteer'));
+	
+	const tabVolunteers = $w('#tabVolunteers');
+	if (tabVolunteers && typeof tabVolunteers.onClick === 'function') {
+		tabVolunteers.onClick(() => switchTab('Volunteer'));
 	}
-	if ($w('#tabNonProfits')) {
-		$w('#tabNonProfits').onClick(() => switchTab('NonProfit'));
+	
+	const tabNonProfits = $w('#tabNonProfits');
+	if (tabNonProfits && typeof tabNonProfits.onClick === 'function') {
+		tabNonProfits.onClick(() => switchTab('NonProfit'));
 	}
 }
 
@@ -141,11 +150,16 @@ async function populateDateFilter() {
 		// Add "All Dates" option
 		dateOptions.unshift({ value: 'all', label: 'All Dates' });
 		
-		if ($w('#filterDate')) {
-			$w('#filterDate').options = dateOptions;
-			$w('#filterDate').onChange(() => {
-				loadAssignments(currentType);
-			});
+		const filterDate = $w('#filterDate');
+		if (filterDate) {
+			if (filterDate.options) {
+				filterDate.options = dateOptions;
+			}
+			if (typeof filterDate.onChange === 'function') {
+				filterDate.onChange(() => {
+					loadAssignments(currentType);
+				});
+			}
 		}
 	} catch (error) {
 		console.error('Error populating date filter:', error);
@@ -161,13 +175,20 @@ async function populateStatusFilter() {
 			{ value: 'Rejected', label: 'Rejected' }
 		];
 		
-		if ($w('#filterStatus')) {
-			$w('#filterStatus').options = statusOptions;
+		const filterStatus = $w('#filterStatus');
+		if (filterStatus) {
+			if (filterStatus.options) {
+				filterStatus.options = statusOptions;
+			}
 			// Set default to 'Pending' to show actionable items immediately
-			$w('#filterStatus').value = 'Pending';
-			$w('#filterStatus').onChange(() => {
-				loadAssignments(currentType);
-			});
+			if (filterStatus.value !== undefined) {
+				filterStatus.value = 'Pending';
+			}
+			if (typeof filterStatus.onChange === 'function') {
+				filterStatus.onChange(() => {
+					loadAssignments(currentType);
+				});
+			}
 		}
 	} catch (error) {
 		console.error('Error populating status filter:', error);
