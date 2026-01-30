@@ -39,16 +39,36 @@ async function initializeDashboard() {
 		// Set up tab handlers
 		setupTabHandlers();
 		
+		// Set up search handler
+		setupSearchHandler();
+		
 		// Load filter options
 		await populateDateFilter();
 		await populateStatusFilter();
 		
-		// Load default view (Musicians)
+		// Load default view (Musicians) - will use 'Pending' filter by default
 		await loadAssignments('Musician');
 		
 	} catch (error) {
 		console.error('Error initializing dashboard:', error);
 		showError('Failed to load dashboard. Please refresh.');
+	}
+}
+
+function setupSearchHandler() {
+	// Set up search input handler if it exists
+	if ($w('#searchName')) {
+		$w('#searchName').onInput(() => {
+			loadAssignments(currentType);
+		});
+		
+		// Add clear button handler if it exists
+		if ($w('#btnClearSearch')) {
+			$w('#btnClearSearch').onClick(() => {
+				$w('#searchName').value = '';
+				loadAssignments(currentType);
+			});
+		}
 	}
 }
 
@@ -143,6 +163,8 @@ async function populateStatusFilter() {
 		
 		if ($w('#filterStatus')) {
 			$w('#filterStatus').options = statusOptions;
+			// Set default to 'Pending' to show actionable items immediately
+			$w('#filterStatus').value = 'Pending';
 			$w('#filterStatus').onChange(() => {
 				loadAssignments(currentType);
 			});
@@ -158,7 +180,8 @@ async function loadAssignments(type) {
 		
 		// Get selected filters
 		const selectedDateId = $w('#filterDate')?.value || 'all';
-		const selectedStatus = $w('#filterStatus')?.value || 'all';
+		const selectedStatus = $w('#filterStatus')?.value || 'Pending'; // Default to 'Pending'
+		const searchQuery = ($w('#searchName')?.value || '').toLowerCase().trim();
 		
 		// Build query
 		let query = wixData.query('WeeklyAssignments')
@@ -172,11 +195,12 @@ async function loadAssignments(type) {
 		
 		const results = await query.find();
 		
-		// Filter by profile type and status, then prepare data for repeater
+		// Filter by profile type, status, and search query, then prepare data for repeater
 		const repeaterData = [];
 		let totalChecked = 0;
 		let typeMatched = 0;
 		let statusFiltered = 0;
+		let searchFiltered = 0;
 		const statusCounts = {}; // Track actual status values found
 		
 		for (const assignment of results.items) {
@@ -204,7 +228,16 @@ async function loadAssignments(type) {
 				}
 			}
 			
-			repeaterData.push(prepareRepeaterItem(assignment));
+			// Prepare item data for search filtering
+			const itemData = prepareRepeaterItem(assignment);
+			
+			// Filter by search query (search in organization name)
+			if (searchQuery && !itemData.name.toLowerCase().includes(searchQuery)) {
+				searchFiltered++;
+				continue;
+			}
+			
+			repeaterData.push(itemData);
 		}
 		
 		console.log(`Assignment loading summary:`);
@@ -212,8 +245,9 @@ async function loadAssignments(type) {
 		console.log(`  - Matched type "${type}": ${typeMatched}`);
 		console.log(`  - Status breakdown:`, statusCounts);
 		console.log(`  - Filtered out by status: ${statusFiltered}`);
+		console.log(`  - Filtered out by search: ${searchFiltered}`);
 		console.log(`  - Final count displayed: ${repeaterData.length}`);
-		console.log(`  - Filters: status="${selectedStatus}", date="${selectedDateId}"`);
+		console.log(`  - Filters: status="${selectedStatus}", date="${selectedDateId}", search="${searchQuery}"`);
 		
 		// Sort by date, then by name
 		repeaterData.sort((a, b) => {
@@ -224,6 +258,9 @@ async function loadAssignments(type) {
 		
 		currentAssignments = repeaterData;
 		
+		// Show empty state if no results
+		showEmptyState(repeaterData.length === 0, selectedStatus, searchQuery);
+		
 		// Populate repeater
 		populateRepeater(repeaterData);
 		
@@ -232,6 +269,31 @@ async function loadAssignments(type) {
 		showError('Failed to load assignments. Please try again.');
 	} finally {
 		showLoading(false);
+	}
+}
+
+function showEmptyState(isEmpty, selectedStatus, searchQuery) {
+	const emptyStateElement = $w('#emptyState');
+	if (!emptyStateElement) return;
+	
+	if (isEmpty) {
+		let message = '';
+		if (searchQuery) {
+			message = `No requests found matching "${searchQuery}". Try clearing your search or adjusting filters.`;
+		} else if (selectedStatus === 'Pending') {
+			message = 'No pending requests. Great job staying on top of things!';
+		} else if (selectedStatus === 'Approved') {
+			message = 'No approved requests found. Try selecting a different status or date.';
+		} else if (selectedStatus === 'Rejected') {
+			message = 'No rejected requests found.';
+		} else {
+			message = 'No requests found matching your filters. Try adjusting your filters or checking other tabs.';
+		}
+		
+		emptyStateElement.text = message;
+		emptyStateElement.show();
+	} else {
+		emptyStateElement.hide();
 	}
 }
 
@@ -311,6 +373,14 @@ function populateRepeater(data) {
 	repeater.onItemReady(($item, itemData) => {
 		setupRepeaterItem($item, itemData);
 	});
+	
+	// Hide empty state if we have data
+	if (data.length > 0) {
+		const emptyStateElement = $w('#emptyState');
+		if (emptyStateElement) {
+			emptyStateElement.hide();
+		}
+	}
 }
 
 function setupRepeaterItem($item, itemData) {
@@ -422,37 +492,84 @@ function setupRepeaterItem($item, itemData) {
 			}
 		}
 	
-	// Set up action buttons - check if they exist and are buttons before setting onClick
+	// Remove approve/reject buttons - using dropdown as primary selector
+	// Hide these buttons if they exist in the UI
 	const btnApprove = $item('#btnApprove');
-	if (btnApprove && typeof btnApprove.onClick === 'function') {
-		btnApprove.onClick(() => {
-			updateAssignmentStatus(itemData._id, 'Approved');
-		});
-		// Hide button if already approved
-		if (itemData.status === 'Approved') {
-			btnApprove.hide();
-		} else {
-			btnApprove.show();
-		}
+	if (btnApprove && typeof btnApprove.hide === 'function') {
+		btnApprove.hide();
 	}
 	
 	const btnReject = $item('#btnReject');
-	if (btnReject && typeof btnReject.onClick === 'function') {
-		btnReject.onClick(() => {
-			updateAssignmentStatus(itemData._id, 'Rejected');
-		});
-		// Hide button if already rejected
-		if (itemData.status === 'Rejected') {
-			btnReject.hide();
-		} else {
-			btnReject.show();
-		}
+	if (btnReject && typeof btnReject.hide === 'function') {
+		btnReject.hide();
 	}
 	
 	// Hide Confirm button (removed from workflow)
 	const btnConfirm = $item('#btnConfirm');
 	if (btnConfirm && typeof btnConfirm.hide === 'function') {
 		btnConfirm.hide();
+	}
+	
+	// Set up delete button
+	const btnDelete = $item('#btnDelete');
+	if (btnDelete && typeof btnDelete.onClick === 'function') {
+		btnDelete.onClick(() => {
+			deleteAssignment(itemData._id, itemData.name);
+		});
+		// Style delete button as destructive (red)
+		if (btnDelete.style) {
+			btnDelete.style.backgroundColor = '#D32F2F';
+			btnDelete.style.color = '#FFFFFF';
+		}
+	}
+	
+	// Add subtle visual status indicators
+	applyStatusStyling($item, itemData.status);
+}
+
+function applyStatusStyling($item, status) {
+	// Apply subtle visual indicators based on status
+	// Target the repeater item container or status element
+	const statusElement = $item('#itemStatus');
+	const itemContainer = $item('#itemContainer') || $item;
+	
+	if (!statusElement && !itemContainer) return;
+	
+	const normalizedStatus = (status || 'Pending').toString().trim().toLowerCase();
+	
+	// Remove any existing status classes
+	if (itemContainer.classes) {
+		itemContainer.classes.remove('status-pending', 'status-approved', 'status-rejected');
+	}
+	
+	// Apply subtle styling based on status
+	if (normalizedStatus === 'pending') {
+		// Amber/orange border or background tint
+		if (itemContainer.style) {
+			itemContainer.style.borderLeft = '4px solid #FFA726'; // Orange border
+			itemContainer.style.backgroundColor = '#FFF8E1'; // Very light amber background
+		}
+		if (itemContainer.classes) {
+			itemContainer.classes.add('status-pending');
+		}
+	} else if (normalizedStatus === 'approved') {
+		// Green border or background tint
+		if (itemContainer.style) {
+			itemContainer.style.borderLeft = '4px solid #66BB6A'; // Light green border
+			itemContainer.style.backgroundColor = '#E8F5E9'; // Very light green background
+		}
+		if (itemContainer.classes) {
+			itemContainer.classes.add('status-approved');
+		}
+	} else if (normalizedStatus === 'rejected') {
+		// Red border or background tint
+		if (itemContainer.style) {
+			itemContainer.style.borderLeft = '4px solid #EF5350'; // Light red border
+			itemContainer.style.backgroundColor = '#FFEBEE'; // Very light red background
+		}
+		if (itemContainer.classes) {
+			itemContainer.classes.add('status-rejected');
+		}
 	}
 }
 
@@ -598,6 +715,46 @@ async function updateAssignmentLocation(assignmentId, locationId) {
 		console.error('Error updating location:', error);
 		console.error('Full error:', JSON.stringify(error, null, 2));
 		showError('Failed to assign location. Please try again.');
+	}
+}
+
+async function deleteAssignment(assignmentId, assignmentName) {
+	try {
+		// Show confirmation dialog
+		const confirmed = await wixWindow.openLightbox('DeleteConfirmation', {
+			assignmentName: assignmentName || 'this request'
+		});
+		
+		// If lightbox doesn't exist, use browser confirm as fallback
+		if (typeof confirmed === 'undefined') {
+			const browserConfirm = confirm(`Are you sure you want to delete the request for "${assignmentName}"?\n\nThis will remove the request but keep the contact profile in your catalog.\n\nThis action cannot be undone.`);
+			if (!browserConfirm) {
+				return; // User cancelled
+			}
+		} else if (!confirmed) {
+			return; // User cancelled
+		}
+		
+		console.log(`[DELETE] Deleting assignment ${assignmentId}`);
+		
+		// Delete only the WeeklyAssignments record
+		// Profile is kept for contact catalog
+		await wixData.remove('WeeklyAssignments', assignmentId);
+		
+		console.log(`[DELETE] Successfully deleted assignment ${assignmentId}`);
+		
+		showSuccess('Request deleted successfully. Contact profile has been preserved.');
+		
+		// Small delay to ensure database is updated
+		await new Promise(resolve => setTimeout(resolve, 100));
+		
+		// Reload current view (will respect current filters)
+		await loadAssignments(currentType);
+		
+	} catch (error) {
+		console.error('[DELETE] Error deleting assignment:', error);
+		console.error('[DELETE] Full error:', JSON.stringify(error, null, 2));
+		showError('Failed to delete request. Please try again.');
 	}
 }
 
