@@ -549,6 +549,84 @@ async function getOrCreateContact(email, name) {
 			throw new Error(errorMsg);
 		}
 		
+/**
+ * Manually create a Wix CRM contact for an existing profile
+ * This is useful for fixing contacts that were created before contact creation was added to form submissions
+ * @param {string} email - Contact email address
+ * @param {string} name - Contact name (organization name)
+ * @returns {Promise<Object>} Result object with success status and contact info
+ */
+export async function createContactForProfile(email, name) {
+	try {
+		console.log(`[CREATE-CONTACT] Creating contact for: ${email}`);
+		
+		// First check if contact already exists
+		const existingContacts = await wixCrmBackend.contacts.queryContacts()
+			.eq('primaryInfo.email', email)
+			.limit(1)
+			.find();
+		
+		if (existingContacts.items && existingContacts.items.length > 0) {
+			const existingContact = existingContacts.items[0];
+			const existingEmail = existingContact.info?.primaryEmail || 
+			                     existingContact.primaryInfo?.email ||
+			                     existingContact.email || '';
+			
+			if (existingEmail.toLowerCase() === email.toLowerCase()) {
+				console.log(`[CREATE-CONTACT] Contact already exists: ${existingContact._id}`);
+				return {
+					success: true,
+					message: 'Contact already exists',
+					contactId: existingContact._id,
+					email: existingEmail
+				};
+			}
+		}
+		
+		// Create new contact using createContact with allowDuplicates
+		const newContact = await wixCrmBackend.contacts.createContact({
+			primaryInfo: {
+				email: email
+			},
+			name: {
+				first: name || 'Market',
+				last: 'Participant'
+			},
+			subscriptionStatus: 'NOT_SET'
+		}, {
+			allowDuplicates: true
+		});
+		
+		const contactEmail = newContact.info?.primaryEmail || 
+		                     newContact.primaryInfo?.email ||
+		                     newContact.email || '';
+		
+		if (contactEmail.toLowerCase() !== email.toLowerCase()) {
+			return {
+				success: false,
+				error: `Contact created but email mismatch. Expected: ${email}, Got: ${contactEmail}`,
+				contactId: newContact._id,
+				email: contactEmail
+			};
+		}
+		
+		console.log(`[CREATE-CONTACT] ✅ Successfully created contact: ${newContact._id}`);
+		return {
+			success: true,
+			message: 'Contact created successfully',
+			contactId: newContact._id,
+			email: contactEmail
+		};
+		
+	} catch (error) {
+		console.error(`[CREATE-CONTACT] ❌ Error creating contact:`, error);
+		return {
+			success: false,
+			error: error.message || error.toString()
+		};
+	}
+}
+
 		// Verify subscription status
 		const newSubscriptionStatus = fullContact.info?.extendedFields?.emailSubscriptions?.subscriptionStatus ||
 		                              fullContact.subscriptionStatus ||
