@@ -476,10 +476,11 @@ function setupRepeaterItem($item, itemData) {
 	
 		// Set location dropdown/display - ONLY for Musicians
 		// Volunteers and Non-Profits don't need location assignment
-		if (itemData.profileType === 'Musician' && $item('#itemLocation')) {
-			if ($item('#itemLocation').options) {
+		const locationElement = $item('#itemLocation');
+		if (itemData.profileType === 'Musician' && locationElement) {
+			if (locationElement.options) {
 				// It's a dropdown
-				$item('#itemLocation').options = [
+				locationElement.options = [
 					{ value: 'Unassigned', label: 'Unassigned' },
 					{ value: 'Default', label: 'Default' },
 					{ value: 'Location A', label: 'Location A' },
@@ -488,38 +489,45 @@ function setupRepeaterItem($item, itemData) {
 				];
 				
 				const currentLocation = itemData.location || 'Unassigned';
-				$item('#itemLocation').value = currentLocation;
+				locationElement.value = currentLocation;
 				
 				// Show the location dropdown for musicians
-				$item('#itemLocation').show();
+				if (typeof locationElement.show === 'function') {
+					locationElement.show();
+				}
 				
 				// Prevent multiple onChange handlers
 				const assignmentId = itemData._id;
 				let isUpdating = false; // Flag to prevent recursive updates
 				
-				$item('#itemLocation').onChange(async () => {
-					if (isUpdating) return; // Prevent recursive calls
-					
-					const newLocation = $item('#itemLocation').value || 'Unassigned';
-					
-					if (newLocation !== currentLocation) {
-						isUpdating = true;
-						try {
-							await updateAssignmentLocation(assignmentId, newLocation);
-						} finally {
-							isUpdating = false;
+				if (typeof locationElement.onChange === 'function') {
+					locationElement.onChange(async () => {
+						if (isUpdating) return; // Prevent recursive calls
+						
+						const newLocation = locationElement.value || 'Unassigned';
+						
+						if (newLocation !== currentLocation) {
+							isUpdating = true;
+							try {
+								await updateAssignmentLocation(assignmentId, newLocation);
+							} finally {
+								isUpdating = false;
+							}
 						}
-					}
-				});
+					});
+				}
 			} else {
 				// It's a text element
-				$item('#itemLocation').text = itemData.location || 'Unassigned';
-				$item('#itemLocation').show();
+				if (locationElement.text !== undefined) {
+					locationElement.text = itemData.location || 'Unassigned';
+				}
+				if (typeof locationElement.show === 'function') {
+					locationElement.show();
+				}
 			}
-		} else if ($item('#itemLocation')) {
+		} else if (locationElement) {
 			// Hide location dropdown for Volunteers and Non-Profits
-			const locationElement = $item('#itemLocation');
-			if (locationElement && typeof locationElement.hide === 'function') {
+			if (typeof locationElement.hide === 'function') {
 				locationElement.hide();
 			}
 		}
