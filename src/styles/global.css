@@ -364,3 +364,49 @@
 }
 
 /* Repeater container border styling is handled via JavaScript */
+
+/* Specialty Requests Admin Page - Tab Styling */
+/* Active tab styling */
+#tabMusicians.tab-active,
+#tabVolunteers.tab-active,
+#tabNonProfits.tab-active {
+  background-color: #2196F3 !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  border-bottom: 3px solid #1976D2 !important;
+  opacity: 1 !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Inactive tab styling */
+#tabMusicians.tab-inactive,
+#tabVolunteers.tab-inactive,
+#tabNonProfits.tab-inactive {
+  background-color: #F5F5F5 !important;
+  color: #666666 !important;
+  font-weight: 400 !important;
+  border-bottom: 3px solid transparent !important;
+  opacity: 0.8 !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Hover state for inactive tabs */
+#tabMusicians.tab-inactive:hover,
+#tabVolunteers.tab-inactive:hover,
+#tabNonProfits.tab-inactive:hover {
+  background-color: #E0E0E0 !important;
+  color: #333333 !important;
+  opacity: 1 !important;
+}
+
+/* Base tab styling - ensure tabs have proper spacing and appearance */
+#tabMusicians,
+#tabVolunteers,
+#tabNonProfits {
+  padding: 12px 24px !important;
+  border-radius: 4px 4px 0 0 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  border: none !important;
+  border-bottom: 3px solid transparent !important;
+}

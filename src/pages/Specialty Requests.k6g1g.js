@@ -43,6 +43,9 @@ async function initializeDashboard() {
 		// Set up search handler
 		setupSearchHandler();
 		
+		// Set initial active tab styling (Musicians is default)
+		updateActiveTab('Musician');
+		
 		// Load filter options
 		await populateDateFilter();
 		await populateStatusFilter();
@@ -106,25 +109,50 @@ async function switchTab(type) {
 }
 
 function updateActiveTab(activeType) {
-	// Update tab styling - keep all tabs visible, just change active state
-	// Note: You may want to add custom CSS classes for active/inactive states
-	// For now, we'll just ensure all tabs remain visible
+	// Update tab styling - apply visual indicators for active/inactive states
 	const tabs = ['Musician', 'Volunteer', 'NonProfit'];
+	
 	tabs.forEach(type => {
 		const tabElement = $w(`#tab${type}s`);
-		if (tabElement && typeof tabElement.show === 'function') {
-			// Ensure tab is visible (don't collapse)
+		if (!tabElement) return;
+		
+		// Ensure tab is visible
+		if (typeof tabElement.show === 'function') {
 			tabElement.show();
-			// You can add custom styling here if needed
+		}
+		
+		const isActive = type === activeType;
+		
+		// Apply styling based on active state
+		if (tabElement.style) {
+			if (isActive) {
+				// Active tab styling - prominent and highlighted
+				tabElement.style.backgroundColor = '#2196F3'; // Blue background
+				tabElement.style.color = '#FFFFFF'; // White text
+				tabElement.style.fontWeight = '600'; // Bold
+				tabElement.style.borderBottom = '3px solid #1976D2'; // Darker blue underline
+				tabElement.style.opacity = '1';
+			} else {
+				// Inactive tab styling - subtle and muted
+				tabElement.style.backgroundColor = '#F5F5F5'; // Light gray background
+				tabElement.style.color = '#666666'; // Gray text
+				tabElement.style.fontWeight = '400'; // Normal weight
+				tabElement.style.borderBottom = '3px solid transparent'; // No underline
+				tabElement.style.opacity = '0.8';
+			}
+		}
+		
+		// Also apply CSS classes if classes property exists
+		if (tabElement.classes) {
+			if (isActive) {
+				tabElement.classes.add('tab-active');
+				tabElement.classes.remove('tab-inactive');
+			} else {
+				tabElement.classes.add('tab-inactive');
+				tabElement.classes.remove('tab-active');
+			}
 		}
 	});
-	
-	// Mark active tab (you can add custom styling)
-	const activeTab = $w(`#tab${activeType}s`);
-	if (activeTab && typeof activeTab.show === 'function') {
-		activeTab.show();
-		// Add any active state styling here if needed
-	}
 }
 
 async function populateDateFilter() {
