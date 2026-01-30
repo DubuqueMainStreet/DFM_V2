@@ -717,8 +717,16 @@ function setupRepeaterItem($item, itemData) {
 		$item('#itemName').text = itemData.name;
 	}
 	
+	// Set date display with relative date if available
 	if ($item('#itemDate')) {
-		$item('#itemDate').text = itemData.date;
+		// Show formatted date with relative indicator if available
+		let dateText = itemData.date;
+		if (itemData.dateRelative) {
+			dateText = `${itemData.date} (${itemData.dateRelative})`;
+		}
+		if ($item('#itemDate').text !== undefined) {
+			$item('#itemDate').text = dateText;
+		}
 	}
 	
 	// Set up contact info display with email copy button
