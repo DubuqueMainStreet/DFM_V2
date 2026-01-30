@@ -536,19 +536,91 @@ async function getOrCreateContact(email, name) {
 					return newContact;
 				} else {
 					console.error(`[EMAIL-BACKEND] ❌ Even createContact returned wrong email: ${newContactEmail}`);
+					
+					// Try to update the contact's email if it's missing or wrong
+					if (!newContactEmail || newContactEmail === 'unknown' || newContactEmail === '') {
+						console.log(`[EMAIL-BACKEND] Attempting to update contact ${newContact._id} with correct email: ${email}`);
+						try {
+							await wixCrmBackend.contacts.updateContact(newContact._id, {
+								primaryInfo: {
+									email: email
+								}
+							});
+							
+							// Refresh the contact to verify the update
+							const updatedContact = await wixCrmBackend.contacts.getContact(newContact._id);
+							const updatedEmail = updatedContact.info?.primaryEmail || 
+							                     updatedContact.primaryInfo?.email ||
+							                     updatedContact.email || '';
+							
+							if (updatedEmail.toLowerCase() === email.toLowerCase()) {
+								console.log(`[EMAIL-BACKEND] ✅ Successfully updated contact email: ${updatedContact._id}`);
+								return updatedContact;
+							} else {
+								console.error(`[EMAIL-BACKEND] ❌ Update failed - email still wrong: ${updatedEmail}`);
+							}
+						} catch (updateError) {
+							console.error(`[EMAIL-BACKEND] ❌ Failed to update contact email:`, updateError.message);
+						}
+					}
 				}
 			} catch (finalError) {
 				console.error(`[EMAIL-BACKEND] ❌ Final createContact failed:`, finalError.message);
 			}
 			
+			// Last resort: Try to update the original contact's email
+			console.log(`[EMAIL-BACKEND] Attempting to update original contact ${fullContact._id} with email: ${email}`);
+			try {
+				await wixCrmBackend.contacts.updateContact(fullContact._id, {
+					primaryInfo: {
+						email: email
+					}
+				});
+				
+				// Refresh the contact
+				const updatedContact = await wixCrmBackend.contacts.getContact(fullContact._id);
+				const updatedEmail = updatedContact.info?.primaryEmail || 
+				                     updatedContact.primaryInfo?.email ||
+				                     updatedContact.email || '';
+				
+				if (updatedEmail.toLowerCase() === email.toLowerCase()) {
+					console.log(`[EMAIL-BACKEND] ✅ Successfully updated original contact email: ${updatedContact._id}`);
+					return updatedContact;
+				} else {
+					console.error(`[EMAIL-BACKEND] ❌ Update of original contact failed - email still: ${updatedEmail}`);
+				}
+			} catch (updateError) {
+				console.error(`[EMAIL-BACKEND] ❌ Failed to update original contact email:`, updateError.message);
+			}
+			
 			const errorMsg = `CRITICAL: Contact email is 'unknown'! Expected ${email} but contact ${fullContact._id} has no email. ` +
-			                 `This happens when appendOrCreateContact reconciles with the logged-in admin's contact. ` +
-			                 `The contact ${email} does not exist in Wix CRM. ` +
-			                 `Please manually create the contact ${email} in Wix CRM, then try approving/rejecting again.`;
+			                 `This happens when Wix CRM reconciles contact creation with the logged-in admin's contact. ` +
+			                 `The contact ${email} does not exist in Wix CRM and cannot be created automatically. ` +
+			                 `SOLUTION: Please manually create the contact ${email} in Wix Dashboard → Contacts, then try approving/rejecting again.`;
 			console.error(`[EMAIL-BACKEND] ❌ ${errorMsg}`);
 			throw new Error(errorMsg);
 		}
 		
+		// Verify subscription status
+		const newSubscriptionStatus = fullContact.info?.extendedFields?.emailSubscriptions?.subscriptionStatus ||
+		                              fullContact.subscriptionStatus ||
+		                              fullContact.emailSubscriptions?.subscriptionStatus ||
+		                              'UNKNOWN';
+		console.log(`[EMAIL-BACKEND] New contact subscription status: ${newSubscriptionStatus}`);
+		
+		// Log warning if UNSUBSCRIBED
+		if (newSubscriptionStatus === 'UNSUBSCRIBED') {
+			console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: New contact ${fullContact._id} is UNSUBSCRIBED. Email may not be sent!`);
+		}
+		
+		return fullContact;
+	} catch (error) {
+		console.error('[EMAIL-BACKEND] Error getting or creating contact:', error);
+		console.error('[EMAIL-BACKEND] Error details:', JSON.stringify(error, null, 2));
+		throw error;
+	}
+}
+
 /**
  * Manually create a Wix CRM contact for an existing profile
  * This is useful for fixing contacts that were created before contact creation was added to form submissions
@@ -624,26 +696,6 @@ export async function createContactForProfile(email, name) {
 			success: false,
 			error: error.message || error.toString()
 		};
-	}
-}
-
-		// Verify subscription status
-		const newSubscriptionStatus = fullContact.info?.extendedFields?.emailSubscriptions?.subscriptionStatus ||
-		                              fullContact.subscriptionStatus ||
-		                              fullContact.emailSubscriptions?.subscriptionStatus ||
-		                              'UNKNOWN';
-		console.log(`[EMAIL-BACKEND] New contact subscription status: ${newSubscriptionStatus}`);
-		
-		// Log warning if UNSUBSCRIBED
-		if (newSubscriptionStatus === 'UNSUBSCRIBED') {
-			console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: New contact ${fullContact._id} is UNSUBSCRIBED. Email may not be sent!`);
-		}
-		
-		return fullContact;
-	} catch (error) {
-		console.error('[EMAIL-BACKEND] Error getting or creating contact:', error);
-		console.error('[EMAIL-BACKEND] Error details:', JSON.stringify(error, null, 2));
-		throw error;
 	}
 }
 
