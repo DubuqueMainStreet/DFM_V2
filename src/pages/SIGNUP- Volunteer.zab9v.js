@@ -23,7 +23,42 @@ async function populateDateRepeater() {
 			.find();
 		
 		// Get availability data for all dates
-		const availability = await getDateAvailability();
+		let availability = {};
+		try {
+			console.log('🔍 Volunteer Portal - Calling getDateAvailability()...');
+			console.log('📝 Note: Backend logs appear in Wix Editor → Dev Tools → Backend Logs, not browser console');
+			
+			const startTime = Date.now();
+			
+			if (typeof getDateAvailability !== 'function') {
+				throw new Error('getDateAvailability is not a function! Check import.');
+			}
+			
+			availability = await getDateAvailability();
+			const endTime = Date.now();
+			
+			console.log(`⏱️ getDateAvailability() took ${endTime - startTime}ms`);
+			console.log('📅 Volunteer Portal - Availability data received:', availability);
+			console.log('📊 Availability keys count:', Object.keys(availability).length);
+			
+			if (!availability || typeof availability !== 'object') {
+				console.error('❌ Invalid availability response:', availability);
+				availability = {};
+			} else if (Object.keys(availability).length === 0) {
+				console.warn('⚠️ WARNING: Availability data is empty! Check backend logs for details.');
+			} else {
+				console.log('✅ Availability data received successfully with', Object.keys(availability).length, 'dates');
+			}
+		} catch (error) {
+			console.error('❌ ERROR calling getDateAvailability():', error);
+			console.error('Error details:', {
+				message: error.message,
+				name: error.name,
+				stack: error.stack
+			});
+			console.error('⚠️ This might be a permissions issue. Check collection permissions in Wix Content Manager.');
+			availability = {}; // Fallback to empty object
+		}
 		
 		// Get selected volunteer role (if any)
 		const selectedRole = $w('#inputVolunteerRole').value || 'No Preference';
