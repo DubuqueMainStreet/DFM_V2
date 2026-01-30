@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Dubuque Farmers' Market Interactive Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <style>
+        /* ==================== MODERN AGRARIAN DESIGN SYSTEM ==================== */
+        :root {
+            /* Primary Greens */
+            --forest: #1a3d0c;
+            --sage: #4a6741;
+            --moss: #7a9b6d;
+            --mint: #c8dcc0;
+            --leaf: #3d6b35;
+            
+            /* Earthy Neutrals */
+            --cream: #faf8f5;
+            --sand: #e8e4dc;
+            --clay: #b8a88a;
+            --terracotta: #9c6644;
+            --soil: #5c4a3d;
+            
+            /* Accent Colors */
+            --gold: #d4a574;
+            --rust: #bf5f3f;
+            --berry: #8b3a62;
+            
+            /* UI Neutrals */
+            --white: #ffffff;
+            --charcoal: #2c2c2c;
+            --stone: #6b6b6b;
+            --mist: #f0f0ed;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(26, 61, 12, 0.08);
+            --shadow-md: 0 4px 12px rgba(26, 61, 12, 0.12);
+            --shadow-lg: 0 8px 24px rgba(26, 61, 12, 0.16);
+            --shadow-glow: 0 0 20px rgba(74, 103, 65, 0.25);
+            
+            /* Typography */
+            --font-display: 'Playfair Display', Georgia, serif;
+            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            
+            /* Borders */
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-pill: 50px;
+        }
+
+        /* ==================== RESET & BASE ==================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: var(--font-body);
+            background: var(--cream);
+            color: var(--charcoal);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ==================== LAYOUT ==================== */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ==================== HEADER / CONTROLS ==================== */
+        .controls-panel {
+            background: var(--white);
+            border-bottom: 1px solid var(--sand);
+            box-shadow: var(--shadow-md);
+            z-index: 1000;
+            padding: var(--space-sm) var(--space-md);
+            flex-shrink: 0;
+        }
+
+        .controls-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-sm);
+        }
+
+        .brand-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--forest);
+            white-space: nowrap;
+            display: none; /* Hide on mobile */
+        }
+
+        @media (min-width: 640px) {
+            .brand-title { display: block; }
+        }
+
+        /* Date Selector */
+        .date-selector {
+            position: relative;
+            flex: 0 0 auto;
+        }
+
+        .date-select {
+            appearance: none;
+            background: var(--forest);
+            color: var(--white);
+            border: none;
+            padding: var(--space-sm) var(--space-lg) var(--space-sm) var(--space-md);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 160px;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .date-select:hover {
+            background: var(--sage);
+            box-shadow: var(--shadow-md);
+        }
+
+        .date-select:focus {
+            outline: none;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .date-selector::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--white);
+            font-size: 0.7rem;
+            pointer-events: none;
+        }
+
+        /* Search Bar */
+        .search-container {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: var(--space-sm) var(--space-md) var(--space-sm) 40px;
+            border: 2px solid var(--sand);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            background: var(--mist);
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--sage);
+            background: var(--white);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .search-input::placeholder {
+            color: var(--stone);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--stone);
+            font-size: 0.9rem;
+        }
+
+        .search-clear {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--stone);
+            color: var(--white);
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .search-container.has-value .search-clear {
+            opacity: 1;
+        }
+
+        /* ==================== FILTER BUTTONS ==================== */
+        .filters-scroll {
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            margin: 0 calc(-1 * var(--space-md));
+            padding: var(--space-xs) var(--space-md);
+        }
+
+        .filters-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filters-grid {
+            display: flex;
+            gap: var(--space-sm);
+            width: max-content;
+        }
+
+        .filter-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: var(--white);
+            border: 2px solid var(--sand);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-body);
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--charcoal);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .filter-btn:hover {
+            background: var(--mist);
+            border-color: var(--sage);
+            transform: translateY(-1px);
+        }
+
+        .filter-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .filter-btn.active {
+            background: var(--forest);
+            border-color: var(--forest);
+            color: var(--white);
+            box-shadow: var(--shadow-md);
+        }
+
+        .filter-btn i {
+            font-size: 0.9rem;
+        }
+
+        /* Category-specific colors for active state */
+        .filter-btn[data-category="food"].active { background: var(--terracotta); border-color: var(--terracotta); }
+        .filter-btn[data-category="produce"].active { background: var(--leaf); border-color: var(--leaf); }
+        .filter-btn[data-category="artisan"].active { background: var(--berry); border-color: var(--berry); }
+        .filter-btn[data-category="poi"].active { background: var(--sage); border-color: var(--sage); }
+        .filter-btn[data-category="utility"].active { background: var(--clay); border-color: var(--clay); }
+
+        /* Clear All Button */
+        .clear-all-btn {
+            background: transparent;
+            border: 2px dashed var(--stone);
+            color: var(--stone);
+            padding: 8px 16px;
+        }
+
+        .clear-all-btn:hover {
+            background: var(--mist);
+            border-style: solid;
+            border-color: var(--rust);
+            color: var(--rust);
+        }
+
+        /* ==================== MAP CONTAINER ==================== */
+        .map-wrapper {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            background: var(--cream);
+            z-index: 1;
+        }
+
+        /* ==================== LOADING OVERLAY ==================== */
+        .map-loader {
+            position: absolute;
+            inset: 0;
+            background: rgba(250, 248, 245, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            transition: opacity 0.3s ease;
+        }
+
+        .map-loader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--sand);
+            border-top-color: var(--forest);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: var(--space-md);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            font-weight: 500;
+            color: var(--charcoal);
+        }
+
+        /* ==================== INFO MESSAGE ==================== */
+        .map-message {
+            position: absolute;
+            top: var(--space-md);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--charcoal);
+            color: var(--white);
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius-pill);
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            z-index: 1001;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .map-message.visible {
+            opacity: 1;
+        }
+
+        /* ==================== LOCATE BUTTON ==================== */
+        .locate-btn {
+            position: absolute;
+            bottom: var(--space-lg);
+            right: var(--space-md);
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--white);
+            border: none;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: all 0.2s ease;
+        }
+
+        .locate-btn:hover {
+            background: var(--mist);
+            transform: scale(1.05);
+        }
+
+        .locate-btn:active {
+            transform: scale(0.95);
+        }
+
+        .locate-btn i {
+            font-size: 1.2rem;
+            color: var(--charcoal);
+        }
+
+        .locate-btn.locating i {
+            color: var(--sage);
+            animation: pulse 1.5s infinite;
+        }
+
+        .locate-btn.active {
+            background: var(--forest);
+        }
+
+        .locate-btn.active i {
+            color: var(--white);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ==================== VENDOR COUNT BADGE ==================== */
+        .vendor-count {
+            position: absolute;
+            bottom: var(--space-lg);
+            left: var(--space-md);
+            background: var(--white);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            z-index: 1000;
+        }
+
+        .vendor-count span {
+            color: var(--forest);
+        }
+
+        /* ==================== SKELETON LOADING ==================== */
+        .skeleton {
+            background: linear-gradient(
+                90deg,
+                var(--sand) 25%,
+                var(--mist) 50%,
+                var(--sand) 75%
+            );
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: var(--radius-sm);
+        }
+
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-btn {
+            width: 100px;
+            height: 36px;
+            border-radius: var(--radius-pill);
+        }
+
+        /* ==================== LEAFLET OVERRIDES ==================== */
+        .leaflet-control-zoom {
+            border: none !important;
+            box-shadow: var(--shadow-md) !important;
+            border-radius: var(--radius-md) !important;
+            overflow: hidden;
+        }
+
+        .leaflet-control-zoom a {
+            background: var(--white) !important;
+            color: var(--charcoal) !important;
+            border: none !important;
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            font-size: 1.1rem !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: var(--mist) !important;
+        }
+
+        /* Custom Popup Styling */
+        .leaflet-popup-content-wrapper {
+            background: var(--white);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .leaflet-popup-content {
+            margin: 0;
+            min-width: 260px;
+            max-width: 320px;
+        }
+
+        .leaflet-popup-tip {
+            background: var(--white);
+        }
+
+        .popup-header {
+            background: var(--forest);
+            color: var(--white);
+            padding: var(--space-md);
+        }
+
+        .popup-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .popup-subtitle {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .popup-body {
+            padding: var(--space-md);
+        }
+
+        .popup-description {
+            font-size: 0.9rem;
+            color: var(--stone);
+            line-height: 1.5;
+            margin-bottom: var(--space-sm);
+        }
+
+        .popup-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-xs);
+        }
+
+        .popup-tag {
+            background: var(--mist);
+            color: var(--charcoal);
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .popup-actions {
+            display: flex;
+            gap: var(--space-sm);
+            padding: var(--space-md);
+            border-top: 1px solid var(--sand);
+        }
+
+        .popup-btn {
+            flex: 1;
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .popup-btn-primary {
+            background: var(--forest);
+            color: var(--white);
+            border: none;
+        }
+
+        .popup-btn-primary:hover {
+            background: var(--sage);
+        }
+
+        .popup-btn-secondary {
+            background: var(--mist);
+            color: var(--charcoal);
+            border: 1px solid var(--sand);
+        }
+
+        .popup-btn-secondary:hover {
+            background: var(--sand);
+        }
+
+        /* ==================== MARKER STYLES ==================== */
+        .vendor-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 3px solid var(--white);
+            box-shadow: var(--shadow-md);
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .vendor-marker:hover {
+            transform: scale(1.1);
+        }
+
+        .vendor-marker i {
+            color: var(--white);
+        }
+
+        .vendor-marker.highlighted {
+            transform: scale(1.2);
+            box-shadow: var(--shadow-glow), 0 0 0 4px rgba(74, 103, 65, 0.3);
+            z-index: 2000 !important;
+        }
+
+        .vendor-marker.dimmed {
+            opacity: 0.35;
+        }
+
+        .empty-stall-marker {
+            background: var(--stone);
+            opacity: 0.6;
+        }
+
+        /* User Location */
+        .user-location-marker {
+            width: 16px;
+            height: 16px;
+            background: #2196F3;
+            border: 3px solid var(--white);
+            border-radius: 50%;
+            box-shadow: var(--shadow-md);
+        }
+
+        .user-accuracy-circle {
+            background: rgba(33, 150, 243, 0.15);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 480px) {
+            .controls-panel {
+                padding: var(--space-xs) var(--space-sm);
+            }
+
+            .controls-header {
+                gap: var(--space-sm);
+            }
+
+            .date-select {
+                min-width: 130px;
+                font-size: 0.85rem;
+                padding: 6px var(--space-lg) 6px var(--space-sm);
+            }
+
+            .search-input {
+                font-size: 0.85rem;
+                padding: 6px var(--space-md) 6px 36px;
+            }
+
+            .filter-btn {
+                padding: 6px 12px;
+                font-size: 0.75rem;
+            }
+
+            .vendor-count {
+                bottom: var(--space-md);
+                left: var(--space-sm);
+                font-size: 0.75rem;
+            }
+
+            .locate-btn {
+                width: 46px;
+                height: 46px;
+                bottom: var(--space-md);
+                right: var(--space-sm);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <div class="controls-header">
+                <span class="brand-title">Dubuque Farmers' Market</span>
+                
+                <div class="date-selector">
+                    <select id="date-select" class="date-select">
+                        <option value="">Loading dates...</option>
+                    </select>
+                </div>
+
+                <div class="search-container" id="search-container">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" class="search-input" id="search-input" placeholder="Search vendors...">
+                    <button class="search-clear" id="search-clear"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+
+            <div class="filters-scroll">
+                <div class="filters-grid" id="filters-grid">
+                    <!-- Vendor Type Filters -->
+                    <button class="filter-btn" data-type="vendorType" data-value="On-site Prepared Food Vendor" data-category="food">
+                        <i class="fa-solid fa-utensils"></i> Ready to Eat
+                    </button>
+                    <button class="filter-btn" data-type="vendorType" data-value="Grower/Producer/Processor" data-category="produce">
+                        <i class="fa-solid fa-carrot"></i> Farm Fresh
+                    </button>
+                    <button class="filter-btn" data-type="keyword" data-value="bakery bread cookie pie cake sweet pastry" data-category="food">
+                        <i class="fa-solid fa-cake-candles"></i> Baked Goods
+                    </button>
+                    <button class="filter-btn" data-type="keyword" data-value="coffee espresso latte tea chai" data-category="food">
+                        <i class="fa-solid fa-mug-saucer"></i> Coffee & Tea
+                    </button>
+                    <button class="filter-btn" data-type="keyword" data-value="snap ebt dufb double up food bucks" data-category="utility">
+                        <i class="fa-solid fa-credit-card"></i> SNAP/EBT
+                    </button>
+                    
+                    <!-- POI Filters -->
+                    <button class="filter-btn" data-type="poiType" data-value="Information" data-category="poi">
+                        <i class="fa-solid fa-circle-info"></i> Info
+                    </button>
+                    <button class="filter-btn" data-type="poiType" data-value="Restroom" data-category="poi">
+                        <i class="fa-solid fa-restroom"></i> Restrooms
+                    </button>
+                    <button class="filter-btn" data-type="poiType" data-value="SeatingArea" data-category="poi">
+                        <i class="fa-solid fa-chair"></i> Seating
+                    </button>
+                    <button class="filter-btn" data-type="poiType" data-value="PublicParkingArea" data-category="utility">
+                        <i class="fa-solid fa-square-parking"></i> Parking
+                    </button>
+                    <button class="filter-btn" data-type="poiType" data-value="Market Tokens" data-category="utility">
+                        <i class="fa-solid fa-coins"></i> Tokens
+                    </button>
+                    
+                    <!-- Clear All -->
+                    <button class="filter-btn clear-all-btn" id="clear-all-btn">
+                        <i class="fa-solid fa-rotate-left"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="map-wrapper">
+            <div id="map"></div>
+            
+            <!-- Loading Overlay -->
+            <div class="map-loader" id="map-loader">
+                <div class="loader-spinner"></div>
+                <span class="loader-text">Loading market map...</span>
+            </div>
+
+            <!-- Info Message -->
+            <div class="map-message" id="map-message"></div>
+
+            <!-- Vendor Count -->
+            <div class="vendor-count" id="vendor-count">
+                <span id="vendor-count-num">0</span> vendors today
+            </div>
+
+            <!-- Locate Button -->
+            <button class="locate-btn" id="locate-btn" title="Find my location">
+                <i class="fa-solid fa-location-crosshairs"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURATION ====================
+        const VENDOR_TYPE_COLORS = {
+            "Grower/Producer/Processor": "#3d6b35",
+            "On-site Prepared Food Vendor": "#9c6644",
+            "Crafter/Artisan": "#8b3a62",
+            "Occasional Vendor": "#7a9b6d",
+            "Default": "#6b6b6b"
+        };
+
+        const VENDOR_ICON_CONFIG = {
+            keywords: [
+                { keywords: ["photo"], faClass: 'fa-camera'},
+                { keywords: ["garden", "plant", "herb"], faClass: 'fa-seedling'},
+                { keywords: ["egg", "breakfast"], faClass: 'fa-egg'},
+                { keywords: ["bread"], faClass: 'fa-bread-slice'},
+                { keywords: ["pie"], faClass: 'fa-chart-pie'},
+                { keywords: ["cookie"], faClass: 'fa-cookie-bite'},
+                { keywords: ["cake", "bakery"], faClass: 'fa-cake-candles'},
+                { keywords: ["coffee"], faClass: 'fa-mug-saucer'},
+                { keywords: ["tea"], faClass: 'fa-leaf'},
+                { keywords: ["cheese", "dairy"], faClass: 'fa-cheese'},
+                { keywords: ["beef", "cow"], faClass: 'fa-cow'},
+                { keywords: ["pork", "bacon"], faClass: 'fa-bacon'},
+                { keywords: ["chicken", "meat", "poultry"], faClass: 'fa-drumstick-bite'},
+                { keywords: ["fish", "seafood"], faClass: 'fa-fish-fins'},
+                { keywords: ["ice cream", "frozen"], faClass: 'fa-ice-cream'},
+                { keywords: ["fruit", "berry", "apple"], faClass: 'fa-apple-whole'},
+                { keywords: ["vegetable", "produce", "carrot"], faClass: 'fa-carrot'},
+                { keywords: ["honey", "bee"], faClass: 'fa-jar'},
+                { keywords: ["jam", "jelly", "sauce"], faClass: 'fa-jar-wheat'},
+                { keywords: ["soap", "candle"], faClass: 'fa-soap'},
+                { keywords: ["jewelry"], faClass: 'fa-gem'},
+                { keywords: ["wood"], faClass: 'fa-tree'},
+                { keywords: ["pottery", "ceramic"], faClass: 'fa-paint-roller'},
+                { keywords: ["clothing", "textile"], faClass: 'fa-shirt'},
+                { keywords: ["art", "painting"], faClass: 'fa-palette'},
+                { keywords: ["prepared food"], faClass: 'fa-utensils'},
+                { keywords: ["farm", "grower"], faClass: 'fa-tractor'}
+            ],
+            defaultVendor: { faClass: 'fa-store' }
+        };
+
+        const POI_CONFIG = {
+            "Information": { color: "#4a6741", icon: "fa-circle-info" },
+            "Restroom": { color: "#9c6644", icon: "fa-restroom" },
+            "SeatingArea": { color: "#4a6741", icon: "fa-chair" },
+            "PublicParkingArea": { color: "#d4a574", icon: "fa-square-parking" },
+            "VendorParkingArea": { color: "#b8a88a", icon: "fa-square-parking" },
+            "Market Tokens": { color: "#d4a574", icon: "fa-coins" },
+            "Special Event": { color: "#8b3a62", icon: "fa-star" },
+            "Market Merchandise": { color: "#4a6741", icon: "fa-bag-shopping" },
+            "Default": { color: "#6b6b6b", icon: "fa-location-dot" }
+        };
+
+        // ==================== STATE ====================
+        let map;
+        let vendorsOnDate = [], allStallLayouts = [], allPois = [], allMarketDates = [];
+        let stallIdToFeatureMap = new Map();
+        let vendorLayerGroup, poiLayerGroup, stallLayerGroup;
+        let vendorMarkerRefs = {}, poiMarkerRefs = {};
+        let selectedDate = "", currentFilter = null, searchTerm = "";
+        let initialZoomDone = false;
+        let geoWatchId = null, userLocationMarker = null, userAccuracyCircle = null;
+
+        // DOM References
+        let mapLoader, mapMessage, dateSelect, searchInput, searchContainer, vendorCountEl;
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get DOM references
+            mapLoader = document.getElementById('map-loader');
+            mapMessage = document.getElementById('map-message');
+            dateSelect = document.getElementById('date-select');
+            searchInput = document.getElementById('search-input');
+            searchContainer = document.getElementById('search-container');
+            vendorCountEl = document.getElementById('vendor-count-num');
+
+            initMap();
+            setupEventListeners();
+            sendReadyMessage();
+        });
+
+        function initMap() {
+            console.log("IFRAME: Initializing map...");
+
+            // Restore last view or use default
+            let center = [42.5000, -90.6644];
+            let zoom = 17;
+            
+            try {
+                const saved = localStorage.getItem('dfm_map_view');
+                if (saved) {
+                    const view = JSON.parse(saved);
+                    center = [view.lat, view.lng];
+                    zoom = view.zoom;
+                }
+            } catch (e) {}
+
+            map = L.map('map', {
+                preferCanvas: true,
+                zoomControl: false
+            }).setView(center, zoom);
+
+            L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap, © CartoDB',
+                maxZoom: 21,
+                minZoom: 15
+            }).addTo(map);
+
+            // Layer groups
+            stallLayerGroup = L.layerGroup().addTo(map);
+            poiLayerGroup = L.layerGroup().addTo(map);
+            vendorLayerGroup = L.layerGroup().addTo(map);
+
+            // Save view on move
+            map.on('moveend zoomend', () => {
+                const c = map.getCenter();
+                localStorage.setItem('dfm_map_view', JSON.stringify({
+                    lat: c.lat, lng: c.lng, zoom: map.getZoom()
+                }));
+            });
+
+            map.on('zoomend', updateMarkerStyles);
+
+            hideLoader();
+            console.log("IFRAME: Map initialized.");
+        }
+
+        function setupEventListeners() {
+            // Date selector
+            dateSelect.addEventListener('change', () => {
+                if (dateSelect.value) {
+                    selectedDate = dateSelect.value;
+                    requestDataForDate(dateSelect.value);
+                }
+            });
+
+            // Search
+            let searchTimeout;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchTerm = searchInput.value.trim().toLowerCase();
+                    currentFilter = null;
+                    clearFilterButtons();
+                    updateSearchContainerState();
+                    updateMarkerStyles();
+                }, 300);
+            });
+
+            document.getElementById('search-clear').addEventListener('click', () => {
+                searchInput.value = '';
+                searchTerm = '';
+                updateSearchContainerState();
+                updateMarkerStyles();
+            });
+
+            // Filter buttons
+            document.querySelectorAll('.filter-btn:not(.clear-all-btn)').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.dataset.type;
+                    const value = btn.dataset.value;
+
+                    if (btn.classList.contains('active')) {
+                        // Toggle off
+                        btn.classList.remove('active');
+                        currentFilter = null;
+                    } else {
+                        // Toggle on
+                        clearFilterButtons();
+                        btn.classList.add('active');
+                        currentFilter = { type, value };
+                        searchInput.value = '';
+                        searchTerm = '';
+                        updateSearchContainerState();
+                    }
+                    updateMarkerStyles();
+                });
+            });
+
+            // Clear all
+            document.getElementById('clear-all-btn').addEventListener('click', () => {
+                clearFilters();
+            });
+
+            // Locate button
+            document.getElementById('locate-btn').addEventListener('click', toggleGeolocation);
+        }
+
+        function sendReadyMessage() {
+            if (window.parent && window.parent !== window) {
+                console.log("IFRAME: Sending ready message to parent.");
+                window.parent.postMessage({ type: "iframeReady" }, "*");
+            }
+        }
+
+        // ==================== MESSAGE HANDLING ====================
+        window.addEventListener("message", (event) => {
+            if (!event.data || !event.data.type) return;
+
+            const { type, payload } = event.data;
+            console.log("IFRAME: Received message:", type);
+
+            switch (type) {
+                case "setMarketDates":
+                    populateDateDropdown(payload.dates);
+                    break;
+                case "loadMapData":
+                    showLoader();
+                    allStallLayouts = payload.allStallLayouts || [];
+                    allPois = payload.allPois || [];
+                    vendorsOnDate = payload.vendorsOnDate || [];
+                    selectedDate = payload.currentDate || "";
+                    renderMap();
+                    hideLoader();
+                    break;
+            }
+        });
+
+        function requestDataForDate(dateStr) {
+            console.log("IFRAME: Requesting data for:", dateStr);
+            showLoader();
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ 
+                    type: "requestDateData", 
+                    payload: { date: dateStr } 
+                }, "*");
+            }
+        }
+
+        // ==================== DATE DROPDOWN ====================
+        function populateDateDropdown(dates) {
+            allMarketDates = dates || [];
+            dateSelect.innerHTML = '';
+
+            if (allMarketDates.length === 0) {
+                dateSelect.innerHTML = '<option value="">No dates available</option>';
+                return;
+            }
+
+            allMarketDates.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.value;
+                opt.textContent = d.label;
+                dateSelect.appendChild(opt);
+            });
+
+            // Select first date if none selected
+            if (!selectedDate && allMarketDates.length > 0) {
+                selectedDate = allMarketDates[0].value;
+                dateSelect.value = selectedDate;
+            }
+
+            console.log("IFRAME: Populated", allMarketDates.length, "dates in dropdown.");
+        }
+
+        // ==================== RENDERING ====================
+        function renderMap() {
+            console.log("IFRAME: Rendering map with", vendorsOnDate.length, "vendors");
+
+            // Clear layers
+            stallLayerGroup.clearLayers();
+            poiLayerGroup.clearLayers();
+            vendorLayerGroup.clearLayers();
+            vendorMarkerRefs = {};
+            poiMarkerRefs = {};
+            stallIdToFeatureMap.clear();
+
+            const bounds = [];
+            const stallsWithVendors = new Set();
+
+            // Collect stall IDs with vendors
+            vendorsOnDate.forEach(v => {
+                (v.StallList || []).forEach(id => stallsWithVendors.add(id.trim().toUpperCase()));
+            });
+
+            // Render stalls
+            (allStallLayouts || []).forEach(stall => {
+                try {
+                    const key = (stall.title || "").trim().toUpperCase();
+                    if (!key || !stall.geoJsonFeature) return;
+
+                    const feature = JSON.parse(stall.geoJsonFeature);
+                    stallIdToFeatureMap.set(key, feature);
+
+                    // Stall outline
+                    L.geoJSON(feature, {
+                        style: { fillColor: "#d4c4a0", weight: 1, opacity: 0.3, color: '#b8a88a', fillOpacity: 0.1 },
+                        interactive: false
+                    }).addTo(stallLayerGroup);
+
+                    // Empty stall marker
+                    if (!stallsWithVendors.has(key) && feature.geometry?.coordinates) {
+                        const latlng = [feature.geometry.coordinates[1], feature.geometry.coordinates[0]];
+                        const marker = L.marker(latlng, {
+                            icon: createEmptyStallIcon(key),
+                            zIndexOffset: 0
+                        });
+                        marker.bindPopup(`<div class="popup-header"><div class="popup-title">Stall ${key}</div><div class="popup-subtitle">Available</div></div>`);
+                        marker.addTo(stallLayerGroup);
+                        bounds.push(latlng);
+                    }
+                } catch (e) {
+                    console.error("Error rendering stall:", e);
+                }
+            });
+
+            // Render POIs
+            (allPois || []).forEach(poi => {
+                try {
+                    const feature = JSON.parse(poi.geoJsonFeature);
+                    const props = { ...feature.properties, poiType: poi.poiType, title: poi.title, description: poi.description };
+
+                    if (feature.geometry.type === "Point") {
+                        const latlng = [feature.geometry.coordinates[1], feature.geometry.coordinates[0]];
+                        const marker = L.marker(latlng, { icon: createPoiIcon(props) });
+                        marker.bindPopup(buildPoiPopup(props));
+                        marker.addTo(poiLayerGroup);
+                        poiMarkerRefs[poi.title] = { marker, props };
+                        bounds.push(latlng);
+                    } else if (feature.geometry.type === "Polygon") {
+                        const layer = L.geoJSON(feature, {
+                            style: { fillColor: getPOIColor(poi.poiType), weight: 2, opacity: 0.6, fillOpacity: 0.2 }
+                        });
+                        layer.bindPopup(buildPoiPopup(props));
+                        layer.addTo(poiLayerGroup);
+                    }
+                } catch (e) {
+                    console.error("Error rendering POI:", e);
+                }
+            });
+
+            // Render vendors
+            vendorsOnDate.forEach(vendor => {
+                if (!vendor.StallList?.length) return;
+
+                const stallBlocks = groupContiguousStalls(vendor.StallList);
+                stallBlocks.forEach(block => {
+                    const features = block.map(id => stallIdToFeatureMap.get(id.trim().toUpperCase())).filter(f => f?.geometry);
+                    if (!features.length) return;
+
+                    let latlng;
+                    if (features.length > 1) {
+                        const latlngs = features.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+                        latlng = L.latLngBounds(latlngs).getCenter();
+                    } else {
+                        latlng = [features[0].geometry.coordinates[1], features[0].geometry.coordinates[0]];
+                    }
+
+                    const marker = L.marker(latlng, {
+                        icon: createVendorIcon(vendor),
+                        zIndexOffset: 100
+                    });
+                    marker.bindPopup(buildVendorPopup(vendor, block));
+                    marker.on('click', () => map.flyTo(latlng, Math.max(map.getZoom(), 18), { duration: 0.5 }));
+                    marker.addTo(vendorLayerGroup);
+                    vendorMarkerRefs[vendor.title] = { marker, data: vendor, stallBlock: block };
+                    bounds.push(Array.isArray(latlng) ? latlng : [latlng.lat, latlng.lng]);
+                });
+            });
+
+            // Fit bounds on first load
+            if (!initialZoomDone && bounds.length > 0) {
+                map.fitBounds(L.latLngBounds(bounds).pad(0.1));
+                initialZoomDone = true;
+            }
+
+            // Update vendor count
+            vendorCountEl.textContent = vendorsOnDate.length;
+
+            // Show message if no vendors
+            if (vendorsOnDate.length === 0 && selectedDate) {
+                showMessage("No vendors scheduled for this date");
+            } else {
+                hideMessage();
+            }
+
+            console.log("IFRAME: Rendered", vendorsOnDate.length, "vendors,", allPois.length, "POIs");
+        }
+
+        // ==================== ICON CREATION ====================
+        function createVendorIcon(vendor, highlighted = false, dimmed = false) {
+            const bg = VENDOR_TYPE_COLORS[vendor.vendorType] || VENDOR_TYPE_COLORS.Default;
+            const fa = determineVendorIcon(vendor);
+            const size = 40;
+            const scale = highlighted ? 1.2 : 1;
+            const opacity = dimmed ? 0.35 : 1;
+            const extraClass = highlighted ? 'highlighted' : (dimmed ? 'dimmed' : '');
+
+            return L.divIcon({
+                className: 'vendor-marker ' + extraClass,
+                html: `<div style="width:${size * scale}px;height:${size * scale}px;background:${bg};border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:${opacity}"><i class="fa-solid ${fa}" style="font-size:${14 * scale}px;color:#fff"></i></div>`,
+                iconSize: [size * scale, size * scale],
+                iconAnchor: [size * scale / 2, size * scale / 2],
+                popupAnchor: [0, -size * scale / 2 - 5]
+            });
+        }
+
+        function createEmptyStallIcon(stallId) {
+            const size = 32;
+            return L.divIcon({
+                className: 'vendor-marker empty-stall-marker',
+                html: `<div style="width:${size}px;height:${size}px;background:#9a9a9a;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">${stallId}</div>`,
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2]
+            });
+        }
+
+        function createPoiIcon(props, highlighted = false, dimmed = false) {
+            const config = POI_CONFIG[props.poiType] || POI_CONFIG.Default;
+            const size = 32;
+            const scale = highlighted ? 1.2 : 1;
+            const opacity = dimmed ? 0.35 : 1;
+
+            return L.divIcon({
+                className: 'vendor-marker',
+                html: `<div style="width:${size * scale}px;height:${size * scale}px;background:${config.color};border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:${opacity}"><i class="fa-solid ${config.icon}" style="font-size:${12 * scale}px;color:#fff"></i></div>`,
+                iconSize: [size * scale, size * scale],
+                iconAnchor: [size * scale / 2, size * scale / 2],
+                popupAnchor: [0, -size * scale / 2 - 5]
+            });
+        }
+
+        function determineVendorIcon(vendor) {
+            const text = [vendor.title, vendor.description, vendor.arraystring].join(' ').toLowerCase();
+            for (const cfg of VENDOR_ICON_CONFIG.keywords) {
+                if (cfg.keywords.some(kw => text.includes(kw))) return cfg.faClass;
+            }
+            return VENDOR_ICON_CONFIG.defaultVendor.faClass;
+        }
+
+        function getPOIColor(poiType) {
+            return (POI_CONFIG[poiType] || POI_CONFIG.Default).color;
+        }
+
+        // ==================== POPUPS ====================
+        function buildVendorPopup(vendor, stalls) {
+            const color = VENDOR_TYPE_COLORS[vendor.vendorType] || '#4a6741';
+            let html = `<div class="popup-header" style="background:${color}">
+                <div class="popup-title">${vendor.title}</div>
+                <div class="popup-subtitle">${vendor.vendorType || 'Vendor'} • Stalls: ${stalls.join(', ')}</div>
+            </div>`;
+
+            html += '<div class="popup-body">';
+            if (vendor.description) {
+                html += `<p class="popup-description">${vendor.description}</p>`;
+            }
+            if (vendor.arraystring) {
+                html += '<div class="popup-tags">';
+                vendor.arraystring.split(/[,;]/).slice(0, 5).forEach(tag => {
+                    if (tag.trim()) html += `<span class="popup-tag">${tag.trim()}</span>`;
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+
+            html += '<div class="popup-actions">';
+            if (vendor.url) {
+                const url = vendor.url.startsWith('http') ? vendor.url : 'https://' + vendor.url;
+                html += `<a href="${url}" target="_blank" class="popup-btn popup-btn-secondary"><i class="fa-solid fa-globe"></i> Website</a>`;
+            }
+            html += `<a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(vendor.title + ' Dubuque Farmers Market')}" target="_blank" class="popup-btn popup-btn-primary"><i class="fa-solid fa-location-arrow"></i> Directions</a>`;
+            html += '</div>';
+
+            return html;
+        }
+
+        function buildPoiPopup(props) {
+            const config = POI_CONFIG[props.poiType] || POI_CONFIG.Default;
+            return `<div class="popup-header" style="background:${config.color}">
+                <div class="popup-title">${props.title || 'Point of Interest'}</div>
+                <div class="popup-subtitle">${props.poiType || ''}</div>
+            </div>
+            <div class="popup-body">
+                <p class="popup-description">${props.description || ''}</p>
+            </div>`;
+        }
+
+        // ==================== FILTERING ====================
+        function itemMatchesFilter(item, type) {
+            if (!currentFilter && !searchTerm) return true;
+
+            if (searchTerm) {
+                const text = type === 'vendor' 
+                    ? [item.title, item.description, item.vendorType, item.arraystring].join(' ').toLowerCase()
+                    : [item.title, item.description, item.poiType].join(' ').toLowerCase();
+                return text.includes(searchTerm);
+            }
+
+            if (currentFilter) {
+                if (type === 'vendor') {
+                    if (currentFilter.type === 'vendorType') return item.vendorType === currentFilter.value;
+                    if (currentFilter.type === 'keyword') {
+                        const text = [item.title, item.description, item.arraystring].join(' ').toLowerCase();
+                        return currentFilter.value.split(' ').some(kw => text.includes(kw));
+                    }
+                }
+                if (type === 'poi') {
+                    if (currentFilter.type === 'poiType') {
+                        return (item.poiType || '').toLowerCase().includes(currentFilter.value.toLowerCase());
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        function updateMarkerStyles() {
+            const hasFilter = currentFilter || searchTerm;
+
+            // Update vendor markers
+            Object.values(vendorMarkerRefs).forEach(ref => {
+                const matches = itemMatchesFilter(ref.data, 'vendor');
+                const highlighted = hasFilter && matches;
+                const dimmed = hasFilter && !matches;
+                ref.marker.setIcon(createVendorIcon(ref.data, highlighted, dimmed));
+                ref.marker.setZIndexOffset(dimmed ? 0 : (highlighted ? 200 : 100));
+            });
+
+            // Update POI markers
+            Object.values(poiMarkerRefs).forEach(ref => {
+                if (!ref.marker.setIcon) return; // Skip polygons
+                const matches = itemMatchesFilter(ref.props, 'poi');
+                const highlighted = hasFilter && matches;
+                const dimmed = hasFilter && !matches;
+                ref.marker.setIcon(createPoiIcon(ref.props, highlighted, dimmed));
+            });
+
+            // Fly to first match
+            if (hasFilter) {
+                for (const ref of Object.values(vendorMarkerRefs)) {
+                    if (itemMatchesFilter(ref.data, 'vendor')) {
+                        map.flyTo(ref.marker.getLatLng(), Math.max(map.getZoom(), 18), { duration: 0.5 });
+                        return;
+                    }
+                }
+                for (const ref of Object.values(poiMarkerRefs)) {
+                    if (ref.marker.getLatLng && itemMatchesFilter(ref.props, 'poi')) {
+                        map.flyTo(ref.marker.getLatLng(), Math.max(map.getZoom(), 18), { duration: 0.5 });
+                        return;
+                    }
+                }
+            }
+        }
+
+        function clearFilters() {
+            currentFilter = null;
+            searchTerm = '';
+            searchInput.value = '';
+            clearFilterButtons();
+            updateSearchContainerState();
+            updateMarkerStyles();
+        }
+
+        function clearFilterButtons() {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        }
+
+        function updateSearchContainerState() {
+            if (searchInput.value) {
+                searchContainer.classList.add('has-value');
+            } else {
+                searchContainer.classList.remove('has-value');
+            }
+        }
+
+        // ==================== UTILITIES ====================
+        function groupContiguousStalls(list) {
+            if (!list || !list.length) return [];
+            const sorted = [...list].sort((a, b) => {
+                const matchA = a.match(/([A-Z]*)(\d+)/i);
+                const matchB = b.match(/([A-Z]*)(\d+)/i);
+                if (matchA && matchB) {
+                    if (matchA[1] !== matchB[1]) return matchA[1].localeCompare(matchB[1]);
+                    return parseInt(matchA[2]) - parseInt(matchB[2]);
+                }
+                return a.localeCompare(b);
+            });
+
+            const groups = [[sorted[0]]];
+            for (let i = 1; i < sorted.length; i++) {
+                const prev = sorted[i - 1].match(/([A-Z]*)(\d+)/i);
+                const curr = sorted[i].match(/([A-Z]*)(\d+)/i);
+                if (prev && curr && prev[1] === curr[1] && parseInt(curr[2]) - parseInt(prev[2]) === 1) {
+                    groups[groups.length - 1].push(sorted[i]);
+                } else {
+                    groups.push([sorted[i]]);
+                }
+            }
+            return groups;
+        }
+
+        function showLoader() {
+            mapLoader.classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            mapLoader.classList.add('hidden');
+        }
+
+        function showMessage(text) {
+            mapMessage.textContent = text;
+            mapMessage.classList.add('visible');
+        }
+
+        function hideMessage() {
+            mapMessage.classList.remove('visible');
+        }
+
+        // ==================== GEOLOCATION ====================
+        function toggleGeolocation() {
+            const btn = document.getElementById('locate-btn');
+
+            if (geoWatchId) {
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+                btn.classList.remove('locating', 'active');
+                if (userLocationMarker) userLocationMarker.setOpacity(0.5);
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                showMessage("Geolocation not supported");
+                return;
+            }
+
+            btn.classList.add('locating');
+
+            geoWatchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    btn.classList.remove('locating');
+                    btn.classList.add('active');
+                    const { latitude, longitude, accuracy } = pos.coords;
+                    const latlng = [latitude, longitude];
+
+                    if (!userLocationMarker) {
+                        userLocationMarker = L.marker(latlng, {
+                            icon: L.divIcon({
+                                className: 'user-location-marker',
+                                iconSize: [16, 16],
+                                iconAnchor: [8, 8]
+                            }),
+                            zIndexOffset: 1000
+                        }).addTo(map).bindPopup("You are here");
+
+                        userAccuracyCircle = L.circle(latlng, {
+                            radius: accuracy,
+                            className: 'user-accuracy-circle',
+                            interactive: false
+                        }).addTo(map);
+
+                        map.flyTo(latlng, 18);
+                    } else {
+                        userLocationMarker.setLatLng(latlng).setOpacity(1);
+                        userAccuracyCircle.setLatLng(latlng).setRadius(accuracy);
+                    }
+                },
+                (err) => {
+                    console.warn("Geolocation error:", err);
+                    btn.classList.remove('locating', 'active');
+                    showMessage("Could not get location");
+                    setTimeout(hideMessage, 3000);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+    </script>
+</body>
+</html>

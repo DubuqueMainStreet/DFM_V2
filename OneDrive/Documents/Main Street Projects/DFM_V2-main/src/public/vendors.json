@@ -1,0 +1,182 @@
+[
+  {
+    "id": "vendor-001",
+    "name": "Green Valley Farm",
+    "stall_number": "A1",
+    "category": "Produce",
+    "description": "Fresh organic vegetables and fruits grown locally. Specializing in heirloom tomatoes, sweet corn, and seasonal greens.",
+    "vendorType": "Grower/Producer/Processor",
+    "tags": "organic vegetables fruits tomatoes corn greens snap ebt",
+    "website": "https://greenvalleyfarm.com",
+    "coordinates": {
+      "lat": 42.5006,
+      "lng": -90.6647
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-90.6647, 42.5006]
+    }
+  },
+  {
+    "id": "vendor-002",
+    "name": "Riverbend Bakery",
+    "stall_number": "B3",
+    "category": "Bakery",
+    "description": "Artisan breads, pastries, and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "vendorType": "Grower/Producer/Processor",
+    "tags": "bakery bread cookie pie cake sweet pastry donut muffin scone",
+    "website": null,
+    "coordinates": {
+      "lat": 42.5010,
+      "lng": -90.6650
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-90.6650, 42.5010]
+    }
+  },
+  {
+    "id": "vendor-003",
+    "name": "Morning Brew Coffee Co.",
+    "stall_number": "C2",
+    "category": "Coffee",
+    "description": "Locally roasted coffee beans, espresso drinks, and cold brew. Fair trade and organic options available.",
+    "vendorType": "Grower/Producer/Processor",
+    "tags": "coffee espresso latte cappuccino cold brew roaster bean tea chai",
+    "website": "https://morningbrewcoffee.com",
+    "coordinates": {
+      "lat": 42.5008,
+      "lng": -90.6645
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-90.6645, 42.5008]
+    }
+  },
+  {
+    "id": "vendor-004",
+    "name": "Prairie Honey & Beeswax",
+    "stall_number": "D4",
+    "category": "Artisans",
+    "description": "Raw local honey, beeswax candles, and honey-based products. Supporting local bee populations.",
+    "vendorType": "Grower/Producer/Processor",
+    "tags": "honey beeswax candles artisan local",
+    "website": null,
+    "coordinates": {
+      "lat": 42.5012,
+      "lng": -90.6648
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-90.6648, 42.5012]
+    }
+  },
+  {
+    "id": "vendor-005",
+    "name": "Farm Fresh Eggs & Poultry",
+    "stall_number": "A5",
+    "category": "Produce",
+    "description": "Free-range eggs and pasture-raised chicken. All from our family farm just outside Dubuque.",
+    "vendorType": "Grower/Producer/Processor",
+    "tags": "eggs poultry chicken farm fresh snap ebt",
+    "website": null,
+    "coordinates": {
+      "lat": 42.5004,
+      "lng": -90.6652
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-90.6652, 42.5004]
+    }
+  },
+  {
+    "id": "vendor-006",
+    "name": "The Taco Stand",
+    "stall_number": "E1",
+    "category": "Ready to Eat",
+    "description": "Fresh Mexican street food made to order. Tacos, burritos, and quesadillas with locally sourced ingredients.",
+    "vendorType": "On-site Prepared Food Vendor",
+    "tags": "tacos burritos mexican food ready to eat prepared",
+    "website": null,
+    "coordinates": {
+      "lat": 42.5009,
+      "lng": -90.6643
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-90.6643, 42.5009]
+    }
+  },
+  {
+    "id": "vendor-007",
+    "name": "Artisan Crafts by Sarah",
+    "stall_number": "F2",
+    "category": "Artisans",
+    "description": "Handmade pottery, jewelry, and textile art. Unique gifts and home decor items.",
+    "vendorType": "Artisan",
+    "tags": "pottery jewelry crafts artisan handmade gifts",
+    "website": "https://artisanbySarah.com",
+    "coordinates": {
+      "lat": 42.5011,
+      "lng": -90.6646
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-90.6646, 42.5011]
+    }
+  },
+  {
+    "id": "vendor-008",
+    "name": "Herb Garden Specialties",
+    "stall_number": "B6",
+    "category": "Produce",
+    "description": "Fresh herbs, microgreens, and specialty vegetables. Perfect for home chefs and gardeners.",
+    "vendorType": "Grower/Producer/Processor",
+    "tags": "herbs microgreens vegetables specialty snap ebt",
+    "website": null,
+    "coordinates": {
+      "lat": 42.5007,
+      "lng": -90.6651
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-90.6651, 42.5007]
+    }
+  },
+  {
+    "id": "vendor-009",
+    "name": "Sweet Treats Bakery",
+    "stall_number": "C5",
+    "category": "Bakery",
+    "description": "Custom cakes, cookies, and dessert bars. Specializing in gluten-free and vegan options.",
+    "vendorType": "Grower/Producer/Processor",
+    "tags": "bakery cake cookie sweet pastry gluten-free vegan",
+    "website": null,
+    "coordinates": {
+      "lat": 42.5005,
+      "lng": -90.6649
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-90.6649, 42.5005]
+    }
+  },
+  {
+    "id": "vendor-010",
+    "name": "Local Meats & More",
+    "stall_number": "D7",
+    "category": "Produce",
+    "description": "Grass-fed beef, pork, and lamb from local farms. Also offering cheese and dairy products.",
+    "vendorType": "Grower/Producer/Processor",
+    "tags": "meat beef pork lamb cheese dairy snap ebt",
+    "website": null,
+    "coordinates": {
+      "lat": 42.5013,
+      "lng": -90.6644
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-90.6644, 42.5013]
+    }
+  }
+]

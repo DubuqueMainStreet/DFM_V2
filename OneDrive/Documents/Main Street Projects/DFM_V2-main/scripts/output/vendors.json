@@ -1,0 +1,1082 @@
+[
+  {
+    "VendorID": "VENDOR-001",
+    "Vendor": "Green Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits, organic, fresh",
+    "DefaultStall": "A12"
+  },
+  {
+    "VendorID": "VENDOR-002",
+    "Vendor": "River Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": "https://rivergardens.com",
+    "Tags": "bakery, bread, cookie, pie",
+    "DefaultStall": "A13"
+  },
+  {
+    "VendorID": "VENDOR-003",
+    "Vendor": "Prairie Acres",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": null,
+    "Tags": "coffee, espresso, latte, cappuccino",
+    "DefaultStall": "A14"
+  },
+  {
+    "VendorID": "VENDOR-004",
+    "Vendor": "Valley Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": "https://valleygardens.com",
+    "Tags": "meat, beef",
+    "DefaultStall": "A15"
+  },
+  {
+    "VendorID": "VENDOR-005",
+    "Vendor": "Meadow Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": "https://meadowfields.com",
+    "Tags": "cheese, dairy, milk",
+    "DefaultStall": "A16"
+  },
+  {
+    "VendorID": "VENDOR-006",
+    "Vendor": "Uncle Crepe Corner",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": "https://unclecrepecorner.com",
+    "Tags": "tacos, burritos, sandwich, burger",
+    "DefaultStall": "A17"
+  },
+  {
+    "VendorID": "VENDOR-007",
+    "Vendor": "Robert's Crafts Co.",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": null,
+    "Tags": "pottery, jewelry, crafts, artisan",
+    "DefaultStall": "A18"
+  },
+  {
+    "VendorID": "VENDOR-008",
+    "Vendor": "Sunrise Homestead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": "https://sunrisehomestead.com",
+    "Tags": "honey, beeswax, jam, jelly",
+    "DefaultStall": "A19"
+  },
+  {
+    "VendorID": "VENDOR-009",
+    "Vendor": "Cedar Ranch",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits, organic, fresh",
+    "DefaultStall": "A20"
+  },
+  {
+    "VendorID": "VENDOR-010",
+    "Vendor": "Oak Farmstead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": null,
+    "Tags": "bakery, bread, cookie, pie",
+    "DefaultStall": "A21"
+  },
+  {
+    "VendorID": "VENDOR-011",
+    "Vendor": "Maple Farm",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": "https://maplefarm.com",
+    "Tags": "coffee, espresso, latte, cappuccino, cold brew",
+    "DefaultStall": "A22"
+  },
+  {
+    "VendorID": "VENDOR-012",
+    "Vendor": "Willow Orchards",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": "https://willoworchards.com",
+    "Tags": "meat, beef, pork, chicken, turkey",
+    "DefaultStall": "L1"
+  },
+  {
+    "VendorID": "VENDOR-013",
+    "Vendor": "Pine Farm",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": "https://pinefarm.com",
+    "Tags": "cheese, dairy, milk, yogurt",
+    "DefaultStall": "L2"
+  },
+  {
+    "VendorID": "VENDOR-014",
+    "Vendor": "Big BBQ Pit",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich",
+    "DefaultStall": "L3"
+  },
+  {
+    "VendorID": "VENDOR-015",
+    "Vendor": "Barbara's Coffee Co.",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": "https://barbara'scoffeeco..com",
+    "Tags": "pottery, jewelry, crafts",
+    "DefaultStall": "L4"
+  },
+  {
+    "VendorID": "VENDOR-016",
+    "Vendor": "Happy Grove",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": "https://happygrove.com",
+    "Tags": "honey, beeswax",
+    "DefaultStall": "L6"
+  },
+  {
+    "VendorID": "VENDOR-017",
+    "Vendor": "Lucky Orchards",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits, organic, fresh, local",
+    "DefaultStall": "L7"
+  },
+  {
+    "VendorID": "VENDOR-018",
+    "Vendor": "Golden Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": "https://goldenfields.com",
+    "Tags": "bakery, bread, cookie, pie",
+    "DefaultStall": "L8"
+  },
+  {
+    "VendorID": "VENDOR-019",
+    "Vendor": "Silver Meadows",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": "https://silvermeadows.com",
+    "Tags": "coffee, espresso, latte",
+    "DefaultStall": "A12"
+  },
+  {
+    "VendorID": "VENDOR-020",
+    "Vendor": "Blue Meadows",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef",
+    "DefaultStall": "K1"
+  },
+  {
+    "VendorID": "VENDOR-021",
+    "Vendor": "Green Farm",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": null,
+    "Tags": "cheese, dairy, milk",
+    "DefaultStall": "K2"
+  },
+  {
+    "VendorID": "VENDOR-022",
+    "Vendor": "Grandma's Waffle House",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos",
+    "DefaultStall": "K3"
+  },
+  {
+    "VendorID": "VENDOR-023",
+    "Vendor": "Michael's Goods",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": null,
+    "Tags": "pottery, jewelry",
+    "DefaultStall": "K4"
+  },
+  {
+    "VendorID": "VENDOR-024",
+    "Vendor": "Valley Acres",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": "https://valleyacres.com",
+    "Tags": "honey, beeswax, jam",
+    "DefaultStall": "K5"
+  },
+  {
+    "VendorID": "VENDOR-025",
+    "Vendor": "Meadow Homestead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": "https://meadowhomestead.com",
+    "Tags": "vegetables, fruits, organic, fresh",
+    "DefaultStall": "K6"
+  },
+  {
+    "VendorID": "VENDOR-026",
+    "Vendor": "Hill Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": "https://hillgardens.com",
+    "Tags": "bakery, bread, cookie",
+    "DefaultStall": "K7"
+  },
+  {
+    "VendorID": "VENDOR-027",
+    "Vendor": "Sunset Ranch",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": "https://sunsetranch.com",
+    "Tags": "coffee, espresso",
+    "DefaultStall": "K8"
+  },
+  {
+    "VendorID": "VENDOR-028",
+    "Vendor": "Sunrise Farmstead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef, pork",
+    "DefaultStall": "K9"
+  },
+  {
+    "VendorID": "VENDOR-029",
+    "Vendor": "Cedar Homestead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": "https://cedarhomestead.com",
+    "Tags": "cheese, dairy, milk",
+    "DefaultStall": "K10"
+  },
+  {
+    "VendorID": "VENDOR-030",
+    "Vendor": "The Taco Stand",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich",
+    "DefaultStall": "B12"
+  },
+  {
+    "VendorID": "VENDOR-031",
+    "Vendor": "John's Crafts",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": null,
+    "Tags": "pottery, jewelry, crafts, artisan",
+    "DefaultStall": "B15"
+  },
+  {
+    "VendorID": "VENDOR-032",
+    "Vendor": "Willow Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": null,
+    "Tags": "honey, beeswax, jam, jelly",
+    "DefaultStall": "B14"
+  },
+  {
+    "VendorID": "VENDOR-033",
+    "Vendor": "Pine Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits, organic",
+    "DefaultStall": "B13"
+  },
+  {
+    "VendorID": "VENDOR-034",
+    "Vendor": "Birch Homestead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": null,
+    "Tags": "bakery, bread, cookie",
+    "DefaultStall": "B16"
+  },
+  {
+    "VendorID": "VENDOR-035",
+    "Vendor": "Wild Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": "https://wildgardens.com",
+    "Tags": "coffee, espresso, latte, cappuccino, cold brew",
+    "DefaultStall": "B17"
+  },
+  {
+    "VendorID": "VENDOR-036",
+    "Vendor": "Happy Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef, pork",
+    "DefaultStall": "B18"
+  },
+  {
+    "VendorID": "VENDOR-037",
+    "Vendor": "Lucky Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": null,
+    "Tags": "cheese, dairy",
+    "DefaultStall": "B19"
+  },
+  {
+    "VendorID": "VENDOR-038",
+    "Vendor": "The Sandwich Shop",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich, burger",
+    "DefaultStall": "B20"
+  },
+  {
+    "VendorID": "VENDOR-039",
+    "Vendor": "Nancy's Crafts",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": null,
+    "Tags": "pottery, jewelry",
+    "DefaultStall": "B21"
+  },
+  {
+    "VendorID": "VENDOR-040",
+    "Vendor": "Blue Farmstead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": null,
+    "Tags": "honey, beeswax",
+    "DefaultStall": "B22"
+  },
+  {
+    "VendorID": "VENDOR-041",
+    "Vendor": "Green Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits, organic, fresh, local",
+    "DefaultStall": "B2"
+  },
+  {
+    "VendorID": "VENDOR-042",
+    "Vendor": "River Grove",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": "https://rivergrove.com",
+    "Tags": "bakery, bread",
+    "DefaultStall": "B3"
+  },
+  {
+    "VendorID": "VENDOR-043",
+    "Vendor": "Prairie Acres",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": null,
+    "Tags": "coffee, espresso",
+    "DefaultStall": "B4"
+  },
+  {
+    "VendorID": "VENDOR-044",
+    "Vendor": "Valley Farm",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef, pork, chicken, turkey",
+    "DefaultStall": "B5"
+  },
+  {
+    "VendorID": "VENDOR-045",
+    "Vendor": "Meadow Grove",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": "https://meadowgrove.com",
+    "Tags": "cheese, dairy, milk, yogurt, butter",
+    "DefaultStall": "B6"
+  },
+  {
+    "VendorID": "VENDOR-046",
+    "Vendor": "Big Burger Joint",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich",
+    "DefaultStall": "B7"
+  },
+  {
+    "VendorID": "VENDOR-047",
+    "Vendor": "Robert's Crafts Co.",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": "https://robert'scraftsco..com",
+    "Tags": "pottery, jewelry, crafts",
+    "DefaultStall": "B8"
+  },
+  {
+    "VendorID": "VENDOR-048",
+    "Vendor": "Sunrise Farm",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": "https://sunrisefarm.com",
+    "Tags": "honey, beeswax, jam, jelly",
+    "DefaultStall": "B9"
+  },
+  {
+    "VendorID": "VENDOR-049",
+    "Vendor": "Cedar Meadows",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits",
+    "DefaultStall": "B10"
+  },
+  {
+    "VendorID": "VENDOR-050",
+    "Vendor": "Oak Homestead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": null,
+    "Tags": "bakery, bread, cookie",
+    "DefaultStall": "B11"
+  },
+  {
+    "VendorID": "VENDOR-051",
+    "Vendor": "Maple Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": null,
+    "Tags": "coffee, espresso, latte, cappuccino",
+    "DefaultStall": "C1"
+  },
+  {
+    "VendorID": "VENDOR-052",
+    "Vendor": "Willow Grove",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef, pork",
+    "DefaultStall": "C2"
+  },
+  {
+    "VendorID": "VENDOR-053",
+    "Vendor": "Pine Meadows",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": null,
+    "Tags": "cheese, dairy, milk",
+    "DefaultStall": "G1"
+  },
+  {
+    "VendorID": "VENDOR-054",
+    "Vendor": "Uncle Pizza Place",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich",
+    "DefaultStall": "G2"
+  },
+  {
+    "VendorID": "VENDOR-055",
+    "Vendor": "Barbara's Market",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": null,
+    "Tags": "pottery, jewelry, crafts, artisan",
+    "DefaultStall": "G3"
+  },
+  {
+    "VendorID": "VENDOR-056",
+    "Vendor": "Happy Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": "https://happyfields.com",
+    "Tags": "honey, beeswax, jam, jelly, syrup",
+    "DefaultStall": "G4"
+  },
+  {
+    "VendorID": "VENDOR-057",
+    "Vendor": "Lucky Homestead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": "https://luckyhomestead.com",
+    "Tags": "vegetables, fruits, organic",
+    "DefaultStall": "G5"
+  },
+  {
+    "VendorID": "VENDOR-058",
+    "Vendor": "Golden Farmstead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": null,
+    "Tags": "bakery, bread, cookie, pie, cake",
+    "DefaultStall": "G6"
+  },
+  {
+    "VendorID": "VENDOR-059",
+    "Vendor": "Silver Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": null,
+    "Tags": "coffee, espresso, latte, cappuccino, cold brew",
+    "DefaultStall": "G7"
+  },
+  {
+    "VendorID": "VENDOR-060",
+    "Vendor": "Blue Ranch",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef, pork",
+    "DefaultStall": "G8"
+  },
+  {
+    "VendorID": "VENDOR-061",
+    "Vendor": "Green Ranch",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": null,
+    "Tags": "cheese, dairy, milk, yogurt, butter",
+    "DefaultStall": "G9"
+  },
+  {
+    "VendorID": "VENDOR-062",
+    "Vendor": "Little Burger Joint",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich",
+    "DefaultStall": "G10"
+  },
+  {
+    "VendorID": "VENDOR-063",
+    "Vendor": "Michael's Kitchen",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": "https://michael'skitchen.com",
+    "Tags": "pottery, jewelry",
+    "DefaultStall": "G11"
+  },
+  {
+    "VendorID": "VENDOR-064",
+    "Vendor": "Valley Farm",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": null,
+    "Tags": "honey, beeswax",
+    "DefaultStall": "G12"
+  },
+  {
+    "VendorID": "VENDOR-065",
+    "Vendor": "Meadow Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits",
+    "DefaultStall": "G13"
+  },
+  {
+    "VendorID": "VENDOR-066",
+    "Vendor": "Hill Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": null,
+    "Tags": "bakery, bread, cookie",
+    "DefaultStall": "G14"
+  },
+  {
+    "VendorID": "VENDOR-067",
+    "Vendor": "Sunset Acres",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": "https://sunsetacres.com",
+    "Tags": "coffee, espresso",
+    "DefaultStall": "G15"
+  },
+  {
+    "VendorID": "VENDOR-068",
+    "Vendor": "Sunrise Farmstead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef",
+    "DefaultStall": "G16"
+  },
+  {
+    "VendorID": "VENDOR-069",
+    "Vendor": "Cedar Grove",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": null,
+    "Tags": "cheese, dairy, milk, yogurt, butter",
+    "DefaultStall": "G17"
+  },
+  {
+    "VendorID": "VENDOR-070",
+    "Vendor": "Big Sandwich Shop",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich, burger, pizza",
+    "DefaultStall": "G18"
+  },
+  {
+    "VendorID": "VENDOR-071",
+    "Vendor": "John's Market",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": null,
+    "Tags": "pottery, jewelry",
+    "DefaultStall": "H1"
+  },
+  {
+    "VendorID": "VENDOR-072",
+    "Vendor": "Willow Ranch",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": null,
+    "Tags": "honey, beeswax, jam, jelly, syrup",
+    "DefaultStall": "H2"
+  },
+  {
+    "VendorID": "VENDOR-073",
+    "Vendor": "Pine Meadows",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits",
+    "DefaultStall": "H3"
+  },
+  {
+    "VendorID": "VENDOR-074",
+    "Vendor": "Birch Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": null,
+    "Tags": "bakery, bread",
+    "DefaultStall": "H4"
+  },
+  {
+    "VendorID": "VENDOR-075",
+    "Vendor": "Wild Homestead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": "https://wildhomestead.com",
+    "Tags": "coffee, espresso, latte, cappuccino, cold brew",
+    "DefaultStall": "H5"
+  },
+  {
+    "VendorID": "VENDOR-076",
+    "Vendor": "Happy Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef",
+    "DefaultStall": "H6"
+  },
+  {
+    "VendorID": "VENDOR-077",
+    "Vendor": "Lucky Homestead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": null,
+    "Tags": "cheese, dairy, milk, yogurt",
+    "DefaultStall": "H13"
+  },
+  {
+    "VendorID": "VENDOR-078",
+    "Vendor": "Grandma's Ice Cream Parlor",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich, burger",
+    "DefaultStall": "H12"
+  },
+  {
+    "VendorID": "VENDOR-079",
+    "Vendor": "Nancy's Market",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": null,
+    "Tags": "pottery, jewelry, crafts, artisan, handmade",
+    "DefaultStall": "H11"
+  },
+  {
+    "VendorID": "VENDOR-080",
+    "Vendor": "Blue Farm",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": null,
+    "Tags": "honey, beeswax, jam, jelly, syrup",
+    "DefaultStall": "H10"
+  },
+  {
+    "VendorID": "VENDOR-081",
+    "Vendor": "Green Homestead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": "https://greenhomestead.com",
+    "Tags": "vegetables, fruits, organic, fresh, local",
+    "DefaultStall": "H9"
+  },
+  {
+    "VendorID": "VENDOR-082",
+    "Vendor": "River Acres",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": null,
+    "Tags": "bakery, bread, cookie",
+    "DefaultStall": "H8"
+  },
+  {
+    "VendorID": "VENDOR-083",
+    "Vendor": "Prairie Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": null,
+    "Tags": "coffee, espresso, latte, cappuccino, cold brew",
+    "DefaultStall": "D1"
+  },
+  {
+    "VendorID": "VENDOR-084",
+    "Vendor": "Valley Homestead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef",
+    "DefaultStall": "D2"
+  },
+  {
+    "VendorID": "VENDOR-085",
+    "Vendor": "Meadow Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": "https://meadowgardens.com",
+    "Tags": "cheese, dairy, milk, yogurt, butter",
+    "DefaultStall": "D4"
+  },
+  {
+    "VendorID": "VENDOR-086",
+    "Vendor": "The Waffle House",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos",
+    "DefaultStall": "D3"
+  },
+  {
+    "VendorID": "VENDOR-087",
+    "Vendor": "Robert's Shop",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": null,
+    "Tags": "pottery, jewelry, crafts, artisan, handmade",
+    "DefaultStall": "D5"
+  },
+  {
+    "VendorID": "VENDOR-088",
+    "Vendor": "Sunrise Grove",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": null,
+    "Tags": "honey, beeswax",
+    "DefaultStall": "D6"
+  },
+  {
+    "VendorID": "VENDOR-089",
+    "Vendor": "Cedar Ranch",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits, organic, fresh, local",
+    "DefaultStall": "D7"
+  },
+  {
+    "VendorID": "VENDOR-090",
+    "Vendor": "Oak Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": null,
+    "Tags": "bakery, bread",
+    "DefaultStall": "D8"
+  },
+  {
+    "VendorID": "VENDOR-091",
+    "Vendor": "Maple Acres",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": "https://mapleacres.com",
+    "Tags": "coffee, espresso, latte, cappuccino, cold brew",
+    "DefaultStall": "D9"
+  },
+  {
+    "VendorID": "VENDOR-092",
+    "Vendor": "Willow Ranch",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef",
+    "DefaultStall": "D10"
+  },
+  {
+    "VendorID": "VENDOR-093",
+    "Vendor": "Pine Farm",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": null,
+    "Tags": "cheese, dairy, milk, yogurt",
+    "DefaultStall": "D11"
+  },
+  {
+    "VendorID": "VENDOR-094",
+    "Vendor": "The Burrito Bar",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich",
+    "DefaultStall": "D13"
+  },
+  {
+    "VendorID": "VENDOR-095",
+    "Vendor": "Barbara's Crafts Co.",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": "https://barbara'scraftsco..com",
+    "Tags": "pottery, jewelry, crafts, artisan",
+    "DefaultStall": "D14"
+  },
+  {
+    "VendorID": "VENDOR-096",
+    "Vendor": "Happy Ranch",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": null,
+    "Tags": "honey, beeswax, jam, jelly, syrup",
+    "DefaultStall": "D15"
+  },
+  {
+    "VendorID": "VENDOR-097",
+    "Vendor": "Lucky Acres",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits, organic",
+    "DefaultStall": "D16"
+  },
+  {
+    "VendorID": "VENDOR-098",
+    "Vendor": "Golden Ranch",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": null,
+    "Tags": "bakery, bread, cookie, pie",
+    "DefaultStall": "D17"
+  },
+  {
+    "VendorID": "VENDOR-099",
+    "Vendor": "Silver Ranch",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": "https://silverranch.com",
+    "Tags": "coffee, espresso, latte",
+    "DefaultStall": "D18"
+  },
+  {
+    "VendorID": "VENDOR-100",
+    "Vendor": "Blue Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef, pork",
+    "DefaultStall": "D19"
+  },
+  {
+    "VendorID": "VENDOR-101",
+    "Vendor": "Green Farm",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": null,
+    "Tags": "cheese, dairy, milk, yogurt",
+    "DefaultStall": "D20"
+  },
+  {
+    "VendorID": "VENDOR-102",
+    "Vendor": "The Pizza Place",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos",
+    "DefaultStall": "D21"
+  },
+  {
+    "VendorID": "VENDOR-103",
+    "Vendor": "Michael's Bakery Co.",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": "https://michael'sbakeryco..com",
+    "Tags": "pottery, jewelry, crafts, artisan",
+    "DefaultStall": "D22"
+  },
+  {
+    "VendorID": "VENDOR-104",
+    "Vendor": "Valley Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": null,
+    "Tags": "honey, beeswax",
+    "DefaultStall": "J1"
+  },
+  {
+    "VendorID": "VENDOR-105",
+    "Vendor": "Meadow Orchards",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits, organic",
+    "DefaultStall": "J2"
+  },
+  {
+    "VendorID": "VENDOR-106",
+    "Vendor": "Hill Meadows",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": null,
+    "Tags": "bakery, bread",
+    "DefaultStall": "J3"
+  },
+  {
+    "VendorID": "VENDOR-107",
+    "Vendor": "Sunset Farm",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": "https://sunsetfarm.com",
+    "Tags": "coffee, espresso, latte",
+    "DefaultStall": "J4"
+  },
+  {
+    "VendorID": "VENDOR-108",
+    "Vendor": "Sunrise Farmstead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef",
+    "DefaultStall": "J5"
+  },
+  {
+    "VendorID": "VENDOR-109",
+    "Vendor": "Cedar Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": "https://cedargardens.com",
+    "Tags": "cheese, dairy",
+    "DefaultStall": "J6"
+  },
+  {
+    "VendorID": "VENDOR-110",
+    "Vendor": "Grandma's Waffle House",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich, burger, pizza",
+    "DefaultStall": "J7"
+  },
+  {
+    "VendorID": "VENDOR-111",
+    "Vendor": "John's Coffee",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": null,
+    "Tags": "pottery, jewelry",
+    "DefaultStall": "J8"
+  },
+  {
+    "VendorID": "VENDOR-112",
+    "Vendor": "Willow Farmstead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": null,
+    "Tags": "honey, beeswax, jam, jelly, syrup",
+    "DefaultStall": "J9"
+  },
+  {
+    "VendorID": "VENDOR-113",
+    "Vendor": "Pine Farmstead",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh vegetables and seasonal produce grown locally. Specializing in organic and heirloom varieties.",
+    "Website": null,
+    "Tags": "vegetables, fruits, organic, fresh",
+    "DefaultStall": "J10"
+  },
+  {
+    "VendorID": "VENDOR-114",
+    "Vendor": "Birch Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Artisan bakery and sweet treats. Fresh baked daily using traditional methods and local ingredients.",
+    "Website": "https://birchfields.com",
+    "Tags": "bakery, bread, cookie, pie",
+    "DefaultStall": "J20"
+  },
+  {
+    "VendorID": "VENDOR-115",
+    "Vendor": "Wild Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Locally roasted coffee beans and specialty drinks. Fair trade and organic options available.",
+    "Website": null,
+    "Tags": "coffee, espresso, latte, cappuccino",
+    "DefaultStall": "J19"
+  },
+  {
+    "VendorID": "VENDOR-116",
+    "Vendor": "Happy Meadows",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Farm-fresh meat and beef. All from our family farm just outside Dubuque.",
+    "Website": null,
+    "Tags": "meat, beef, pork",
+    "DefaultStall": "J18"
+  },
+  {
+    "VendorID": "VENDOR-117",
+    "Vendor": "Lucky Gardens",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Fresh cheese and dairy products from local farms. Supporting sustainable agriculture.",
+    "Website": null,
+    "Tags": "cheese, dairy",
+    "DefaultStall": "J17"
+  },
+  {
+    "VendorID": "VENDOR-118",
+    "Vendor": "Grandma's BBQ Pit",
+    "VendorType": "On-site Prepared Food Vendor",
+    "Description": "Fresh tacos made to order. Using locally sourced ingredients whenever possible.",
+    "Website": null,
+    "Tags": "tacos, burritos, sandwich, burger",
+    "DefaultStall": "J11"
+  },
+  {
+    "VendorID": "VENDOR-119",
+    "Vendor": "Nancy's Specialties",
+    "VendorType": "Crafter/Artisan",
+    "Description": "Handmade pottery and unique gifts. Supporting local artists and craftspeople.",
+    "Website": null,
+    "Tags": "pottery, jewelry, crafts, artisan",
+    "DefaultStall": "J12"
+  },
+  {
+    "VendorID": "VENDOR-120",
+    "Vendor": "Blue Fields",
+    "VendorType": "Grower/Producer/Processor",
+    "Description": "Local honey and specialty products. Made with care and attention to quality.",
+    "Website": "https://bluefields.com",
+    "Tags": "honey, beeswax, jam, jelly",
+    "DefaultStall": "J13"
+  }
+]

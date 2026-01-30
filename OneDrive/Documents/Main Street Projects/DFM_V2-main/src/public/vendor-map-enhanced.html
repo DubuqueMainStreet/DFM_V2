@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Dubuque Farmers' Market Interactive Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <style>
+        /* ==================== MODERN AGRARIAN COLOR PALETTE ==================== */
+        :root {
+            /* Deep Greens - Primary Brand Colors */
+            --agrarian-forest: #2D5016;      /* Deep forest green */
+            --agrarian-sage: #5F7A3D;        /* Medium sage green */
+            --agrarian-moss: #8FA66B;        /* Light moss green */
+            --agrarian-mint: #C4D4A3;        /* Soft mint accent */
+            
+            /* Earthy Tones */
+            --agrarian-terracotta: #8B4513;  /* Rich brown */
+            --agrarian-clay: #A67C52;        /* Warm clay */
+            --agrarian-sand: #D4C4A0;        /* Light sand */
+            
+            /* Clean Whites & Neutrals */
+            --agrarian-cream: #F5F5F0;      /* Off-white base */
+            --agrarian-white: #FFFFFF;       /* Pure white */
+            --agrarian-charcoal: #2C2C2C;   /* Deep text */
+            --agrarian-stone: #6B6B6B;      /* Medium gray */
+            
+            /* High Contrast Accents (Mobile Visibility) */
+            --accent-success: #2D5016;      /* Dark green for active states */
+            --accent-warning: #D4A574;      /* Warm gold */
+            --accent-info: #4A7C59;         /* Teal-green */
+            
+            /* POI Colors (Maintained for consistency) */
+            --fm-parking-color: #D4A574;    /* Warm gold */
+            --fm-restroom-color: #8B4513;   /* Terracotta */
+            --fm-seating-color: #5F7A3D;    /* Sage green */
+            --poi-default-color: #6B6B6B;   /* Stone gray */
+            --vendor-parking-color: #A67C52; /* Clay */
+            --market-tokens-color: #D4A574;  /* Warm gold */
+            
+            /* UI Elements */
+            --marker-border-color: #FFFFFF;  /* White borders for contrast */
+            --popup-border-color: #D4C4A0;   /* Sand border */
+            --shadow-soft: rgba(45, 80, 22, 0.15); /* Forest green shadow */
+            --shadow-medium: rgba(45, 80, 22, 0.25);
+        }
+
+        /* ==================== MOBILE-FIRST BASE STYLES ==================== */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Poppins', sans-serif; 
+            overflow: hidden; 
+            height: 100vh; 
+            width: 100vw;
+            background-color: var(--agrarian-cream);
+            color: var(--agrarian-charcoal);
+        }
+        
+        #map { 
+            height: 100%; 
+            width: 100%; 
+            background-color: var(--agrarian-cream); 
+            touch-action: none; /* Critical for mobile map interaction */
+            z-index: 1;
+        }
+
+        /* ==================== LOADING & MESSAGES ==================== */
+        #map-loader {
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(245, 245, 240, 0.95); 
+            z-index: 2000;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            font-size: 1.1em; 
+            color: var(--agrarian-charcoal); 
+            font-weight: 500;
+            transition: opacity 0.3s ease-out;
+        }
+        
+        #map-loader i {
+            margin-bottom: 15px; 
+            color: var(--agrarian-forest);
+        }
+        
+        #map-message {
+            position: absolute; 
+            top: 15px; 
+            left: 50%; 
+            transform: translateX(-50%);
+            background: var(--agrarian-charcoal); 
+            color: var(--agrarian-white); 
+            padding: 14px 24px;
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px var(--shadow-medium);
+            z-index: 1001; 
+            text-align: center; 
+            font-size: 0.95em; 
+            font-weight: 500;
+            max-width: 90%; 
+            display: none;
+            border: 2px solid var(--agrarian-forest);
+        }
+
+        /* ==================== MARKER STYLES (HIGH CONTRAST) ==================== */
+        .custom-base-icon { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border-radius: 50%; 
+            text-align: center; 
+            box-sizing: border-box; 
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid var(--marker-border-color); 
+            position: relative;
+            box-shadow: 0 3px 8px var(--shadow-soft);
+        }
+        
+        .custom-base-icon i { 
+            line-height: inherit !important; 
+        }
+        
+        .vendor-marker-fa, .poi-marker-fa { 
+            box-shadow: 0 3px 10px var(--shadow-medium); 
+            background-color: var(--marker-bg-color, var(--agrarian-forest)); 
+        }
+        
+        .poi-marker-char { 
+            font-weight: bold; 
+            color: white; 
+            box-shadow: 0 0 4px rgba(0,0,0,0.7); 
+            border: 2px solid var(--agrarian-white); 
+        }
+        
+        /* Mobile Optimization for Touch Targets - Minimum 44px for accessibility */
+        @media (max-width: 768px) {
+            .custom-base-icon { 
+                min-width: 48px; 
+                min-height: 48px; 
+            }
+            .leaflet-popup-content-wrapper { 
+                max-width: 92vw !important; 
+                border-radius: 12px; 
+            }
+            .custom-popup .popup-button { 
+                padding: 14px 18px; 
+                font-size: 1.05em; 
+                font-weight: 600;
+                touch-action: manipulation; 
+                min-height: 48px; /* Touch target size */
+            }
+            #map-message {
+                font-size: 0.9em;
+                padding: 12px 20px;
+            }
+        }
+        
+        /* ==================== GEOLOCATION BUTTON ==================== */
+        .locate-btn {
+            position: absolute; 
+            bottom: 25px; 
+            right: 15px; 
+            z-index: 1000;
+            width: 56px; 
+            height: 56px; 
+            border-radius: 50%;
+            background: var(--agrarian-white); 
+            border: 3px solid var(--agrarian-forest);
+            box-shadow: 0 4px 12px var(--shadow-medium);
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .locate-btn:hover {
+            background: var(--agrarian-mint);
+            transform: scale(1.05);
+        }
+        
+        .locate-btn:active { 
+            transform: scale(0.95); 
+            background: var(--agrarian-moss); 
+        }
+        
+        .locate-btn i { 
+            font-size: 24px; 
+            color: var(--agrarian-forest); 
+        }
+        
+        .locate-btn.locating i { 
+            animation: pulse 1.5s infinite; 
+            color: var(--accent-info); 
+        }
+        
+        .locate-btn.active-tracking { 
+            border-color: var(--accent-info); 
+            background: var(--agrarian-mint);
+        }
+        
+        .locate-btn.active-tracking i {
+            color: var(--accent-info);
+        }
+        
+        @keyframes pulse { 
+            0% { opacity: 1; transform: scale(1); } 
+            50% { opacity: 0.6; transform: scale(0.9); } 
+            100% { opacity: 1; transform: scale(1); } 
+        }
+        
+        .user-location-marker {
+            width: 18px; 
+            height: 18px; 
+            background: var(--accent-info);
+            border: 3px solid var(--agrarian-white); 
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(74, 124, 89, 0.6);
+        }
+        
+        .user-location-accuracy {
+            background: rgba(74, 124, 89, 0.2);
+            border: 2px solid rgba(74, 124, 89, 0.4);
+            pointer-events: none;
+        }
+
+        /* ==================== MULTI-STALL & HIGHLIGHTING ==================== */
+        .multi-stall-pill-icon { 
+            box-shadow: 0 3px 10px var(--shadow-medium); 
+            border: 2px solid var(--marker-border-color); 
+            overflow: hidden; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: white; 
+        }
+        
+        .multi-stall-pill-icon .fa-solid { 
+            text-shadow: 0 0 3px rgba(0,0,0,0.6); 
+        }
+        
+        .highlighted-map-feature { 
+            z-index: 2000 !important; 
+            transform: scale(1.15);
+            box-shadow: 0 5px 20px var(--shadow-medium) !important;
+        }
+        
+        .highlighted-map-feature::after { 
+            content: ''; 
+            position: absolute; 
+            left: 50%; 
+            top: 50%; 
+            width: 180%; 
+            height: 180%; 
+            transform: translate(-50%, -50%); 
+            background-image: radial-gradient(circle closest-side, rgba(212, 165, 116, 0.5) 0%, rgba(212, 165, 116, 0) 100%); 
+            border-radius: 50%; 
+            z-index: -1; 
+            pointer-events: none; 
+        }
+
+        /* ==================== POPUP STYLING (MODERN AGRARIAN) ==================== */
+        .custom-popup .leaflet-popup-content-wrapper { 
+            background: var(--agrarian-white); 
+            color: var(--agrarian-charcoal); 
+            border-radius: 12px; 
+            box-shadow: 0 6px 24px var(--shadow-medium); 
+            padding: 0; 
+            min-width: 280px; 
+            max-width: 340px;
+            border: 2px solid var(--popup-border-color);
+        }
+        
+        .custom-popup .leaflet-popup-content { 
+            margin: 0; 
+            line-height: 1.6; 
+            font-size: 14px; 
+            padding: 0; 
+        }
+        
+        .custom-popup .leaflet-popup-tip-container { 
+            width: 40px; 
+            height: 20px; 
+        }
+        
+        .custom-popup .leaflet-popup-tip { 
+            background: var(--agrarian-white); 
+            box-shadow: none; 
+            border: 1px solid var(--popup-border-color);
+        }
+        
+        .custom-popup .popup-header { 
+            padding: 18px; 
+            border-bottom: 2px solid var(--agrarian-sand); 
+            background: linear-gradient(to bottom, var(--agrarian-cream), var(--agrarian-white)); 
+            border-radius: 12px 12px 0 0; 
+        }
+        
+        .custom-popup .popup-title { 
+            font-size: 1.3em; 
+            font-weight: 700; 
+            margin: 0 0 8px 0; 
+            color: var(--agrarian-charcoal); 
+            line-height: 1.3;
+        }
+        
+        .custom-popup .popup-category-badge { 
+            font-size: 0.75em; 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            display: inline-flex; 
+            align-items: center; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+            border: 1px solid currentColor;
+        }
+        
+        .custom-popup .popup-stall-id { 
+            font-size: 0.9em; 
+            color: var(--agrarian-stone); 
+            margin: 8px 0 0 0; 
+            font-weight: 500;
+        }
+        
+        .custom-popup .popup-stall-id i {
+            color: var(--agrarian-forest);
+            margin-right: 6px;
+        }
+        
+        .custom-popup .popup-body { 
+            padding: 18px; 
+        }
+        
+        .custom-popup .popup-description { 
+            margin: 0 0 12px 0; 
+            font-size: 0.95em; 
+            color: var(--agrarian-charcoal); 
+            max-height: 140px; 
+            overflow-y: auto; 
+            line-height: 1.6;
+        }
+        
+        .custom-popup .popup-tags { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 6px; 
+            margin-top: 10px; 
+        }
+        
+        .custom-popup .popup-tags .popup-tag { 
+            background-color: var(--agrarian-mint); 
+            color: var(--agrarian-forest); 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            font-size: 0.8em; 
+            font-weight: 500;
+            border: 1px solid var(--agrarian-moss);
+        }
+        
+        .custom-popup .popup-footer { 
+            padding: 14px 18px; 
+            border-top: 2px solid var(--agrarian-sand); 
+            display: flex; 
+            justify-content: space-between; 
+            gap: 10px; 
+            background: var(--agrarian-cream); 
+            border-radius: 0 0 12px 12px; 
+        }
+        
+        .custom-popup .popup-button { 
+            flex: 1; 
+            text-align: center; 
+            background-color: var(--agrarian-forest); 
+            color: var(--agrarian-white); 
+            padding: 12px 16px; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            font-size: 0.95em; 
+            font-weight: 600; 
+            display: inline-flex; 
+            justify-content: center; 
+            align-items: center;
+            transition: all 0.2s ease;
+            border: 2px solid var(--agrarian-forest);
+        }
+        
+        .custom-popup .popup-button:hover { 
+            background-color: var(--agrarian-sage); 
+            border-color: var(--agrarian-sage);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px var(--shadow-soft);
+        }
+        
+        .custom-popup .popup-button:active {
+            transform: translateY(0);
+        }
+        
+        .custom-popup .popup-button i { 
+            margin-left: 6px; 
+        }
+        
+        .custom-popup a.leaflet-popup-close-button { 
+            color: var(--agrarian-stone) !important; 
+            top: 14px; 
+            right: 14px; 
+            font-size: 1.5em; 
+            font-weight: 400;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            border-radius: 50%;
+            background: var(--agrarian-cream);
+            transition: all 0.2s ease;
+        }
+        
+        .custom-popup a.leaflet-popup-close-button:hover {
+            background: var(--agrarian-sand);
+            color: var(--agrarian-charcoal) !important;
+        }
+        
+        .hidden-icon { 
+            display: none !important; 
+        }
+        
+        .parking-area-polygon, .seating-area-polygon { 
+            stroke: true; 
+            weight: 2; 
+        }
+        
+        .public-parking-area { 
+            fill: var(--fm-parking-color); 
+            color: var(--fm-parking-color); 
+            fill-opacity: 0.3;
+        }
+        
+        .vendor-parking-area { 
+            fill: var(--vendor-parking-color); 
+            color: var(--vendor-parking-color); 
+            fill-opacity: 0.3;
+        }
+        
+        .seating-area-polygon { 
+            fill: var(--fm-seating-color); 
+            color: var(--fm-seating-color); 
+            fill-opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="map-loader">
+        <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+        <div>Loading market map...</div>
+    </div>
+    <div id="map-message"></div>
+    <button id="locate-btn" class="locate-btn" title="Find my location" aria-label="Find my location">
+        <i class="fa-solid fa-location-crosshairs"></i>
+    </button>
+
+    <script>
+        // ==================== CONFIGURATION ====================
+        // Modern Agrarian Color Scheme for Vendor Types
+        const VENDOR_TYPE_MARKER_BG_COLORS = {
+            "Grower/Producer/Processor": "#2D5016",      // Deep forest green
+            "On-site Prepared Food Vendor": "#8B4513", // Terracotta
+            "Crafter/Artisan": "#5F7A3D",              // Sage green
+            "Occasional Vendor": "#A67C52",            // Clay
+            "N/A": "#6B6B6B",                          // Stone gray
+            "Default": "#2D5016"                       // Default to forest green
+        };
+        
+        const DEFAULT_ICON_FG_COLOR = "#FFFFFF";
+        const PARKING_COLOR = 'var(--fm-parking-color)';
+        const RESTROOM_COLOR = 'var(--fm-restroom-color)';
+        const SEATING_COLOR = 'var(--fm-seating-color)';
+        const POI_DEFAULT_COLOR = 'var(--poi-default-color)';
+        const VENDOR_PARKING_COLOR = 'var(--vendor-parking-color)';
+        const MARKET_TOKENS_COLOR = 'var(--market-tokens-color)';
+        
+        // Optimized keyword list for icon selection
+        const VENDOR_ICON_CONFIG = { 
+            keywords: [
+                { keywords: ["photo"], faClass: 'fa-camera'},
+                { keywords: ["garden", "plant", "herb"], faClass: 'fa-seedling'},
+                { keywords: ["breakfast", "egg"], faClass: 'fa-egg'},
+                { keywords: ["bread"], faClass: 'fa-bread-slice'},
+                { keywords: ["pie"], faClass: 'fa-chart-pie'},
+                { keywords: ["cookie"], faClass: 'fa-cookie-bite'},
+                { keywords: ["cake", "bakery"], faClass: 'fa-cake-candles'},
+                { keywords: ["coffee"], faClass: 'fa-mug-saucer'},
+                { keywords: ["tea"], faClass: 'fa-leaf'},
+                { keywords: ["juice"], faClass: 'fa-martini-glass-citrus'},
+                { keywords: ["wine"], faClass: 'fa-wine-glass'},
+                { keywords: ["beer"], faClass: 'fa-beer-mug-empty'},
+                { keywords: ["kombucha"], faClass: 'fa-bottle-droplet'},
+                { keywords: ["cheese", "dairy", "milk"], faClass: 'fa-cheese'},
+                { keywords: ["beef", "cow"], faClass: 'fa-cow'},
+                { keywords: ["pork", "bacon", "ham"], faClass: 'fa-bacon'},
+                { keywords: ["poultry", "chicken", "meat", "turkey"], faClass: 'fa-drumstick-bite'},
+                { keywords: ["seafood", "fish"], faClass: 'fa-fish-fins'},
+                { keywords: ["taco", "mexican", "pepper"], faClass: 'fa-pepper-hot'},
+                { keywords: ["pizza"], faClass: 'fa-pizza-slice'},
+                { keywords: ["sandwich", "burger"], faClass: 'fa-burger'},
+                { keywords: ["crepe", "crêpe", "waffle"], faClass: 'fa-stroopwafel'},
+                { keywords: ["ice cream", "popsicle", "frozen"], faClass: 'fa-ice-cream'},
+                { keywords: ["popcorn", "kettle"], faClass: 'fa-bowl-food'},
+                { keywords: ["apple", "fruit", "berry"], faClass: 'fa-apple-whole'},
+                { keywords: ["corn"], faClass: 'fa-candy-cane'},
+                { keywords: ["tomato"], faClass: 'fa-lemon'},
+                { keywords: ["lettuce", "greens", "spinach"], faClass: 'fa-leaf'},
+                { keywords: ["pumpkin", "squash"], faClass: 'fa-seedling'},
+                { keywords: ["onion", "garlic"], faClass: 'fa-stroopwafel'},
+                { keywords: ["potato"], faClass: 'fa-cubes-stacked'},
+                { keywords: ["mushroom", "fungi"], faClass: 'fa-fan'},
+                { keywords: ["beans", "peas"], faClass: 'fa-seedling'},
+                { keywords: ["carrot", "vegetable", "produce"], faClass: 'fa-carrot'},
+                { keywords: ["flower"], faClass: 'fa-fan'},
+                { keywords: ["honey", "beeswax", "bee"], faClass: 'fa-jar'},
+                { keywords: ["jam", "jelly", "syrup", "sauce", "salsa"], faClass: 'fa-jar-wheat'},
+                { keywords: ["soap", "candle", "lotion", "balm"], faClass: 'fa-soap'},
+                { keywords: ["jewelry", "ring", "necklace"], faClass: 'fa-gem'},
+                { keywords: ["wood"], faClass: 'fa-tree'},
+                { keywords: ["pottery", "ceramic", "clay"], faClass: 'fa-paint-roller'},
+                { keywords: ["textile", "fabric", "shirt", "clothing"], faClass: 'fa-shirt'},
+                { keywords: ["art", "painting", "print"], faClass: 'fa-palette'},
+                { keywords: ["glass"], faClass: 'fa-gem'},
+                { keywords: ["leather"], faClass: 'fa-tag'},
+                { keywords: ["book"], faClass: 'fa-book-open-reader'},
+                { keywords: ["toy", "game"], faClass: 'fa-dragon'},
+                { keywords: ["pet", "dog", "cat", "treat"], faClass: 'fa-paw'},
+                { keywords: ["prepared food", "lunch", "dinner"], faClass: 'fa-utensils'},
+                { keywords: ["grower", "producer", "farm"], faClass: 'fa-tractor'}
+            ], 
+            defaultVendor: { faClass: 'fa-store' } 
+        };
+
+        // ==================== GLOBAL STATE ====================
+        let map;
+        let vendorsOnDate = [], allStallLayouts = [], allPois = [];
+        let stallIdToFeatureMap = new Map();
+        let vendorMarkerRefs = {}, poiMarkerRefs = {};
+        let vendorLayerGroup, poiLayerGroup, parkingAreaLayerGroup, baseStallLayerGroup;
+        let selectedDate = "", currentHighlight = null, activeSearchTerm = "";
+        let mapLoaderElement, mapMessageElement;
+        let initialZoomDone = false;
+        
+        // Geolocation State
+        let geoWatchId = null;
+        let userLocationMarker = null;
+        let userAccuracyCircle = null;
+
+        // ==================== LEAFLET CONFIG ====================
+        delete L.Icon.Default.prototype._getIconUrl;
+        L.Icon.Default.mergeOptions({ 
+            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png', 
+            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', 
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png' 
+        });
+        
+        const MAX_ZOOM_VENDOR_FULL_SIZE = 19;
+        const MIN_ZOOM_VENDOR_VISIBLE = 16;
+        const VENDOR_BASE_SIZE = [40, 40]; // Slightly larger for better mobile visibility
+        const POI_ICON_SIZE = [32, 32];
+        const MULTI_STALL_PILL_HEIGHT = VENDOR_BASE_SIZE[1] * 0.7;
+        const MULTI_STALL_MIN_PIXEL_WIDTH = VENDOR_BASE_SIZE[0] * 0.9;
+        const HIGHLIGHT_SCALE_FACTOR = 1.2;
+        const NORMAL_OPACITY = 1.0;
+        const DEEMPHASIZED_OPACITY = 0.35;
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            mapLoaderElement = document.getElementById('map-loader');
+            mapMessageElement = document.getElementById('map-message');
+            initMap();
+        });
+
+        function initMap() {
+            console.log("IFRAME (Map): Initializing Dubuque Farmers' Market Map.");
+            
+            try {
+                let lastView = null;
+                try { 
+                    const savedView = localStorage.getItem('farmersMarketMapView'); 
+                    if (savedView) { 
+                        lastView = JSON.parse(savedView); 
+                    }
+                } catch (e) {
+                    console.warn("Could not restore saved map view:", e);
+                }
+
+                // Check if Leaflet is loaded
+                if (typeof L === 'undefined') {
+                    throw new Error("Leaflet.js library not loaded. Check CDN connection.");
+                }
+
+                // Initialize map with saved view or default to Dubuque Farmers Market location
+                map = L.map('map', { 
+                    preferCanvas: true, 
+                    tap: true,
+                    zoomControl: false
+                }).setView(
+                    (lastView ? [lastView.lat, lastView.lng] : [42.5000, -90.6644]), 
+                    (lastView ? lastView.zoom : 17)
+                );
+                
+                console.log("IFRAME (Map): Leaflet map instance created successfully.");
+                
+                L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+                // Light map tiles for Modern Agrarian aesthetic
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { 
+                    attribution: '© OpenStreetMap, © CartoDB', 
+                    subdomains: 'abcd', 
+                    maxZoom: 21, 
+                    minZoom: 15 
+                }).addTo(map);
+                
+                console.log("IFRAME (Map): Map tiles loaded.");
+                
+                // Layer ordering (bottom to top)
+                parkingAreaLayerGroup = L.layerGroup().addTo(map);
+                baseStallLayerGroup = L.layerGroup().addTo(map);
+                poiLayerGroup = L.layerGroup().addTo(map);
+                vendorLayerGroup = L.layerGroup().addTo(map);
+
+                map.on('zoomend', handleZoomEnd);
+                map.on('moveend zoomend', function() {
+                    if (map) {
+                        const center = map.getCenter(); 
+                        const zoom = map.getZoom();
+                        try {
+                            localStorage.setItem('farmersMarketMapView', JSON.stringify({ 
+                                lat: center.lat, 
+                                lng: center.lng, 
+                                zoom: zoom 
+                            }));
+                        } catch (e) {
+                            // localStorage may be full or unavailable
+                        }
+                    }
+                });
+
+                // Hide loader now that map is initialized (will show again when data loads)
+                if (mapLoaderElement) {
+                    mapLoaderElement.style.display = 'none';
+                    console.log("IFRAME (Map): Map loader hidden - map is ready.");
+                }
+
+                setupGeolocation();
+
+                // Handshake with Wix Velo
+                if (window.parent && window.parent !== window) {
+                    console.log("IFRAME (Map): Sending iframeReady message to parent.");
+                    window.parent.postMessage({ 
+                        type: "iframeReady", 
+                        payload: { status: "htmlComponentLoaded" } 
+                    }, "*");
+                } else {
+                    console.warn("IFRAME (Map): No parent window found - running standalone.");
+                    // If running standalone, hide loader and show empty map
+                    if (mapLoaderElement) mapLoaderElement.style.display = 'none';
+                }
+            } catch (error) {
+                console.error("IFRAME (Map): Error initializing map:", error);
+                if (mapLoaderElement) {
+                    mapLoaderElement.innerHTML = '<div style="color: #d32f2f;">Error loading map: ' + error.message + '</div>';
+                }
+                if (mapMessageElement) {
+                    mapMessageElement.textContent = "Error: " + error.message;
+                    mapMessageElement.style.display = 'block';
+                }
+            }
+        }
+
+        // ==================== POSTMESSAGE HANDLER ====================
+        window.addEventListener("message", (event) => {
+            // SECURITY: In production, validate event.origin
+            // if (event.origin !== "https://your-wix-site-url.com") return;
+
+            if (event.data && event.data.type) {
+                const payload = event.data.payload;
+                let needsReRender = false;
+                let needsStyleUpdate = false; 
+
+                switch (event.data.type) { 
+                    case "loadMapData":
+                        if (payload) {
+                            console.log("IFRAME (Map): Received loadMapData:", {
+                                vendorsCount: (payload.vendorsOnDate || []).length,
+                                stallsCount: (payload.allStallLayouts || []).length,
+                                poisCount: (payload.allPois || []).length,
+                                date: payload.currentDate
+                            });
+                            vendorsOnDate = payload.vendorsOnDate || [];
+                            allStallLayouts = payload.allStallLayouts || [];
+                            allPois = payload.allPois || [];
+                            selectedDate = payload.currentDate || "";
+                            currentHighlight = null; 
+                            activeSearchTerm = "";    
+                            needsReRender = true;
+                        }
+                        break;
+                    case "mapLoading":
+                        console.log("IFRAME (Map): Received mapLoading message - showing loader.");
+                        if (mapLoaderElement) mapLoaderElement.style.display = 'flex';
+                        break;
+                    case "mapDataError":
+                        if (mapMessageElement && payload && payload.message) {
+                            mapMessageElement.textContent = "Error: " + payload.message;
+                            mapMessageElement.style.display = 'block';
+                        }
+                        if (mapLoaderElement) mapLoaderElement.style.display = 'none';
+                        break;
+                    case "setHighlight": 
+                        if (payload) { 
+                            currentHighlight = { type: payload.type, id: payload.id }; 
+                            activeSearchTerm = ""; 
+                            needsStyleUpdate = true; 
+                        } 
+                        break;
+                    case "clearHighlight": 
+                        currentHighlight = null; 
+                        activeSearchTerm = ""; 
+                        needsStyleUpdate = true; 
+                        break;
+                    case "searchText": 
+                        if (payload) { 
+                            const newSearchTerm = payload.term ? payload.term.trim() : ""; 
+                            if (newSearchTerm !== activeSearchTerm) { 
+                                activeSearchTerm = newSearchTerm; 
+                                currentHighlight = null; 
+                                needsStyleUpdate = true; 
+                            } 
+                        } 
+                        break;
+                }
+
+                if (needsReRender) { 
+                    console.log("IFRAME (Map): Rendering features...");
+                    try {
+                        renderAllFeatures(); 
+                    } catch (error) {
+                        console.error("IFRAME (Map): Error in renderAllFeatures:", error);
+                        // Always hide loader even on error
+                        if (mapLoaderElement) {
+                            mapLoaderElement.style.display = 'none';
+                        }
+                    }
+                } else if (needsStyleUpdate) { 
+                    updateExistingMarkerStyles(); 
+                }
+                 
+                if ((event.data.type === "setHighlight" || event.data.type === "searchText") && needsStyleUpdate) {
+                    setTimeout(findAndFlyToTarget, 200); 
+                }
+            } else {
+                console.log("IFRAME (Map): Received message without type:", event.data);
+            }
+        });
+
+        // ==================== RENDERING FUNCTIONS ====================
+        function renderAllFeatures() {
+            if (!map) {
+                console.warn("IFRAME (Map): Map not initialized yet, skipping render.");
+                if (mapLoaderElement) mapLoaderElement.style.display = 'none';
+                return;
+            }
+            
+            if (!allStallLayouts || allStallLayouts.length === 0) {
+                console.warn("IFRAME (Map): No stall layouts available, rendering empty map.");
+                // Still hide loader and show message
+                if (mapLoaderElement) mapLoaderElement.style.display = 'none';
+                if (mapMessageElement) {
+                    mapMessageElement.textContent = "Stall layout data not available.";
+                    mapMessageElement.style.display = 'block';
+                }
+                if (map) map.invalidateSize();
+                return;
+            }
+
+            // Clean Slate
+            vendorLayerGroup.clearLayers(); 
+            poiLayerGroup.clearLayers(); 
+            parkingAreaLayerGroup.clearLayers(); 
+            baseStallLayerGroup.clearLayers();
+            vendorMarkerRefs = {}; 
+            poiMarkerRefs = {};
+            let allDrawnFeaturesForBounds = [];
+
+            // 1. Process Stall Geometry (Normalize IDs) and track which stalls have vendors
+            stallIdToFeatureMap.clear();
+            const stallsWithVendors = new Set();
+            (vendorsOnDate || []).forEach(vendor => {
+                if (vendor.StallList && vendor.StallList.length > 0) {
+                    vendor.StallList.forEach(stallId => {
+                        stallsWithVendors.add(stallId.trim().toUpperCase());
+                    });
+                }
+            });
+            
+            (allStallLayouts || []).forEach(stallItem => {
+                try {
+                    const stallKey = stallItem.title ? stallItem.title.trim().toUpperCase() : "";
+                    if (stallKey && stallItem.geoJsonFeature) {
+                        const feature = JSON.parse(stallItem.geoJsonFeature);
+                        stallIdToFeatureMap.set(stallKey, feature);
+                        
+                        // Add stall outline/polygon
+                        const layer = L.geoJSON(feature, { 
+                            style: { 
+                                fillColor: "#D4C4A0", 
+                                weight: 1, 
+                                opacity: 0.4, 
+                                color: '#A67C52', 
+                                fillOpacity: 0.15 
+                            }, 
+                            interactive: false 
+                        }).addTo(baseStallLayerGroup);
+                        allDrawnFeaturesForBounds.push(layer);
+                        
+                        // Add grey pin marker for empty stalls (stalls without vendors)
+                        if (!stallsWithVendors.has(stallKey) && feature.geometry && feature.geometry.coordinates) {
+                            const latlng = L.latLng(
+                                feature.geometry.coordinates[1], 
+                                feature.geometry.coordinates[0]
+                            );
+                            const emptyStallMarker = L.marker(latlng, {
+                                icon: createEmptyStallIcon(stallKey),
+                                zIndexOffset: 10 // Below vendor markers
+                            });
+                            emptyStallMarker.bindPopup(`<div class="popup-header"><h3 class="popup-title">Stall ${stallKey}</h3><p class="popup-stall-id">Available</p></div>`, {
+                                className: 'custom-popup'
+                            });
+                            emptyStallMarker.addTo(baseStallLayerGroup);
+                        }
+                    }
+                } catch(e) { 
+                    console.error("Bad Stall GeoJSON:", stallItem.title); 
+                }
+            });
+
+            // 2. Render POIs
+            (allPois || []).forEach(poiItem => {
+                try {
+                    const feature = JSON.parse(poiItem.geoJsonFeature);
+                    if (!feature.properties) feature.properties = {};
+                    feature.properties = { 
+                        ...feature.properties, 
+                        poiType: poiItem.poiType, 
+                        description: poiItem.description, 
+                        title: poiItem.title 
+                    };
+
+                    const isDimmed = (currentHighlight || activeSearchTerm) && !itemMatchesHighlight(null, 'poi', feature.properties);
+                    
+                    const poiLayer = L.geoJSON(feature, {
+                        pointToLayer: (feat, latlng) => L.marker(latlng, { 
+                            icon: createDynamicPoiIcon(feat.properties, false, isDimmed) 
+                        }),
+                        style: (feat) => {
+                            let styleClass = '';
+                            const t = (feat.properties.poiType || "").toLowerCase();
+                            if (t.includes("publicparking")) styleClass = 'public-parking-area';
+                            else if (t.includes("vendorparking")) styleClass = 'vendor-parking-area';
+                            else if (t.includes("seating")) styleClass = 'seating-area-polygon';
+                            return { 
+                                className: `parking-area-polygon ${styleClass}`, 
+                                interactive: !!feat.properties.description, 
+                                fillOpacity: isDimmed ? 0.1 : 0.25, 
+                                opacity: isDimmed ? 0.3 : 0.8, 
+                                weight: 2 
+                            };
+                        },
+                        onEachFeature: (feat, layer) => {
+                            layer.bindPopup(buildPoiPopup(feat.properties), { 
+                                className: 'custom-popup' 
+                            });
+                            poiMarkerRefs[feat.properties.title] = {
+                                marker: layer, 
+                                feature: feat
+                            };
+                        }
+                    });
+                    
+                    if(feature.geometry.type === "Polygon") {
+                        parkingAreaLayerGroup.addLayer(poiLayer);
+                    } else {
+                        poiLayerGroup.addLayer(poiLayer);
+                    }
+                    
+                    allDrawnFeaturesForBounds.push(poiLayer);
+                } catch(e) {
+                    console.error("Error rendering POI:", e);
+                }
+            });
+
+            // 3. Render Vendors
+            (vendorsOnDate || []).forEach(vendor => {
+                if (!vendor.StallList || vendor.StallList.length === 0) return;
+                
+                const contiguousStallBlocks = groupContiguousStalls(vendor.StallList);
+                contiguousStallBlocks.forEach(stallBlock => {
+                    const blockFeatures = stallBlock
+                        .map(sID => stallIdToFeatureMap.get(sID.trim().toUpperCase()))
+                        .filter(f => f && f.geometry); 
+                    if (blockFeatures.length === 0) return;
+                    
+                    const isMatch = itemMatchesHighlight(vendor, 'vendor', blockFeatures[0].properties);
+                    const isDimmed = (currentHighlight || activeSearchTerm) && !isMatch;
+                    
+                    let icon, marker, latlng;
+                    if (blockFeatures.length > 1) { 
+                        const bounds = L.latLngBounds(
+                            blockFeatures.map(f => L.latLng(
+                                f.geometry.coordinates[1], 
+                                f.geometry.coordinates[0]
+                            ))
+                        );
+                        latlng = bounds.getCenter(); 
+                        icon = createMultiStallPillIcon(vendor, blockFeatures, false, isDimmed);
+                    } else { 
+                        latlng = L.latLng(
+                            blockFeatures[0].geometry.coordinates[1], 
+                            blockFeatures[0].geometry.coordinates[0]
+                        );
+                        icon = createDynamicVendorIcon(vendor, false, isDimmed);
+                    }
+                    
+                    marker = L.marker(latlng, { 
+                        icon, 
+                        zIndexOffset: isDimmed ? 0 : 100 
+                    });
+                    marker.bindPopup(buildVendorPopup(vendor, stallBlock), { 
+                        className: 'custom-popup', 
+                        minWidth: 280, 
+                        closeButton: true 
+                    });
+                    marker.on('click', e => {
+                        map.flyTo(e.latlng, Math.max(map.getZoom(), 18), { duration: 0.6 });
+                    });
+                    marker.addTo(vendorLayerGroup);
+                    
+                    vendorMarkerRefs[vendor.title] = {
+                        marker: marker, 
+                        data: vendor, 
+                        feature: blockFeatures[0], 
+                        stallBlock: stallBlock
+                    }; 
+                });
+            });
+            
+            // 4. Fit bounds if first load
+            if (!initialZoomDone && allDrawnFeaturesForBounds.length > 0) {
+                const boundsGroup = L.featureGroup(allDrawnFeaturesForBounds);
+                if (boundsGroup.getLayers().length > 0) { 
+                    map.fitBounds(boundsGroup.getBounds().pad(0.1)); 
+                    initialZoomDone = true; 
+                }
+            }
+            
+            // Always hide loader after rendering (even if no data)
+            if (mapLoaderElement) {
+                mapLoaderElement.style.display = 'none';
+                console.log("IFRAME (Map): Map loader hidden after rendering.");
+            }
+            
+            // Show message if no vendors for selected date
+            if (vendorsOnDate.length === 0 && selectedDate) {
+                mapMessageElement.textContent = "No vendors scheduled for this date. All stalls are shown as available.";
+                mapMessageElement.style.display = 'block';
+                console.log("IFRAME (Map): No vendors found for date:", selectedDate);
+            } else {
+                mapMessageElement.style.display = 'none';
+                console.log(`IFRAME (Map): Rendered ${vendorsOnDate.length} vendors, ${allStallLayouts.length} stalls, ${allPois.length} POIs.`);
+            }
+            
+            // Ensure map is interactive even with no vendors
+            if (map) {
+                map.invalidateSize(); // Force map to recalculate size
+                console.log("IFRAME (Map): Map is ready and interactive.");
+            }
+        }
+        
+        // ==================== GEOLOCATION ====================
+        function setupGeolocation() {
+            const locateBtn = document.getElementById('locate-btn');
+            if (!locateBtn || !navigator.geolocation) { 
+                if(locateBtn) locateBtn.style.display = 'none'; 
+                return; 
+            }
+
+            locateBtn.addEventListener('click', () => {
+                if (geoWatchId) {
+                    // Stop Tracking
+                    navigator.geolocation.clearWatch(geoWatchId);
+                    geoWatchId = null;
+                    locateBtn.classList.remove('active-tracking', 'locating');
+                    if(userLocationMarker) userLocationMarker.setOpacity(0.5);
+                } else {
+                    // Start Tracking
+                    locateBtn.classList.add('locating');
+                    geoWatchId = navigator.geolocation.watchPosition(
+                        (position) => {
+                            locateBtn.classList.remove('locating');
+                            locateBtn.classList.add('active-tracking');
+                            
+                            const { latitude, longitude, accuracy } = position.coords;
+                            const userLatLng = L.latLng(latitude, longitude);
+
+                            if (!userLocationMarker) {
+                                userLocationMarker = L.marker(userLatLng, {
+                                    icon: L.divIcon({ 
+                                        className: 'user-location-marker', 
+                                        iconSize: [18, 18], 
+                                        iconAnchor: [9, 9] 
+                                    }),
+                                    zIndexOffset: 1000
+                                }).addTo(map).bindPopup("You are here");
+                                userAccuracyCircle = L.circle(userLatLng, { 
+                                    radius: accuracy, 
+                                    className: 'user-location-accuracy', 
+                                    interactive: false 
+                                }).addTo(map);
+                                map.flyTo(userLatLng, 18);
+                            } else {
+                                userLocationMarker.setLatLng(userLatLng).setOpacity(1);
+                                userAccuracyCircle.setLatLng(userLatLng).setRadius(accuracy);
+                            }
+                        },
+                        (err) => {
+                            console.warn("Geolocation Error", err);
+                            locateBtn.classList.remove('locating', 'active-tracking');
+                            alert("Could not access location. Please check browser permissions.");
+                        },
+                        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                    );
+                }
+            });
+        }
+
+        // ==================== HELPER FUNCTIONS ====================
+        function buildVendorPopup(data, stalls) {
+            const typeColor = VENDOR_TYPE_MARKER_BG_COLORS[data.vendorType] || '#2D5016';
+            const fa = determineVendorFaClass(data);
+            let html = `<div class="popup-header">
+                <h3 class="popup-title">${data.title}</h3>
+                <span class="popup-category-badge" style="background-color:${typeColor}20; color:${typeColor}; border-color:${typeColor}40">
+                    <i class="fa-solid ${fa}" style="margin-right: 4px;"></i> ${data.vendorType || 'Vendor'}
+                </span>
+                <p class="popup-stall-id">
+                    <i class="fa-solid fa-store"></i> Stalls: <strong>${stalls.join(', ')}</strong>
+                </p>
+            </div>`;
+            
+            html += `<div class="popup-body">`;
+            if (data.description) {
+                html += `<p class="popup-description">${data.description}</p>`;
+            }
+            if (data.arraystring) { 
+                html += `<div class="popup-tags">` + 
+                    data.arraystring.split(/[,;]/)
+                        .map(t => `<span class="popup-tag">${t.trim()}</span>`)
+                        .join('') + 
+                    `</div>`;
+            }
+            html += `</div>`;
+            
+            const dirs = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(data.title + ' Dubuque Farmers Market')}`;
+            html += `<div class="popup-footer">`;
+            if (data.url) {
+                html += `<a href="${data.url.startsWith('http')?data.url:'https://'+data.url}" target="_blank" class="popup-button" style="background:#6B6B6B; border-color:#6B6B6B;">
+                    Website <i class="fa-solid fa-external-link"></i>
+                </a>`;
+            }
+            html += `<a href="${dirs}" target="_blank" class="popup-button">
+                Directions <i class="fa-solid fa-location-arrow"></i>
+            </a></div>`;
+            return html;
+        }
+
+        function buildPoiPopup(props) {
+            return `<div class="popup-header">
+                <h3 class="popup-title">${props.title || 'Info'}</h3>
+                <p class="popup-stall-id">${props.poiType || ''}</p>
+            </div>
+            <div class="popup-body">
+                <p>${props.description || ''}</p>
+            </div>`;
+        }
+
+        function itemMatchesHighlight(vendorData, itemType, featureProps) {
+            if (!currentHighlight && !activeSearchTerm) return true;
+            
+            // 1. Text Search (Global)
+            if (activeSearchTerm) {
+                const term = activeSearchTerm.toLowerCase();
+                const text = itemType === 'vendor' 
+                    ? [vendorData.title, vendorData.description, vendorData.vendorType, vendorData.arraystring].join(' ').toLowerCase()
+                    : [featureProps.title, featureProps.description, featureProps.poiType].join(' ').toLowerCase();
+                return text.includes(term);
+            }
+            
+            // 2. Button Highlight
+            const { type, id } = currentHighlight;
+            if (itemType === 'vendor' && vendorData) {
+                if (type === 'vendorType') return vendorData.vendorType === id;
+                if (type === 'keyword') return id.split(' ').some(k => 
+                    [vendorData.title, vendorData.description, vendorData.arraystring]
+                        .join(' ').toLowerCase().includes(k)
+                );
+            }
+            if (itemType === 'poi' && featureProps) {
+                if (type === 'poiType') return (featureProps.poiType||'').toLowerCase().includes(id.toLowerCase());
+            }
+            return false;
+        }
+
+        function determineVendorFaClass(vendorData) {
+            if (!vendorData) return VENDOR_ICON_CONFIG.defaultVendor.faClass;
+            const text = [vendorData.title, vendorData.description, vendorData.arraystring].join(' ').toLowerCase();
+            for (const config of VENDOR_ICON_CONFIG.keywords) {
+                if (config.keywords.some(kw => text.includes(kw))) return config.faClass;
+            }
+            return VENDOR_ICON_CONFIG.defaultVendor.faClass;
+        }
+
+        function createDynamicVendorIcon(data, isHigh, isDim) {
+            return createIconBase(data.vendorType, determineVendorFaClass(data), isHigh, isDim, false);
+        }
+        
+        function createMultiStallPillIcon(data, features, isHigh, isDim) {
+            return createIconBase(data.vendorType, determineVendorFaClass(data), isHigh, isDim, true, features.length);
+        }
+
+        function createEmptyStallIcon(stallId) {
+            const zoom = map ? map.getZoom() : 17;
+            if (zoom < MIN_ZOOM_VENDOR_VISIBLE) {
+                return L.divIcon({ className: 'hidden-icon', iconSize: [0,0] });
+            }
+            
+            let scale = 1;
+            if (zoom < MAX_ZOOM_VENDOR_FULL_SIZE) {
+                scale = 0.75 + (zoom - MIN_ZOOM_VENDOR_VISIBLE)/(MAX_ZOOM_VENDOR_FULL_SIZE-MIN_ZOOM_VENDOR_VISIBLE)*0.25;
+            }
+            
+            const size = Math.max(24, 28 * scale);
+            const fontSize = Math.max(10, 12 * scale);
+            
+            return L.divIcon({
+                className: 'empty-stall-marker',
+                html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background-color:#9E9E9E;border-radius:50%;border:2px solid #FFFFFF;box-shadow:0 2px 4px rgba(0,0,0,0.3);opacity:0.7;">
+                    <span style="font-size:${fontSize}px;font-weight:bold;color:#FFFFFF;text-shadow:0 1px 2px rgba(0,0,0,0.5);">${stallId}</span>
+                </div>`,
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2],
+                popupAnchor: [0, -size/2-5]
+            });
+        }
+
+        function createDynamicPoiIcon(props, isHigh, isDim) {
+            let bg = POI_DEFAULT_COLOR, fa = 'fa-info';
+            const t = (props.poiType||'').toLowerCase();
+            if(t.includes('parking')) { 
+                bg = t.includes('vendor') ? VENDOR_PARKING_COLOR : PARKING_COLOR; 
+                fa = 'fa-square-parking'; 
+            }
+            else if(t.includes('restroom')) { bg = RESTROOM_COLOR; fa = 'fa-restroom'; }
+            else if(t.includes('seating')) { bg = SEATING_COLOR; fa = 'fa-chair'; }
+            else if(t.includes('token')) { bg = MARKET_TOKENS_COLOR; fa = 'fa-coins'; }
+            return createIconBase('Default', fa, isHigh, isDim, false, 0, bg);
+        }
+
+        function createIconBase(vType, faClass, isHigh, isDim, isPill, count=0, forceBg=null) {
+            const zoom = map ? map.getZoom() : 17;
+            if (zoom < MIN_ZOOM_VENDOR_VISIBLE) {
+                return L.divIcon({ className: 'hidden-icon', iconSize: [0,0] });
+            }
+
+            const bg = forceBg || VENDOR_TYPE_MARKER_BG_COLORS[vType] || VENDOR_TYPE_MARKER_BG_COLORS["Default"];
+            let scale = 1;
+            if (zoom < MAX_ZOOM_VENDOR_FULL_SIZE) {
+                scale = 0.75 + (zoom - MIN_ZOOM_VENDOR_VISIBLE)/(MAX_ZOOM_VENDOR_FULL_SIZE-MIN_ZOOM_VENDOR_VISIBLE)*0.25;
+            }
+            if (isHigh) scale *= HIGHLIGHT_SCALE_FACTOR;
+
+            const w = isPill ? Math.max(MULTI_STALL_MIN_PIXEL_WIDTH, count*20) * scale : VENDOR_BASE_SIZE[0] * scale;
+            const h = (isPill ? MULTI_STALL_PILL_HEIGHT : VENDOR_BASE_SIZE[1]) * scale;
+            const fSize = Math.max(14, 18 * scale);
+            const op = isDim ? DEEMPHASIZED_OPACITY : NORMAL_OPACITY;
+            
+            return L.divIcon({
+                className: `custom-base-icon ${isHigh?'highlighted-map-feature':''} ${isPill?'multi-stall-pill-icon':'vendor-marker-fa'}`,
+                html: `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background-color:${bg};border-radius:${isPill?h/2+'px':'50%'};opacity:${op}">
+                    <i class="fa-solid ${faClass}" style="font-size:${fSize}px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.3);"></i>
+                </div>`,
+                iconSize: [w, h], 
+                iconAnchor: [w/2, h/2], 
+                popupAnchor: [0, -h/2-5]
+            });
+        }
+
+        function groupContiguousStalls(list) {
+            if (!list || list.length === 0) return [];
+            const sorted = [...list].sort((a, b) => {
+                const splitA = a.match(/([A-Z]*)([0-9]+)/i);
+                const splitB = b.match(/([A-Z]*)([0-9]+)/i);
+                if(splitA && splitB) {
+                    if(splitA[1] !== splitB[1]) return splitA[1].localeCompare(splitB[1]);
+                    return parseInt(splitA[2]) - parseInt(splitB[2]);
+                }
+                return a.localeCompare(b);
+            });
+            const groups = [];
+            let curr = [sorted[0]];
+            for (let i = 1; i < sorted.length; i++) {
+                const prevM = curr[curr.length-1].match(/([A-Z]*)([0-9]+)/i);
+                const currM = sorted[i].match(/([A-Z]*)([0-9]+)/i);
+                if (prevM && currM && prevM[1] === currM[1] && (parseInt(currM[2]) - parseInt(prevM[2]) === 1)) {
+                    curr.push(sorted[i]);
+                } else {
+                    groups.push(curr); 
+                    curr = [sorted[i]];
+                }
+            }
+            groups.push(curr);
+            return groups;
+        }
+
+        function updateExistingMarkerStyles() {
+            Object.values(vendorMarkerRefs).forEach(r => {
+                const isMatch = itemMatchesHighlight(r.data, 'vendor', null);
+                const isDim = (currentHighlight||activeSearchTerm) && !isMatch;
+                const isHigh = isMatch && (currentHighlight||activeSearchTerm);
+                const icon = r.stallBlock.length > 1 
+                    ? createMultiStallPillIcon(r.data, r.stallBlock.map(id=>stallIdToFeatureMap.get(id)), isHigh, isDim) 
+                    : createDynamicVendorIcon(r.data, isHigh, isDim);
+                r.marker.setIcon(icon).setZIndexOffset(isDim?0:(isHigh?200:100));
+            });
+            Object.values(poiMarkerRefs).forEach(r => {
+                // Only update markers, not polygon layers (parking areas, etc.)
+                if (!r.marker || typeof r.marker.setIcon !== 'function') return;
+                
+                const isMatch = itemMatchesHighlight(null, 'poi', r.feature.properties);
+                const isDim = (currentHighlight||activeSearchTerm) && !isMatch;
+                const isHigh = isMatch && (currentHighlight||activeSearchTerm);
+                r.marker.setIcon(createDynamicPoiIcon(r.feature.properties, isHigh, isDim));
+            });
+        }
+        
+        function handleZoomEnd() { 
+            updateExistingMarkerStyles(); 
+        }
+        
+        function findAndFlyToTarget() {
+            if (!map) return;
+            // Try Vendors First
+            for(let k in vendorMarkerRefs) {
+                const r = vendorMarkerRefs[k];
+                if(itemMatchesHighlight(r.data, 'vendor', null) && (currentHighlight||activeSearchTerm)) {
+                    map.flyTo(r.marker.getLatLng(), Math.max(map.getZoom(), 18), {duration: 0.6}); 
+                    return;
+                }
+            }
+            // Try POIs (only markers, not polygons)
+            for(let k in poiMarkerRefs) {
+                const r = poiMarkerRefs[k];
+                // Skip polygon layers (parking areas) - they don't have getLatLng
+                if (!r.marker || typeof r.marker.getLatLng !== 'function') continue;
+                if(itemMatchesHighlight(null, 'poi', r.feature.properties) && (currentHighlight||activeSearchTerm)) {
+                    map.flyTo(r.marker.getLatLng(), Math.max(map.getZoom(), 18), {duration: 0.6});
+                    return;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
