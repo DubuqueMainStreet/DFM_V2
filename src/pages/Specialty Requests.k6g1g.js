@@ -774,12 +774,10 @@ function setupRepeaterItem($item, itemData) {
 		}
 	}
 	
-	// Set up contact info display with email copy button
+	// Set up contact info display with clickable email
 	if ($item('#itemContact')) {
 		// Format contact info with clickable email
 		const contactText = itemData.contactInfo;
-		const emailMatch = contactText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i);
-		const emailAddress = emailMatch ? emailMatch[1] : null;
 		
 		if ($item('#itemContact').html) {
 			// If HTML is supported, make email clickable
@@ -789,48 +787,6 @@ function setupRepeaterItem($item, itemData) {
 		} else {
 			// Fallback to plain text
 			$item('#itemContact').text = contactText;
-		}
-		
-		// Set up email copy button if email exists and button element exists
-		const btnCopyEmail = $item('#btnCopyEmail');
-		if (btnCopyEmail && emailAddress && typeof btnCopyEmail.onClick === 'function') {
-			btnCopyEmail.onClick(async () => {
-				try {
-					// Use Clipboard API - available in modern browsers and Wix environment
-					if (navigator && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-						await navigator.clipboard.writeText(emailAddress);
-						showSuccess(`Copied ${emailAddress} to clipboard`);
-					} else {
-						// If Clipboard API is not available, show email in a way user can copy manually
-						// In Wix, we can't use document.execCommand fallback
-						showSuccess(`Email: ${emailAddress} (select and copy manually)`);
-					}
-				} catch (error) {
-					console.error('[COPY-EMAIL] Error copying email:', error);
-					// Show the email address so user can copy it manually
-					showSuccess(`Email: ${emailAddress} (select and copy manually)`);
-				}
-			});
-			
-			// Style the copy button
-			if (btnCopyEmail.style) {
-				btnCopyEmail.style.borderRadius = '8px';
-				btnCopyEmail.style.backgroundColor = '#F5F5F5';
-				btnCopyEmail.style.color = '#666666';
-				btnCopyEmail.style.fontSize = '12px';
-				btnCopyEmail.style.padding = '6px 12px';
-				btnCopyEmail.style.border = '1px solid #E0E0E0';
-				btnCopyEmail.style.cursor = 'pointer';
-				btnCopyEmail.style.transition = 'all 0.2s ease';
-			}
-			
-			// Show the button
-			if (typeof btnCopyEmail.show === 'function') {
-				btnCopyEmail.show();
-			}
-		} else if (btnCopyEmail && typeof btnCopyEmail.hide === 'function') {
-			// Hide copy button if no email
-			btnCopyEmail.hide();
 		}
 	}
 	
