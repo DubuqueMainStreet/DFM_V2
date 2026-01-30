@@ -532,8 +532,8 @@ function setupRepeaterItem($item, itemData) {
 
 function applyStatusStyling($item, status) {
 	// Apply subtle visual indicators based on status
-	// Target the repeater item container
-	const itemContainer = $item('#itemContainer') || $item;
+	// Target the repeater item container (repeaterItem)
+	const itemContainer = $item('#repeaterItem') || $item;
 	
 	if (!itemContainer) return;
 	
