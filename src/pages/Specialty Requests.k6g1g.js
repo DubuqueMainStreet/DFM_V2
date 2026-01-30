@@ -674,6 +674,7 @@ function formatDateForDisplay(dateValue, titleFallback) {
 }
 
 function getDaySuffix(day) {
+	// Handle 11th, 12th, 13th (special cases)
 	if (day >= 11 && day <= 13) {
 		return 'th';
 	}
@@ -1290,12 +1291,3 @@ function showSuccess(message) {
 	}
 }
 
-function getDaySuffix(day) {
-	if (day > 3 && day < 21) return 'th';
-	switch (day % 10) {
-		case 1: return 'st';
-		case 2: return 'nd';
-		case 3: return 'rd';
-		default: return 'th';
-	}
-}
