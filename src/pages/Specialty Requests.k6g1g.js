@@ -436,6 +436,9 @@ function setupRepeaterItem($item, itemData) {
 						}
 					}
 				});
+				
+				// Apply subtle styling to status dropdown based on value
+				applyStatusDropdownStyling($item('#itemStatus'), currentStatus);
 			} else {
 				// It's a text element
 				$item('#itemStatus').text = itemData.status;
@@ -529,11 +532,10 @@ function setupRepeaterItem($item, itemData) {
 
 function applyStatusStyling($item, status) {
 	// Apply subtle visual indicators based on status
-	// Target the repeater item container or status element
-	const statusElement = $item('#itemStatus');
+	// Target the repeater item container
 	const itemContainer = $item('#itemContainer') || $item;
 	
-	if (!statusElement && !itemContainer) return;
+	if (!itemContainer) return;
 	
 	const normalizedStatus = (status || 'Pending').toString().trim().toLowerCase();
 	
@@ -570,6 +572,21 @@ function applyStatusStyling($item, status) {
 		if (itemContainer.classes) {
 			itemContainer.classes.add('status-rejected');
 		}
+	}
+}
+
+function applyStatusDropdownStyling(dropdownElement, status) {
+	// Apply subtle color styling to status dropdown based on value
+	if (!dropdownElement || !dropdownElement.style) return;
+	
+	const normalizedStatus = (status || 'Pending').toString().trim().toLowerCase();
+	
+	if (normalizedStatus === 'pending') {
+		dropdownElement.style.borderColor = '#FFA726'; // Orange border
+	} else if (normalizedStatus === 'approved') {
+		dropdownElement.style.borderColor = '#66BB6A'; // Green border
+	} else if (normalizedStatus === 'rejected') {
+		dropdownElement.style.borderColor = '#EF5350'; // Red border
 	}
 }
 
@@ -720,18 +737,15 @@ async function updateAssignmentLocation(assignmentId, locationId) {
 
 async function deleteAssignment(assignmentId, assignmentName) {
 	try {
-		// Show confirmation dialog
-		const confirmed = await wixWindow.openLightbox('DeleteConfirmation', {
-			assignmentName: assignmentName || 'this request'
-		});
+		// Show confirmation dialog using browser confirm
+		// Note: Can be upgraded to Wix lightbox later for better UX
+		const confirmed = confirm(
+			`Are you sure you want to delete the request for "${assignmentName}"?\n\n` +
+			`This will remove the request but keep the contact profile in your catalog.\n\n` +
+			`This action cannot be undone.`
+		);
 		
-		// If lightbox doesn't exist, use browser confirm as fallback
-		if (typeof confirmed === 'undefined') {
-			const browserConfirm = confirm(`Are you sure you want to delete the request for "${assignmentName}"?\n\nThis will remove the request but keep the contact profile in your catalog.\n\nThis action cannot be undone.`);
-			if (!browserConfirm) {
-				return; // User cancelled
-			}
-		} else if (!confirmed) {
+		if (!confirmed) {
 			return; // User cancelled
 		}
 		
