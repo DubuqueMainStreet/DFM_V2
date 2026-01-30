@@ -1,0 +1,495 @@
+// In backend/importData.jsw
+import { fetch } from 'wix-fetch';
+import wixData from 'wix-data';
+
+// Basic CSV to Array of Objects parser
+function parseSimpleCsv(csvText, functionNameCaller) {
+    console.log(`${functionNameCaller} - CSV PARSER: Received text for parsing. Length: ${csvText ? csvText.length : 'N/A'}`);
+    if (!csvText || typeof csvText !== 'string' || csvText.trim() === "") {
+        console.warn(`${functionNameCaller} - CSV PARSER: CSV text is empty or not a string.`);
+        return [];
+    }
+    const lines = csvText.trim().split(/\r\n|\n|\r/);
+    if (lines.length < 2) {
+        console.warn(`${functionNameCaller} - CSV PARSER: CSV has less than 2 lines (header + data).`);
+        return [];
+    }
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    if (headers.length === 0 || (headers.length === 1 && headers[0] === '')) {
+        console.warn(`${functionNameCaller} - CSV PARSER: No valid headers found.`);
+        return [];
+    }
+    const dataRows = [];
+    for (let i = 1; i < lines.length; i++) {
+        const lineContent = lines[i].trim();
+        if (lineContent === "") { continue; }
+        const values = []; let currentVal = ''; let inQuotes = false;
+        for (let char of lineContent) {
+            if (char === '"' && (currentVal.length === 0 || currentVal.slice(-1) !== '\\')) { inQuotes = !inQuotes; } 
+            else if (char === ',' && !inQuotes) { values.push(currentVal.trim().replace(/^"|"$/g, '')); currentVal = ''; } 
+            else { currentVal += char; }
+        }
+        values.push(currentVal.trim().replace(/^"|"$/g, ''));
+        if (values.length === headers.length) {
+            let rowObject = {}; headers.forEach((header, index) => { rowObject[header] = values[index]; });
+            dataRows.push(rowObject);
+        } else {
+            console.warn(`${functionNameCaller} - CSV PARSER: Skipping row ${i + 1} due to column count mismatch.`);
+        }
+    }
+    console.log(`${functionNameCaller} - CSV PARSER: Parsed ${dataRows.length} data rows.`);
+    return dataRows;
+}
+
+function normalizeVendorTitle(title) {
+    if (!title || typeof title !== 'string') return "";
+    return title.toLowerCase().replace(/[.,'&]/g, '').replace(/\sllc$/i, '').replace(/\sinc$/i, '').replace(/\s+/g, ' ').trim();
+}
+
+// Function 1: Import Vendor Roster
+// Expected CSV columns: VendorID, Vendor, VendorType, Description, Website, DefaultStall
+export async function importVendorRoster(csvUrl) {
+    const FUNCTION_NAME = "ROSTER IMPORT";
+    if (!csvUrl) return { success: false, message: "Vendor Roster CSV URL is required." };
+    let report = { success: true, message: "Init", totalRows: 0, processed: 0, inserted: 0, updated: 0, skippedByScript: 0, errors: [] };
+    
+    try {
+        const response = await fetch(csvUrl, { method: 'get' });
+        if (!response.ok) throw new Error(`Fetch failed for Roster: ${response.status}`);
+        const csvText = await response.text();
+        if (!csvText || csvText.trim() === "") { report.message = "Fetched Roster CSV is empty."; report.success = false; return report; }
+        
+        const parsedData = parseSimpleCsv(csvText, FUNCTION_NAME);
+        report.totalRows = parsedData.length;
+        if (!parsedData.length) { report.message = "No data rows parsed from Roster CSV."; report.success = false; return report; }
+        
+        // Build lookup maps for existing vendors
+        const existingVendorsMapById = new Map();
+        const existingVendorsMapByNormalizedTitle = new Map();
+        let query = wixData.query("Vendors").limit(1000); 
+        let results = await query.find();
+        results.items.forEach(item => { 
+            if (item.managemymarketVendorId) existingVendorsMapById.set(item.managemymarketVendorId, item); 
+            if (item.title) existingVendorsMapByNormalizedTitle.set(normalizeVendorTitle(item.title), item); 
+        });
+        while (results.hasNext()) { 
+            results = await results.next(); 
+            results.items.forEach(item => { 
+                if (item.managemymarketVendorId) existingVendorsMapById.set(item.managemymarketVendorId, item); 
+                if (item.title) existingVendorsMapByNormalizedTitle.set(normalizeVendorTitle(item.title), item); 
+            });
+        }
+        console.log(`${FUNCTION_NAME}: Found ${existingVendorsMapById.size} existing vendors by ID.`);
+        
+        let itemsToSavePayload = [];
+        for (const row of parsedData) {
+            report.processed++;
+            const managemymarketVendorIdFromCsv = row["VendorID"] ? row["VendorID"].trim() : null;
+            const vendorNameFromCsv = row["Vendor"] ? row["Vendor"].trim() : null;
+            
+            if (!vendorNameFromCsv && !managemymarketVendorIdFromCsv) { 
+                report.skippedByScript++;
+                report.errors.push(`Row ${report.processed}: Skipped - Missing VendorID and Vendor name.`);
+                continue; 
+            }
+            
+            // Build vendor payload from CSV columns
+            let vendorPayload = {
+                title: vendorNameFromCsv,
+                managemymarketVendorId: managemymarketVendorIdFromCsv,
+                vendorType: row["VendorType"] ? row["VendorType"].trim() : null,
+                description: row["Description"] ? row["Description"].trim() : null,
+                url: row["Website"] ? row["Website"].trim() : null,
+                defaultStall: row["DefaultStall"] ? row["DefaultStall"].trim() : null,
+                arraystring: row["Tags"] ? row["Tags"].trim() : null // Product tags/keywords
+            };
+            
+            // Remove null/undefined fields
+            Object.keys(vendorPayload).forEach(key => { 
+                if (vendorPayload[key] === null || vendorPayload[key] === undefined || vendorPayload[key] === '') 
+                    delete vendorPayload[key]; 
+            });
+            
+            // Check if vendor already exists
+            let existingItem = null;
+            if (managemymarketVendorIdFromCsv && existingVendorsMapById.has(managemymarketVendorIdFromCsv)) {
+                existingItem = existingVendorsMapById.get(managemymarketVendorIdFromCsv);
+            } else if (vendorNameFromCsv && existingVendorsMapByNormalizedTitle.has(normalizeVendorTitle(vendorNameFromCsv))) {
+                existingItem = existingVendorsMapByNormalizedTitle.get(normalizeVendorTitle(vendorNameFromCsv));
+            }
+            
+            if (existingItem) {
+                vendorPayload._id = existingItem._id;
+            }
+            itemsToSavePayload.push(vendorPayload);
+        }
+        
+        // Bulk save in chunks
+        if (itemsToSavePayload.length > 0) {
+            console.log(`${FUNCTION_NAME}: Preparing to bulkSave ${itemsToSavePayload.length} vendors.`);
+            const CHUNK_SIZE = 50; 
+            for (let i = 0; i < itemsToSavePayload.length; i += CHUNK_SIZE) { 
+                const chunk = itemsToSavePayload.slice(i, i + CHUNK_SIZE);
+                try {
+                    const saveResults = await wixData.bulkSave("Vendors", chunk, { suppressHooks: false });
+                    report.inserted += saveResults.inserted || 0;
+                    report.updated += saveResults.updated || 0;
+                } catch (bulkError) {
+                    console.error(`${FUNCTION_NAME}: BulkSave chunk error:`, bulkError);
+                    report.errors.push(`BulkSave error: ${bulkError.message}`);
+                }
+            }
+        }
+        report.message = `${FUNCTION_NAME}: Processed ${report.processed}. Inserted: ${report.inserted}. Updated: ${report.updated}. Skipped: ${report.skippedByScript}. Errors: ${report.errors.length}.`;
+    } catch (error) { 
+        console.error(`Fatal error in ${FUNCTION_NAME}:`, error);
+        report.success = false; 
+        report.message = `${FUNCTION_NAME} failed: ${error.message || error.toString()}`; 
+        report.errors.push(error.toString());
+    }
+    console.log(`${FUNCTION_NAME}: Final Report:`, report);
+    return report;
+}
+
+// Function 2: Update Vendor Details from Request Forms
+// Used to update vendor details from a separate details/requests CSV
+export async function updateVendorDetailsFromRequests(csvUrl) {
+    const FUNCTION_NAME = "VENDOR DETAILS UPDATE";
+    if (!csvUrl) return { success: false, message: "Vendor Details CSV URL is required." };
+    let report = { success: true, message: "Init", totalRows: 0, processed: 0, updated: 0, notFound: 0, errors: [] };
+    
+    try {
+        const response = await fetch(csvUrl, { method: 'get' });
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+        const csvText = await response.text();
+        const parsedData = parseSimpleCsv(csvText, FUNCTION_NAME);
+        report.totalRows = parsedData.length;
+        if (!parsedData.length) { report.message = "No data rows parsed."; report.success = false; return report; }
+
+        // Build lookup map for existing vendors
+        const vendorMap = new Map();
+        let query = wixData.query("Vendors").limit(1000);
+        let results = await query.find();
+        results.items.forEach(v => {
+            if (v.managemymarketVendorId) vendorMap.set(v.managemymarketVendorId, v);
+            if (v.title) vendorMap.set(normalizeVendorTitle(v.title), v);
+        });
+        while (results.hasNext()) {
+            results = await results.next();
+            results.items.forEach(v => {
+                if (v.managemymarketVendorId) vendorMap.set(v.managemymarketVendorId, v);
+                if (v.title) vendorMap.set(normalizeVendorTitle(v.title), v);
+            });
+        }
+
+        let itemsToUpdate = [];
+        for (const row of parsedData) {
+            report.processed++;
+            const vendorId = row["VendorID"] ? row["VendorID"].trim() : null;
+            const vendorName = row["Vendor"] ? row["Vendor"].trim() : null;
+            
+            let existingVendor = vendorMap.get(vendorId) || vendorMap.get(normalizeVendorTitle(vendorName));
+            if (!existingVendor) {
+                report.notFound++;
+                report.errors.push(`Row ${report.processed}: Vendor "${vendorName || vendorId}" not found.`);
+                continue;
+            }
+
+            // Update fields if provided in CSV
+            let updatePayload = { _id: existingVendor._id };
+            if (row["Description"]) updatePayload.description = row["Description"].trim();
+            if (row["Website"]) updatePayload.url = row["Website"].trim();
+            if (row["Tags"]) updatePayload.arraystring = row["Tags"].trim();
+            if (row["VendorType"]) updatePayload.vendorType = row["VendorType"].trim();
+            
+            if (Object.keys(updatePayload).length > 1) { // More than just _id
+                itemsToUpdate.push(updatePayload);
+            }
+        }
+
+        // Bulk update
+        if (itemsToUpdate.length > 0) {
+            const CHUNK_SIZE = 50;
+            for (let i = 0; i < itemsToUpdate.length; i += CHUNK_SIZE) {
+                const chunk = itemsToUpdate.slice(i, i + CHUNK_SIZE);
+                try {
+                    const saveResults = await wixData.bulkSave("Vendors", chunk);
+                    report.updated += saveResults.updated || chunk.length;
+                } catch (e) {
+                    report.errors.push(`BulkSave error: ${e.message}`);
+                }
+            }
+        }
+        report.message = `${FUNCTION_NAME}: Processed ${report.processed}. Updated: ${report.updated}. Not Found: ${report.notFound}. Errors: ${report.errors.length}.`;
+    } catch (error) {
+        report.success = false;
+        report.message = `${FUNCTION_NAME} failed: ${error.message}`;
+        report.errors.push(error.toString());
+    }
+    console.log(`${FUNCTION_NAME}: Final Report:`, report);
+    return report;
+}
+
+// Function 3: Import GeoJSON Features (Stalls and POIs)
+// Imports GeoJSON FeatureCollection into StallLayouts or POIs collections
+export async function importGeoJsonFeatures(geoJsonUrl, targetCollection = "StallLayouts") {
+    const FUNCTION_NAME = "GEOJSON FEATURES IMPORT";
+    if (!geoJsonUrl) return { success: false, message: "GeoJSON URL is required." };
+    if (!["StallLayouts", "POIs"].includes(targetCollection)) {
+        return { success: false, message: "Target collection must be 'StallLayouts' or 'POIs'." };
+    }
+    
+    let report = { success: true, message: "Init", totalFeatures: 0, inserted: 0, updated: 0, errors: [] };
+    
+    try {
+        const response = await fetch(geoJsonUrl, { method: 'get' });
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+        const geoJsonData = await response.json();
+        
+        if (!geoJsonData.features || !Array.isArray(geoJsonData.features)) {
+            return { success: false, message: "Invalid GeoJSON: no features array found." };
+        }
+        
+        report.totalFeatures = geoJsonData.features.length;
+        console.log(`${FUNCTION_NAME}: Processing ${report.totalFeatures} features for ${targetCollection}.`);
+
+        // Build lookup map for existing items by title
+        const existingItemsMap = new Map();
+        let query = wixData.query(targetCollection).limit(1000);
+        let results = await query.find();
+        results.items.forEach(item => {
+            if (item.title) existingItemsMap.set(item.title.toUpperCase(), item);
+        });
+        while (results.hasNext()) {
+            results = await results.next();
+            results.items.forEach(item => {
+                if (item.title) existingItemsMap.set(item.title.toUpperCase(), item);
+            });
+        }
+
+        let itemsToSave = [];
+        for (const feature of geoJsonData.features) {
+            const props = feature.properties || {};
+            const featureTitle = (props.title || props.name || props.id || `Feature_${itemsToSave.length}`).toString().trim().toUpperCase();
+            
+            let itemPayload = {
+                title: featureTitle,
+                geoJsonFeature: JSON.stringify(feature)
+            };
+            
+            // Add POI-specific fields
+            if (targetCollection === "POIs") {
+                itemPayload.poiType = props.poiType || props.type || "General";
+                itemPayload.description = props.description || null;
+            }
+            
+            // Check if exists
+            if (existingItemsMap.has(featureTitle)) {
+                itemPayload._id = existingItemsMap.get(featureTitle)._id;
+            }
+            
+            itemsToSave.push(itemPayload);
+        }
+
+        // Bulk save
+        if (itemsToSave.length > 0) {
+            const CHUNK_SIZE = 50;
+            for (let i = 0; i < itemsToSave.length; i += CHUNK_SIZE) {
+                const chunk = itemsToSave.slice(i, i + CHUNK_SIZE);
+                try {
+                    const saveResults = await wixData.bulkSave(targetCollection, chunk);
+                    report.inserted += saveResults.inserted || 0;
+                    report.updated += saveResults.updated || 0;
+                } catch (e) {
+                    console.error(`${FUNCTION_NAME}: BulkSave error:`, e);
+                    report.errors.push(`BulkSave error: ${e.message}`);
+                }
+            }
+        }
+        
+        report.message = `${FUNCTION_NAME}: Processed ${report.totalFeatures} features. Inserted: ${report.inserted}. Updated: ${report.updated}. Errors: ${report.errors.length}.`;
+    } catch (error) {
+        console.error(`Fatal error in ${FUNCTION_NAME}:`, error);
+        report.success = false;
+        report.message = `${FUNCTION_NAME} failed: ${error.message}`;
+        report.errors.push(error.toString());
+    }
+    console.log(`${FUNCTION_NAME}: Final Report:`, report);
+    return report;
+}
+
+// Function 4: Clear Existing Attendance Data for a Date Range
+// Dates should be in 'YYYY-MM-DD' format
+export async function clearAttendanceForDateRange(startDateStr, endDateStr) {
+    const FUNCTION_NAME = "CLEAR ATTENDANCE";
+    if (!startDateStr || !endDateStr) {
+        return { success: false, message: "Both start and end dates are required (YYYY-MM-DD format)." };
+    }
+    
+    let report = { success: true, message: "Init", deleted: 0, errors: [] };
+    
+    try {
+        // Parse dates
+        const startParts = startDateStr.split('-').map(p => parseInt(p, 10));
+        const endParts = endDateStr.split('-').map(p => parseInt(p, 10));
+        const startDate = new Date(Date.UTC(startParts[0], startParts[1] - 1, startParts[2]));
+        const endDate = new Date(Date.UTC(endParts[0], endParts[1] - 1, endParts[2], 23, 59, 59));
+        
+        console.log(`${FUNCTION_NAME}: Clearing attendance from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+        
+        // Query items to delete
+        let itemsToDelete = [];
+        let query = wixData.query("MarketAttendance")
+            .ge("marketDate", startDate)
+            .le("marketDate", endDate)
+            .limit(1000);
+        
+        let results = await query.find();
+        itemsToDelete = itemsToDelete.concat(results.items.map(item => item._id));
+        
+        while (results.hasNext()) {
+            results = await results.next();
+            itemsToDelete = itemsToDelete.concat(results.items.map(item => item._id));
+        }
+        
+        console.log(`${FUNCTION_NAME}: Found ${itemsToDelete.length} attendance records to delete.`);
+        
+        // Bulk remove in chunks
+        if (itemsToDelete.length > 0) {
+            const CHUNK_SIZE = 50;
+            for (let i = 0; i < itemsToDelete.length; i += CHUNK_SIZE) {
+                const chunk = itemsToDelete.slice(i, i + CHUNK_SIZE);
+                try {
+                    await wixData.bulkRemove("MarketAttendance", chunk);
+                    report.deleted += chunk.length;
+                } catch (e) {
+                    console.error(`${FUNCTION_NAME}: BulkRemove error:`, e);
+                    report.errors.push(`BulkRemove error: ${e.message}`);
+                }
+            }
+        }
+        
+        report.message = `${FUNCTION_NAME}: Deleted ${report.deleted} attendance records from ${startDateStr} to ${endDateStr}. Errors: ${report.errors.length}.`;
+    } catch (error) {
+        console.error(`Fatal error in ${FUNCTION_NAME}:`, error);
+        report.success = false;
+        report.message = `${FUNCTION_NAME} failed: ${error.message}`;
+        report.errors.push(error.toString());
+    }
+    console.log(`${FUNCTION_NAME}: Final Report:`, report);
+    return report;
+}
+
+// Function 5: Import New Stall Assignments
+// For Stall_Assignments_and_Payment_Plan.csv
+export async function importStallAssignments(csvUrl) {
+    const FUNCTION_NAME = "STALL ASSIGNMENT IMPORT (V10 Final)";
+    if (!csvUrl) return { success: false, message: "Stall Assignments CSV URL is required." };
+    console.log(`${FUNCTION_NAME}: Starting from URL:`, csvUrl);
+    let report = { success: true, message: "Init", totalRows: 0, processedRows: 0, attendanceRecordsCreated: 0, successfullyInserted: 0, vendorLookupFailed: 0, errors: [] };
+
+    try {
+        const response = await fetch(csvUrl, { method: 'get' });
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+        const csvText = await response.text();
+        const parsedData = parseSimpleCsv(csvText, FUNCTION_NAME);
+        report.totalRows = parsedData.length;
+        if (!parsedData.length) { report.message = "No data rows parsed from Stall Assignments CSV."; report.success = false; return report; }
+
+        console.log(`${FUNCTION_NAME}: Starting to pre-fetch vendors...`);
+        const vendorMap = new Map();
+        let query = wixData.query("Vendors").limit(1000);
+        let results = await query.find();
+        results.items.forEach(vendor => {
+            if (vendor.managemymarketVendorId) vendorMap.set(vendor.managemymarketVendorId, { _id: vendor._id, title: vendor.title });
+            if (vendor.title) vendorMap.set(normalizeVendorTitle(vendor.title), { _id: vendor._id, title: vendor.title });
+        });
+        while (results.hasNext()) {
+            results = await results.next();
+            results.items.forEach(vendor => {
+                if (vendor.managemymarketVendorId) vendorMap.set(vendor.managemymarketVendorId, { _id: vendor._id, title: vendor.title });
+                if (vendor.title) vendorMap.set(normalizeVendorTitle(vendor.title), { _id: vendor._id, title: vendor.title });
+            });
+        }
+        console.log(`${FUNCTION_NAME}: Pre-fetched ${vendorMap.size} vendors into lookup map.`);
+
+        let attendanceItemsToBatchInsert = [];
+        for (const row of parsedData) {
+            report.processedRows++;
+            const vendorIdFromCsv = row["VendorID"] ? row["VendorID"].trim() : null;
+            const vendorNameFromCsv = row["Vendor"] ? row["Vendor"].trim() : null;
+            const startDateStr = row["StartDate"] ? row["StartDate"].trim() : null;
+            const stallId = row["Stall"] ? row["Stall"].trim() : null;
+            const numDays = parseInt(row["NumberOfAssignedDays"], 10);
+
+            if (!vendorIdFromCsv && !vendorNameFromCsv) { report.errors.push(`Row ${report.processedRows}: Skipped - Missing VendorID and Vendor Name.`); continue; }
+            if (!startDateStr || !stallId || isNaN(numDays) || numDays <= 0) { report.errors.push(`Row ${report.processedRows}: Skipped - Missing/Invalid StartDate, Stall, or NumberOfAssignedDays for vendor ${vendorNameFromCsv || vendorIdFromCsv}.`); continue; }
+
+            let vendorInfo = vendorMap.get(vendorIdFromCsv) || vendorMap.get(normalizeVendorTitle(vendorNameFromCsv));
+            if (!vendorInfo) {
+                report.vendorLookupFailed++;
+                report.errors.push(`Row ${report.processedRows}: Vendor "${vendorNameFromCsv || vendorIdFromCsv}" not found in Vendors collection.`);
+                continue;
+            }
+            const vendorRefId = vendorInfo._id;
+            const originalVendorTitle = vendorInfo.title;
+
+            const dateParts = startDateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (!dateParts) { report.errors.push(`Row ${report.processedRows}: Invalid StartDate format for vendor ${vendorNameFromCsv}. Expected MM/DD/YYYY.`); continue; }
+            const startDate = new Date(Date.UTC(parseInt(dateParts[2]), parseInt(dateParts[0]) - 1, parseInt(dateParts[1])));
+
+            for (let i = 0; i < numDays; i++) {
+                let marketDate = new Date(startDate.valueOf());
+                marketDate.setUTCDate(marketDate.getUTCDate() + (i * 7)); // Add weeks
+
+                attendanceItemsToBatchInsert.push({
+                    title: `${originalVendorTitle} @ ${stallId} on ${marketDate.toLocaleDateString('en-US', { timeZone: 'UTC' })}`,
+                    marketDate: marketDate,
+                    vendorRef: vendorRefId,
+                    stallId: stallId,
+                    status: "Present"
+                });
+                report.attendanceRecordsCreated++;
+            }
+        }
+
+        if (attendanceItemsToBatchInsert.length > 0) {
+            console.log(`${FUNCTION_NAME}: Preparing to bulkInsert ${attendanceItemsToBatchInsert.length} attendance items.`);
+            const CHUNK_SIZE = 50;
+            for (let i = 0; i < attendanceItemsToBatchInsert.length; i += CHUNK_SIZE) {
+                const chunk = attendanceItemsToBatchInsert.slice(i, i + CHUNK_SIZE);
+                try {
+                    let insertResults = await wixData.bulkInsert("MarketAttendance", chunk, { suppressHooks: false });
+                    report.successfullyInserted += insertResults.insertedItemIds.length;
+                } catch (bulkError) {
+                    console.error(`${FUNCTION_NAME}: Error during bulkInsert chunk:`, bulkError);
+                    report.errors.push(`BulkInsert Chunk Error: ${bulkError.message}`);
+                }
+            }
+        }
+        report.message = `Stall Assignments: Processed ${report.processedRows} rows. Created ${report.attendanceRecordsCreated} attendance records. Inserted: ${report.successfullyInserted}. Vendor Lookup Fails: ${report.vendorLookupFailed}. Errors: ${report.errors.length}.`;
+    } catch (error) {
+        console.error(`Fatal error in ${FUNCTION_NAME}:`, error);
+        report.success = false; report.message = `${FUNCTION_NAME} failed: ${error.message || error.toString()}`; report.errors.push(error.toString());
+    }
+    console.log(`${FUNCTION_NAME}: Final Report:`, report);
+    return report;
+}
+
+// Test function to verify Vendors collection connectivity
+export async function testVendorsCollectionQuery() {
+    const FUNCTION_NAME = "TEST VENDORS COLLECTION QUERY";
+    console.log(`${FUNCTION_NAME}: Starting test query...`);
+    try {
+        const results = await wixData.query("Vendors").limit(5).find();
+        console.log(`${FUNCTION_NAME}: Found ${results.totalCount} total vendors. Sample:`, results.items.slice(0, 2));
+        return { 
+            success: true, 
+            message: `Test successful. Found ${results.totalCount} vendors in collection.`,
+            sampleItems: results.items.slice(0, 3)
+        };
+    } catch (error) {
+        console.error(`${FUNCTION_NAME}: Test failed:`, error);
+        return { success: false, message: `Test failed: ${error.message}` };
+    }
+}

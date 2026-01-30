@@ -1,0 +1,795 @@
+import wixData from 'wix-data';
+import wixCrmBackend from 'wix-crm-backend';
+import { triggeredEmails } from 'wix-crm-backend';
+
+// In-memory cache to prevent duplicate emails within the same execution context
+// Key: `${assignmentId}-${status}`, Value: timestamp
+const recentEmailSends = new Map();
+const EMAIL_DEDUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
+// Clean up old entries from the cache periodically
+function cleanupEmailSendCache() {
+	const now = Date.now();
+	for (const [key, timestamp] of recentEmailSends.entries()) {
+		if (now - timestamp > EMAIL_DEDUP_WINDOW_MS) {
+			recentEmailSends.delete(key);
+		}
+	}
+}
+
+// Clean up cache every 5 minutes (same as dedup window)
+// Note: This runs in the backend execution context
+setInterval(cleanupEmailSendCache, EMAIL_DEDUP_WINDOW_MS);
+
+/**
+ * Send email notification when a submission is approved or rejected
+ * @param {string} assignmentId - The WeeklyAssignments record ID
+ * @param {string} newStatus - 'Approved' or 'Rejected'
+ * @returns {Promise<Object>} Result object with success status
+ */
+export async function sendStatusNotificationEmail(assignmentId, newStatus) {
+	console.log('[EMAIL-BACKEND] Function called with:', { assignmentId, newStatus });
+	try {
+		// Validate inputs
+		if (!assignmentId) {
+			console.error('[EMAIL-BACKEND] Missing assignmentId');
+			throw new Error('Assignment ID is required');
+		}
+		if (newStatus !== 'Approved' && newStatus !== 'Rejected') {
+			// Only send emails for Approved or Rejected status
+			console.log('[EMAIL-BACKEND] Status does not require email:', newStatus);
+			return { success: true, skipped: true, reason: 'Status does not require email notification' };
+		}
+		
+		// Check for duplicate email sends within the deduplication window
+		const emailKey = `${assignmentId}-${newStatus}`;
+		const now = Date.now();
+		const lastSentTime = recentEmailSends.get(emailKey);
+		
+		if (lastSentTime && (now - lastSentTime) < EMAIL_DEDUP_WINDOW_MS) {
+			const timeSinceLastSend = Math.round((now - lastSentTime) / 1000);
+			console.log(`[EMAIL-BACKEND] ⏭️ Duplicate email prevented: Email for ${assignmentId} (${newStatus}) was sent ${timeSinceLastSend} seconds ago. Skipping to prevent duplicate.`);
+			return { 
+				success: true, 
+				skipped: true, 
+				reason: `Duplicate email prevented - email was sent ${timeSinceLastSend} seconds ago` 
+			};
+		}
+		
+		console.log('[EMAIL-BACKEND] Starting email process...');
+
+		// Fetch the assignment with related data
+		const assignment = await wixData.get('WeeklyAssignments', assignmentId, {
+			suppressAuth: true
+		});
+
+		if (!assignment) {
+			throw new Error('Assignment not found');
+		}
+		
+		// Check if assignment status is already set to the target status
+		// If it's already Approved/Rejected, this might be a duplicate call
+		const currentStatus = (assignment.applicationStatus || 'Pending').toString().trim();
+		if (currentStatus === newStatus) {
+			console.log(`[EMAIL-BACKEND] ⚠️ Assignment ${assignmentId} is already ${newStatus}. This might be a duplicate status update call.`);
+			console.log(`[EMAIL-BACKEND] Checking if email was already sent recently...`);
+			
+			// If status is already set and we've sent an email recently, skip
+			if (lastSentTime && (now - lastSentTime) < EMAIL_DEDUP_WINDOW_MS) {
+				const timeSinceLastSend = Math.round((now - lastSentTime) / 1000);
+				console.log(`[EMAIL-BACKEND] ⏭️ Skipping email - assignment already ${newStatus} and email sent ${timeSinceLastSend} seconds ago`);
+				return { 
+					success: true, 
+					skipped: true, 
+					reason: `Assignment already ${newStatus} and email was sent ${timeSinceLastSend} seconds ago` 
+				};
+			}
+			// If status is already set but no recent email, log warning but proceed
+			// (in case the email failed previously and we're retrying)
+			console.log(`[EMAIL-BACKEND] ⚠️ Assignment already ${newStatus}, but no recent email found. Proceeding with email send...`);
+		}
+
+		// Fetch the profile
+		const profile = await wixData.get('SpecialtyProfiles', assignment.profileRef, {
+			suppressAuth: true
+		});
+
+		if (!profile || !profile.contactEmail) {
+			throw new Error('Profile not found or missing contact email');
+		}
+
+		// Fetch the date information
+		const dateRef = await wixData.get('MarketDates2026', assignment.dateRef, {
+			suppressAuth: true
+		});
+
+		if (!dateRef) {
+			throw new Error('Date reference not found');
+		}
+
+		// Prepare email variables for Wix Triggered Email template
+		const emailVariables = prepareEmailVariables(profile, dateRef, assignment, newStatus);
+		console.log('Email variables prepared:', emailVariables);
+
+		// Get or create Wix CRM contact for the recipient
+		const contact = await getOrCreateContact(profile.contactEmail, profile.organizationName);
+		
+		// Verify the contact email matches - critical check to prevent sending to wrong recipient
+		const contactEmail = contact.info?.primaryEmail || 
+		                     contact.primaryInfo?.email ||
+		                     contact.email ||
+		                     'unknown';
+		
+		console.log('Contact retrieved/created:', contact ? { 
+			id: contact._id, 
+			email: contactEmail,
+			expectedEmail: profile.contactEmail
+		} : 'null');
+
+		if (!contact || !contact._id) {
+			throw new Error('Failed to get or create contact for email notification');
+		}
+		
+		// CRITICAL: Verify email matches - if not, don't send email to wrong person!
+		if (contactEmail.toLowerCase() !== profile.contactEmail.toLowerCase()) {
+			const errorMsg = `CRITICAL ERROR: Contact email mismatch! ` +
+			                 `Expected: ${profile.contactEmail}, Got: ${contactEmail}. ` +
+			                 `Cannot send email to wrong recipient. ` +
+			                 `The contact ${profile.contactEmail} may not exist in Wix CRM. ` +
+			                 `Please ensure contacts are created when forms are submitted.`;
+			console.error(`[EMAIL-BACKEND] ❌ ${errorMsg}`);
+			throw new Error(errorMsg);
+		}
+
+		// Determine which email template to use based on status
+		// These template IDs need to be configured in Wix Dashboard > Marketing > Email Marketing > Triggered Emails
+		const emailTemplateId = newStatus === 'Approved' 
+			? getApprovedEmailTemplateId() 
+			: getRejectedEmailTemplateId();
+		console.log(`Sending ${newStatus} email using template ID: ${emailTemplateId} to contact: ${contact._id}`);
+
+		// Send the email using Wix Triggered Emails
+		const emailResult = await sendWixTriggeredEmail(
+			emailTemplateId,
+			contact._id,
+			emailVariables
+		);
+		console.log('Email send result:', emailResult);
+
+		if (!emailResult.success) {
+			throw new Error(emailResult.error || 'Failed to send email');
+		}
+
+		// Record successful email send to prevent duplicates
+		recentEmailSends.set(emailKey, Date.now());
+		console.log(`[EMAIL-BACKEND] ✅ Email sent successfully and recorded in deduplication cache`);
+
+		return {
+			success: true,
+			emailSent: true,
+			recipient: profile.contactEmail
+		};
+
+	} catch (error) {
+		console.error('Error sending status notification email:', error);
+		// Don't throw - we don't want email failures to break the status update
+		return {
+			success: false,
+			error: error.message
+		};
+	}
+}
+
+/**
+ * Get or create a Wix CRM contact for email notifications
+ * @param {string} email - Contact email address
+ * @param {string} name - Contact name (organization name)
+ * @returns {Promise<Object>} Contact object with _id
+ */
+async function getOrCreateContact(email, name) {
+	try {
+		console.log(`[EMAIL-BACKEND] Looking for contact with email: ${email}`);
+		// Try to find existing contact by email
+		// Note: Email field is 'primaryInfo.email', not 'email'
+		// Also try searching in emails array field
+		let existingContacts = await wixCrmBackend.contacts.queryContacts()
+			.eq('primaryInfo.email', email)
+			.limit(1)
+			.find();
+		
+		// If not found, try searching in the emails array
+		if (!existingContacts.items || existingContacts.items.length === 0) {
+			console.log(`[EMAIL-BACKEND] Not found in primaryInfo.email, trying emails array...`);
+			// Try to find by searching all contacts and filtering (less efficient but more thorough)
+			const allContacts = await wixCrmBackend.contacts.queryContacts()
+				.limit(1000) // Get a batch to search through
+				.find();
+			
+			// Filter contacts that have this email
+			const matchingContacts = allContacts.items.filter(contact => {
+				const primaryEmail = contact.info?.primaryEmail || contact.primaryInfo?.email || '';
+				const emailsArray = contact.info?.emails || contact.emails || [];
+				return primaryEmail.toLowerCase() === email.toLowerCase() ||
+				       emailsArray.some(e => (e.email || e).toLowerCase() === email.toLowerCase());
+			});
+			
+			if (matchingContacts.length > 0) {
+				existingContacts = { items: [matchingContacts[0]] };
+				console.log(`[EMAIL-BACKEND] Found contact in emails array: ${matchingContacts[0]._id}`);
+			}
+		}
+
+		if (existingContacts.items && existingContacts.items.length > 0) {
+			const existingContact = existingContacts.items[0];
+			console.log(`[EMAIL-BACKEND] Found existing contact: ${existingContact._id}`);
+			
+			// Check subscription status - emails only send to SUBSCRIBED or NOT_SET contacts
+			// Subscription status can be in multiple locations depending on Wix version
+			const subscriptionStatus = existingContact.info?.extendedFields?.emailSubscriptions?.subscriptionStatus ||
+			                           existingContact.subscriptionStatus ||
+			                           existingContact.emailSubscriptions?.subscriptionStatus ||
+			                           'UNKNOWN';
+			console.log(`[EMAIL-BACKEND] Existing contact subscription status: ${subscriptionStatus}`);
+			console.log(`[EMAIL-BACKEND] Full contact object structure:`, JSON.stringify({
+				_id: existingContact._id,
+				hasInfo: !!existingContact.info,
+				hasExtendedFields: !!existingContact.info?.extendedFields,
+				hasEmailSubscriptions: !!existingContact.info?.extendedFields?.emailSubscriptions,
+				subscriptionStatus: subscriptionStatus
+			}, null, 2));
+			
+			// If contact is UNSUBSCRIBED, log a warning
+			if (subscriptionStatus === 'UNSUBSCRIBED') {
+				console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: Contact ${existingContact._id} is UNSUBSCRIBED. Email may not be sent!`);
+				console.warn(`[EMAIL-BACKEND] Contact must be SUBSCRIBED or NOT_SET to receive emails.`);
+			}
+			
+			// If subscription status is UNKNOWN, update it to NOT_SET to ensure email can be sent
+			if (subscriptionStatus === 'UNKNOWN') {
+				console.log(`[EMAIL-BACKEND] Updating subscription status from UNKNOWN to NOT_SET for contact ${existingContact._id}`);
+				try {
+					// Use appendOrCreateContact to update subscription status (simpler than updateContact)
+					// This will update the existing contact's subscription status
+					const contactEmail = existingContact.info?.primaryEmail || 
+					                   existingContact.primaryInfo?.email ||
+					                   email;
+					await wixCrmBackend.contacts.appendOrCreateContact({
+						email: contactEmail,
+						subscriptionStatus: 'NOT_SET'
+					});
+					console.log(`[EMAIL-BACKEND] ✅ Successfully updated subscription status to NOT_SET`);
+					// Refresh the contact to get updated status
+					const updatedContact = await wixCrmBackend.contacts.getContact(existingContact._id);
+					return updatedContact;
+				} catch (updateError) {
+					console.warn(`[EMAIL-BACKEND] ⚠️ Warning: Failed to update subscription status:`, updateError.message);
+					console.warn(`[EMAIL-BACKEND] Returning contact with UNKNOWN status - will attempt update before sending email`);
+				}
+			}
+			
+			return existingContact;
+		}
+
+		// Contact doesn't exist, create a new one
+		// Use createContact with allowDuplicates to ensure we create a new contact
+		// instead of reconciling with an existing one
+		console.log(`[EMAIL-BACKEND] Creating new contact for email: ${email}`);
+		let contactIdentification;
+		try {
+			// Try createContact first to force a new contact
+			contactIdentification = await wixCrmBackend.contacts.createContact({
+				primaryInfo: {
+					email: email
+				},
+				name: {
+					first: name || 'Market',
+					last: 'Participant'
+				},
+				subscriptionStatus: 'NOT_SET'
+			}, {
+				allowDuplicates: true // Allow duplicate emails to force new contact creation
+			});
+			console.log(`[EMAIL-BACKEND] Created new contact using createContact`);
+		} catch (createError) {
+			console.warn(`[EMAIL-BACKEND] createContact failed, trying appendOrCreateContact:`, createError.message);
+			// Fallback to appendOrCreateContact if createContact fails
+			contactIdentification = await wixCrmBackend.contacts.appendOrCreateContact({
+				email: email,
+				name: {
+					first: name || 'Market',
+					last: 'Participant'
+				},
+				subscriptionStatus: 'NOT_SET'
+			});
+		}
+		
+		console.log(`[EMAIL-BACKEND] Contact creation result:`, JSON.stringify(contactIdentification, null, 2));
+		console.log(`[EMAIL-BACKEND] Contact creation result keys:`, Object.keys(contactIdentification || {}));
+		
+		// createContact returns the full contact object, appendOrCreateContact returns ContactIdentification
+		// Check if we have a full contact object (has _id directly) or ContactIdentification (needs getContact)
+		let fullContact;
+		if (contactIdentification && contactIdentification._id && contactIdentification.info) {
+			// This is a full contact object from createContact
+			fullContact = contactIdentification;
+			console.log(`[EMAIL-BACKEND] Got full contact object from createContact: ${fullContact._id}`);
+		} else {
+			// This is ContactIdentification from appendOrCreateContact - need to get full contact
+			const contactId = contactIdentification?._id || 
+			                  contactIdentification?.contactId || 
+			                  contactIdentification?.id ||
+			                  (contactIdentification && typeof contactIdentification === 'string' ? contactIdentification : null);
+			
+			console.log(`[EMAIL-BACKEND] Extracted contactId from ContactIdentification: ${contactId}`);
+			
+			if (!contactId) {
+				console.warn('[EMAIL-BACKEND] ContactIdentification missing contact ID, trying retry query...');
+				// Wait a moment for the contact to be fully created
+				await new Promise(resolve => setTimeout(resolve, 500));
+				
+				// Try to get contact by email again (it might have been created)
+				const retryContacts = await wixCrmBackend.contacts.queryContacts()
+					.eq('primaryInfo.email', email)
+					.limit(1)
+					.find();
+				
+				if (retryContacts.items && retryContacts.items.length > 0) {
+					console.log(`[EMAIL-BACKEND] Found contact on retry: ${retryContacts.items[0]._id}`);
+					fullContact = retryContacts.items[0];
+				} else {
+					throw new Error('Failed to create contact - no contact ID returned and retry query failed');
+				}
+			} else {
+				// Get the full contact object using the ID
+				fullContact = await wixCrmBackend.contacts.getContact(contactId);
+				console.log(`[EMAIL-BACKEND] Got full contact from getContact: ${fullContact._id}`);
+			}
+		}
+		
+		console.log(`[EMAIL-BACKEND] Created new contact: ${fullContact._id}`);
+		
+		// Verify the contact email matches what we're looking for
+		const contactEmail = fullContact.info?.primaryEmail || 
+		                     fullContact.primaryInfo?.email ||
+		                     fullContact.email ||
+		                     'unknown';
+		console.log(`[EMAIL-BACKEND] Contact email from getContact: ${contactEmail}`);
+		console.log(`[EMAIL-BACKEND] Expected email: ${email}`);
+		
+		if (contactEmail.toLowerCase() !== email.toLowerCase()) {
+			console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: Contact email mismatch!`);
+			console.warn(`[EMAIL-BACKEND] Expected: ${email}, Got: ${contactEmail}`);
+			console.warn(`[EMAIL-BACKEND] This might be a reconciled contact. Trying to find correct contact...`);
+			
+			// Try to find the correct contact by email
+			const correctContacts = await wixCrmBackend.contacts.queryContacts()
+				.eq('primaryInfo.email', email)
+				.limit(1)
+				.find();
+			
+			if (correctContacts.items && correctContacts.items.length > 0) {
+				console.log(`[EMAIL-BACKEND] Found correct contact: ${correctContacts.items[0]._id}`);
+				return correctContacts.items[0];
+			}
+			
+			// If we can't find it, this is a critical error - we can't send email to wrong recipient
+			const errorMsg = `CRITICAL: Contact email mismatch! Expected ${email} but got ${contactEmail}. ` +
+			                 `This happens when appendOrCreateContact reconciles with the logged-in admin's contact. ` +
+			                 `The contact ${email} does not exist in Wix CRM. Please ensure the contact is created when the form is submitted.`;
+			console.error(`[EMAIL-BACKEND] ❌ ${errorMsg}`);
+			throw new Error(errorMsg);
+		}
+		
+		// Verify subscription status
+		const newSubscriptionStatus = fullContact.info?.extendedFields?.emailSubscriptions?.subscriptionStatus ||
+		                              fullContact.subscriptionStatus ||
+		                              fullContact.emailSubscriptions?.subscriptionStatus ||
+		                              'UNKNOWN';
+		console.log(`[EMAIL-BACKEND] New contact subscription status: ${newSubscriptionStatus}`);
+		
+		// Log warning if UNSUBSCRIBED
+		if (newSubscriptionStatus === 'UNSUBSCRIBED') {
+			console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: New contact ${fullContact._id} is UNSUBSCRIBED. Email may not be sent!`);
+		}
+		
+		return fullContact;
+	} catch (error) {
+		console.error('[EMAIL-BACKEND] Error getting or creating contact:', error);
+		console.error('[EMAIL-BACKEND] Error details:', JSON.stringify(error, null, 2));
+		throw error;
+	}
+}
+
+/**
+ * Get the email template ID for approved status notifications
+ * This ID is obtained from Wix Dashboard > Marketing > Email Marketing > Triggered Emails
+ * @returns {string} Email template ID
+ */
+function getApprovedEmailTemplateId() {
+	// Template ID from Wix Dashboard
+	return 'V9e2eMj';
+}
+
+/**
+ * Get the email template ID for rejected status notifications
+ * This ID is obtained from Wix Dashboard > Marketing > Email Marketing > Triggered Emails
+ * @returns {string} Email template ID
+ */
+function getRejectedEmailTemplateId() {
+	// Template ID from Wix Dashboard
+	return 'V9e3Agb';
+}
+
+/**
+ * Prepare email variables for Wix Triggered Email template
+ * All values must be strings for Wix Triggered Emails
+ * @param {Object} profile - The SpecialtyProfiles record
+ * @param {Object} dateRef - The MarketDates2026 record
+ * @param {Object} assignment - The WeeklyAssignments record
+ * @param {string} status - 'Approved' or 'Rejected'
+ * @returns {Object} Variables object with string values for email template
+ */
+/**
+ * Get the site URL for email templates
+ * Update this with your actual site URL if needed
+ * @returns {string} Site URL
+ */
+function getSiteUrl() {
+	// Update this with your actual site URL
+	// Example: 'https://dubuquefarmersmarket.com' or 'https://www.dubuquefarmersmarket.com'
+	return 'https://dubuquefarmersmarket.com';
+}
+
+/**
+ * Prepare email variables for Wix Triggered Email template
+ * All values must be strings for Wix Triggered Emails
+ * @param {Object} profile - The SpecialtyProfiles record
+ * @param {Object} dateRef - The MarketDates2026 record
+ * @param {Object} assignment - The WeeklyAssignments record
+ * @param {string} status - 'Approved' or 'Rejected'
+ * @returns {Object} Variables object with string values for email template
+ */
+function prepareEmailVariables(profile, dateRef, assignment, status) {
+	console.log('[EMAIL-BACKEND] Preparing variables from:', {
+		profile: { organizationName: profile.organizationName, type: profile.type },
+		dateRef: { date: dateRef.date, title: dateRef.title },
+		status: status
+	});
+	
+	// Extract data from profile
+	const applicantName = profile.organizationName || 'Applicant';
+	const profileType = profile.type || 'Application';
+	
+	// Format the date
+	const marketDateFull = dateRef.date 
+		? new Date(dateRef.date).toLocaleDateString('en-US', { 
+			weekday: 'long', 
+			year: 'numeric', 
+			month: 'long', 
+			day: 'numeric' 
+		})
+		: (dateRef.title || 'Market Date');
+	
+	// Get the site URL
+	const currentSiteUrl = getSiteUrl();
+	
+	// Prepare variables object - variable names must match EXACTLY what's in the Wix template
+	const variables = {
+		applicantName: String(applicantName || ''),
+		profileType: String(profileType || ''),
+		marketDateFull: String(marketDateFull || ''),
+		status: String(status || ''),
+		SITE_URL: String(currentSiteUrl || '')
+	};
+	
+	console.log('[EMAIL-BACKEND] Prepared variables:', variables);
+	console.log('[EMAIL-BACKEND] Variable names:', Object.keys(variables));
+	
+	return variables;
+}
+
+/**
+ * Prepare email content based on status and profile type
+ * NOTE: This function is kept for reference but is no longer used.
+ * Wix Triggered Emails use templates configured in the Wix Dashboard.
+ * @param {Object} profile - The SpecialtyProfiles record
+ * @param {Object} dateRef - The MarketDates2026 record
+ * @param {Object} assignment - The WeeklyAssignments record
+ * @param {string} status - 'Approved' or 'Rejected'
+ * @returns {Object} Email content object with subject, htmlBody, and textBody
+ */
+function prepareEmailContent(profile, dateRef, assignment, status) {
+	const organizationName = profile.organizationName || 'Applicant';
+	const dateTitle = dateRef.title || 'Market Date';
+	const dateValue = dateRef.date ? new Date(dateRef.date).toLocaleDateString('en-US', { 
+		weekday: 'long', 
+		year: 'numeric', 
+		month: 'long', 
+		day: 'numeric' 
+	}) : 'Market Date';
+	const profileType = profile.type || 'Application';
+	const location = assignment.assignedMapId || null;
+
+	// Base email content
+	let subject, htmlBody, textBody;
+
+	if (status === 'Approved') {
+		subject = `Your ${profileType} Application Has Been Approved - Dubuque Farmers Market`;
+		
+		// Build location info if applicable
+		let locationInfo = '';
+		if (profileType === 'Musician' && location) {
+			locationInfo = `<p><strong>Assigned Location:</strong> ${location}</p>`;
+		}
+
+		// Build type-specific details
+		let detailsInfo = '';
+		if (profileType === 'Musician') {
+			const details = [];
+			if (profile.musicianType) details.push(`Type: ${profile.musicianType}`);
+			if (profile.genre) details.push(`Genre: ${profile.genre}`);
+			if (profile.duration) details.push(`Duration: ${profile.duration}`);
+			if (profile.techNeeds) details.push('Electric hookup needed');
+			if (details.length > 0) {
+				detailsInfo = `<p><strong>Details:</strong> ${details.join(', ')}</p>`;
+			}
+		} else if (profileType === 'Volunteer') {
+			const details = [];
+			if (profile.volunteerRole) details.push(`Role: ${profile.volunteerRole}`);
+			if (profile.shiftPreference) details.push(`Shift: ${profile.shiftPreference}`);
+			if (details.length > 0) {
+				detailsInfo = `<p><strong>Details:</strong> ${details.join(', ')}</p>`;
+			}
+		} else if (profileType === 'NonProfit') {
+			const details = [];
+			if (profile.nonProfitType) details.push(`Type: ${profile.nonProfitType}`);
+			if (profile.website) details.push(`Website: ${profile.website}`);
+			if (details.length > 0) {
+				detailsInfo = `<p><strong>Details:</strong> ${details.join(', ')}</p>`;
+			}
+		}
+
+		htmlBody = `
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<meta charset="UTF-8">
+				<style>
+					body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+					.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+					.header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
+					.content { padding: 20px; background-color: #f9f9f9; }
+					.footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+					.button { display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+				</style>
+			</head>
+			<body>
+				<div class="container">
+					<div class="header">
+						<h1>Application Approved!</h1>
+					</div>
+					<div class="content">
+						<p>Dear ${organizationName},</p>
+						<p>We're excited to inform you that your ${profileType.toLowerCase()} application for the Dubuque Farmers Market has been <strong>approved</strong>!</p>
+						<p><strong>Market Date:</strong> ${dateTitle} (${dateValue})</p>
+						${locationInfo}
+						${detailsInfo}
+						<p>We look forward to having you at the market. If you have any questions or need to make changes, please don't hesitate to contact us.</p>
+						<p>Thank you for being part of the Dubuque Farmers Market community!</p>
+						<p>Best regards,<br>Dubuque Farmers Market Team</p>
+					</div>
+					<div class="footer">
+						<p>This is an automated message. Please do not reply directly to this email.</p>
+					</div>
+				</div>
+			</body>
+			</html>
+		`;
+
+		textBody = `
+Application Approved - Dubuque Farmers Market
+
+Dear ${organizationName},
+
+We're excited to inform you that your ${profileType.toLowerCase()} application for the Dubuque Farmers Market has been APPROVED!
+
+Market Date: ${dateTitle} (${dateValue})
+${location ? `Assigned Location: ${location}` : ''}
+${detailsInfo ? detailsInfo.replace(/<[^>]*>/g, '') : ''}
+
+We look forward to having you at the market. If you have any questions or need to make changes, please don't hesitate to contact us.
+
+Thank you for being part of the Dubuque Farmers Market community!
+
+Best regards,
+Dubuque Farmers Market Team
+
+---
+This is an automated message. Please do not reply directly to this email.
+		`;
+
+	} else if (status === 'Rejected') {
+		subject = `Update on Your ${profileType} Application - Dubuque Farmers Market`;
+		
+		htmlBody = `
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<meta charset="UTF-8">
+				<style>
+					body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+					.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+					.header { background-color: #f44336; color: white; padding: 20px; text-align: center; }
+					.content { padding: 20px; background-color: #f9f9f9; }
+					.footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+				</style>
+			</head>
+			<body>
+				<div class="container">
+					<div class="header">
+						<h1>Application Update</h1>
+					</div>
+					<div class="content">
+						<p>Dear ${organizationName},</p>
+						<p>Thank you for your interest in participating in the Dubuque Farmers Market.</p>
+						<p>Unfortunately, we are unable to approve your ${profileType.toLowerCase()} application for <strong>${dateTitle} (${dateValue})</strong> at this time.</p>
+						<p>This may be due to capacity limitations, scheduling conflicts, or other factors. We encourage you to apply for other available dates.</p>
+						<p>If you have any questions about this decision or would like to discuss future opportunities, please feel free to contact us.</p>
+						<p>Thank you for your understanding.</p>
+						<p>Best regards,<br>Dubuque Farmers Market Team</p>
+					</div>
+					<div class="footer">
+						<p>This is an automated message. Please do not reply directly to this email.</p>
+					</div>
+				</div>
+			</body>
+			</html>
+		`;
+
+		textBody = `
+Update on Your Application - Dubuque Farmers Market
+
+Dear ${organizationName},
+
+Thank you for your interest in participating in the Dubuque Farmers Market.
+
+Unfortunately, we are unable to approve your ${profileType.toLowerCase()} application for ${dateTitle} (${dateValue}) at this time.
+
+This may be due to capacity limitations, scheduling conflicts, or other factors. We encourage you to apply for other available dates.
+
+If you have any questions about this decision or would like to discuss future opportunities, please feel free to contact us.
+
+Thank you for your understanding.
+
+Best regards,
+Dubuque Farmers Market Team
+
+---
+This is an automated message. Please do not reply directly to this email.
+		`;
+	}
+
+	return {
+		subject,
+		htmlBody,
+		textBody
+	};
+}
+
+/**
+ * Send email using Wix Triggered Emails
+ * 
+ * This function uses Wix's native email system which requires:
+ * 1. Email templates configured in Wix Dashboard > Marketing > Email Marketing > Triggered Emails
+ * 2. Template IDs: V9e2eMj (Approved), V9e3Agb (Rejected)
+ * 3. Contact must exist in Wix CRM (created automatically via getOrCreateContact())
+ * 
+ * @param {string} emailTemplateId - The ID of the email template from Wix Dashboard
+ * @param {string} contactId - The Wix CRM contact ID
+ * @param {Object} variables - Template variables (all values must be strings)
+ * @returns {Promise<Object>} Result object with success status
+ */
+async function sendWixTriggeredEmail(emailTemplateId, contactId, variables) {
+	try {
+		// Validate inputs
+		if (!emailTemplateId) {
+			throw new Error('Email template ID is required');
+		}
+		if (!contactId) {
+			throw new Error('Contact ID is required');
+		}
+
+		console.log(`[EMAIL-BACKEND] Attempting to send email - Template: ${emailTemplateId}, Contact: ${contactId}`);
+		console.log(`[EMAIL-BACKEND] Variables being sent:`, JSON.stringify(variables, null, 2));
+		console.log(`[EMAIL-BACKEND] Variable keys:`, Object.keys(variables));
+		console.log(`[EMAIL-BACKEND] Variable values:`, Object.values(variables));
+
+		// Verify contact subscription status before sending
+		const contact = await wixCrmBackend.contacts.getContact(contactId);
+		const contactEmail = contact.info?.primaryEmail || 
+		                      contact.primaryInfo?.email ||
+		                      contact.email ||
+		                      'unknown';
+		const subscriptionStatus = contact.info?.extendedFields?.emailSubscriptions?.subscriptionStatus ||
+		                           contact.subscriptionStatus ||
+		                           contact.emailSubscriptions?.subscriptionStatus ||
+		                           'UNKNOWN';
+		
+		console.log(`[EMAIL-BACKEND] Contact subscription status before send: ${subscriptionStatus}`);
+		console.log(`[EMAIL-BACKEND] Contact email: ${contactEmail}`);
+		console.log(`[EMAIL-BACKEND] Contact ID: ${contactId}`);
+		console.log(`[EMAIL-BACKEND] Full contact structure:`, JSON.stringify({
+			_id: contact._id,
+			email: contactEmail,
+			hasInfo: !!contact.info,
+			hasPrimaryEmail: !!contact.info?.primaryEmail,
+			hasPrimaryInfo: !!contact.primaryInfo,
+			subscriptionStatus: subscriptionStatus
+		}, null, 2));
+		
+		if (subscriptionStatus === 'UNSUBSCRIBED') {
+			const errorMsg = `Contact ${contactId} (${contactEmail}) is UNSUBSCRIBED - cannot send email. Subscription status must be SUBSCRIBED or NOT_SET.`;
+			console.error(`[EMAIL-BACKEND] ❌ ${errorMsg}`);
+			throw new Error(errorMsg);
+		}
+		
+		// If subscription status is UNKNOWN, update it to NOT_SET to ensure email can be sent
+		if (subscriptionStatus === 'UNKNOWN') {
+			console.log(`[EMAIL-BACKEND] Updating subscription status from UNKNOWN to NOT_SET for contact ${contactId}`);
+			try {
+				// Use appendOrCreateContact to update subscription status (simpler than updateContact)
+				// This will update the existing contact's subscription status
+				await wixCrmBackend.contacts.appendOrCreateContact({
+					email: contactEmail,
+					subscriptionStatus: 'NOT_SET'
+				});
+				console.log(`[EMAIL-BACKEND] ✅ Successfully updated subscription status to NOT_SET`);
+			} catch (updateError) {
+				console.warn(`[EMAIL-BACKEND] ⚠️ Warning: Failed to update subscription status:`, updateError.message);
+				console.warn(`[EMAIL-BACKEND] Attempting to send email anyway...`);
+			}
+		} else if (subscriptionStatus !== 'SUBSCRIBED' && subscriptionStatus !== 'NOT_SET') {
+			console.warn(`[EMAIL-BACKEND] ⚠️ Warning: Contact subscription status is "${subscriptionStatus}" (expected SUBSCRIBED or NOT_SET)`);
+			console.warn(`[EMAIL-BACKEND] Email may still be sent, but this is unexpected.`);
+		}
+
+		// Send the triggered email using wix-crm-backend API
+		// Note: variables must all be strings - prepareEmailVariables() handles this
+		// Using the imported triggeredEmails directly (correct API usage)
+		await triggeredEmails.emailContact(emailTemplateId, contactId, {
+			variables: variables
+		});
+
+		console.log('[EMAIL-BACKEND] ✅ Email sent successfully!');
+
+		return {
+			success: true,
+			message: 'Email sent successfully via Wix Triggered Emails'
+		};
+
+	} catch (error) {
+		console.error('Error sending Wix Triggered Email:', error);
+		console.error('Error name:', error.name);
+		console.error('Error message:', error.message);
+		console.error('Error stack:', error.stack);
+		if (error.details) {
+			console.error('Error details:', JSON.stringify(error.details, null, 2));
+		}
+		
+		// Provide helpful error messages
+		let errorMessage = error.message || 'Unknown error';
+		if (error.message && error.message.includes('template')) {
+			errorMessage = 'Email template not found. Please verify the template ID in Wix Dashboard.';
+		} else if (error.message && error.message.includes('contact')) {
+			errorMessage = 'Contact not found or not subscribed. Please check contact subscription status.';
+		} else if (error.message && error.message.includes('subscription')) {
+			errorMessage = 'Contact subscription status prevents sending email. Contact must be subscribed or have subscription status NOT_SET.';
+		}
+		
+		return {
+			success: false,
+			error: errorMessage,
+			fullError: error.toString()
+		};
+	}
+}

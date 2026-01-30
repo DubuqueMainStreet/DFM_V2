@@ -1,0 +1,158 @@
+import wixData from 'wix-data';
+
+/**
+ * Fix MarketDates2026 to ensure all dates are Saturdays
+ * Season: May 2, 2026 (Saturday) through October 31, 2026 (Saturday)
+ * Finds all Saturdays in that range and updates/creates records
+ */
+export async function fixSaturdayDates() {
+	try {
+		console.log('🔄 Starting Saturday date fix...');
+		
+		// Get all existing records
+		const existingResults = await wixData.query('MarketDates2026')
+			.find();
+		
+		console.log(`Found ${existingResults.items.length} existing records`);
+		
+		// Calculate all Saturdays from May 2, 2026 to October 31, 2026
+		// Use local time to avoid timezone issues
+		const startDate = new Date(2026, 4, 2); // May 2, 2026 (month is 0-indexed, so 4 = May)
+		const endDate = new Date(2026, 9, 31);   // October 31, 2026 (month is 0-indexed, so 9 = October)
+		
+		// Set to noon local time to avoid timezone edge cases
+		startDate.setHours(12, 0, 0, 0);
+		endDate.setHours(12, 0, 0, 0);
+		
+		console.log('Start date check:', startDate.toDateString(), 'Day of week:', startDate.getDay(), '(6 = Saturday)');
+		console.log('End date check:', endDate.toDateString(), 'Day of week:', endDate.getDay(), '(6 = Saturday)');
+		
+		// Verify start date is Saturday (0 = Sunday, 6 = Saturday)
+		if (startDate.getDay() !== 6) {
+			console.warn('⚠️ Warning: May 2, 2026 is not a Saturday. Adjusting to next Saturday...');
+			// Find next Saturday
+			const daysUntilSaturday = (6 - startDate.getDay() + 7) % 7;
+			if (daysUntilSaturday === 0) {
+				startDate.setDate(startDate.getDate() + 7); // If already Saturday, go to next week
+			} else {
+				startDate.setDate(startDate.getDate() + daysUntilSaturday);
+			}
+		}
+		
+		// Generate all Saturdays in range
+		const saturdays = [];
+		const currentDate = new Date(startDate);
+		
+		while (currentDate <= endDate) {
+			if (currentDate.getDay() === 6) { // Saturday
+				// Create a new date object set to noon local time
+				const saturdayDate = new Date(currentDate);
+				saturdayDate.setHours(12, 0, 0, 0);
+				saturdays.push(saturdayDate);
+			}
+			currentDate.setDate(currentDate.getDate() + 1);
+		}
+		
+		console.log(`Calculated ${saturdays.length} Saturdays from ${startDate.toDateString()} to ${endDate.toDateString()}`);
+		console.log('First Saturday:', saturdays[0].toDateString());
+		console.log('Last Saturday:', saturdays[saturdays.length - 1].toDateString());
+		
+		// Create a map of existing records by date string (YYYY-MM-DD)
+		const existingMap = {};
+		existingResults.items.forEach(item => {
+			if (item.date) {
+				const dateStr = new Date(item.date).toISOString().split('T')[0];
+				existingMap[dateStr] = item;
+			}
+		});
+		
+		// Update or create records for each Saturday
+		const updatePromises = saturdays.map(async (saturday, index) => {
+			// Use local date string to avoid timezone issues
+			const year = saturday.getFullYear();
+			const month = String(saturday.getMonth() + 1).padStart(2, '0');
+			const day = String(saturday.getDate()).padStart(2, '0');
+			const dateStr = `${year}-${month}-${day}`;
+			
+			const existingRecord = existingMap[dateStr];
+			
+			// Format title
+			const monthName = saturday.toLocaleDateString('en-US', { month: 'long' });
+			const dayNum = saturday.getDate();
+			const daySuffix = getDaySuffix(dayNum);
+			const title = `${monthName} ${dayNum}${daySuffix}, ${year}`;
+			
+			// Verify it's actually a Saturday
+			const dayOfWeek = saturday.getDay();
+			const dayName = saturday.toLocaleDateString('en-US', { weekday: 'long' });
+			
+			if (dayOfWeek !== 6) {
+				console.error(`❌ ERROR: ${dateStr} is ${dayName}, not Saturday! Skipping...`);
+				return null;
+			}
+			
+			if (existingRecord) {
+				// Update existing record
+				console.log(`Updating record ${index + 1}: ${title} (${dateStr}) - ${dayName}`);
+				return wixData.update('MarketDates2026', {
+					_id: existingRecord._id,
+					date: saturday,
+					title: title
+				});
+			} else {
+				// Create new record
+				console.log(`Creating record ${index + 1}: ${title} (${dateStr}) - ${dayName}`);
+				return wixData.save('MarketDates2026', {
+					date: saturday,
+					title: title
+				});
+			}
+		});
+		
+		// Filter out nulls from errors
+		const validPromises = updatePromises.filter(p => p !== null);
+		
+		await Promise.all(validPromises);
+		
+		// Delete any records that aren't Saturdays
+		const saturdayDateStrs = saturdays.map(d => d.toISOString().split('T')[0]);
+		const recordsToDelete = existingResults.items.filter(item => {
+			if (!item.date) return true;
+			const dateStr = new Date(item.date).toISOString().split('T')[0];
+			return !saturdayDateStrs.includes(dateStr);
+		});
+		
+		if (recordsToDelete.length > 0) {
+			console.log(`Deleting ${recordsToDelete.length} non-Saturday records...`);
+			const deletePromises = recordsToDelete.map(item => 
+				wixData.remove('MarketDates2026', item._id)
+			);
+			await Promise.all(deletePromises);
+		}
+		
+		console.log(`✅ Successfully fixed all dates to Saturdays!`);
+		console.log(`   - Updated/Created: ${saturdays.length} records`);
+		console.log(`   - Deleted: ${recordsToDelete.length} non-Saturday records`);
+		
+		return {
+			success: true,
+			updated: saturdays.length,
+			deleted: recordsToDelete.length,
+			totalSaturdays: saturdays.length
+		};
+		
+	} catch (error) {
+		console.error('❌ Error fixing Saturday dates:', error);
+		throw error;
+	}
+}
+
+function getDaySuffix(day) {
+	if (day > 3 && day < 21) return 'th';
+	switch (day % 10) {
+		case 1: return 'st';
+		case 2: return 'nd';
+		case 3: return 'rd';
+		default: return 'th';
+	}
+}
