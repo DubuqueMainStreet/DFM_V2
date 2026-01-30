@@ -307,17 +307,43 @@ async function getOrCreateContact(email, name) {
 				return retrySearch.items[0];
 			}
 			
-			// Last resort: try appendOrCreateContact but verify email matches after
+			// Last resort: try appendOrCreateContact but we MUST verify email matches after
 			console.warn(`[EMAIL-BACKEND] Retry search failed, trying appendOrCreateContact as last resort...`);
-			contactIdentification = await wixCrmBackend.contacts.appendOrCreateContact({
-				email: email,
-				name: {
-					first: name || 'Market',
-					last: 'Participant'
-				},
-				subscriptionStatus: 'NOT_SET'
-			});
-			console.log(`[EMAIL-BACKEND] Used appendOrCreateContact - will verify email matches`);
+			console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: appendOrCreateContact may reconcile with admin's contact. Will verify email after.`);
+			
+			try {
+				contactIdentification = await wixCrmBackend.contacts.appendOrCreateContact({
+					email: email,
+					name: {
+						first: name || 'Market',
+						last: 'Participant'
+					},
+					subscriptionStatus: 'NOT_SET'
+				});
+				console.log(`[EMAIL-BACKEND] Used appendOrCreateContact - will verify email matches`);
+			} catch (appendError) {
+				console.error(`[EMAIL-BACKEND] appendOrCreateContact also failed:`, appendError.message);
+				// If appendOrCreateContact fails, try one more time with createContact
+				console.log(`[EMAIL-BACKEND] Attempting final createContact with allowDuplicates...`);
+				try {
+					contactIdentification = await wixCrmBackend.contacts.createContact({
+						primaryInfo: {
+							email: email
+						},
+						name: {
+							first: name || 'Market',
+							last: 'Participant'
+						},
+						subscriptionStatus: 'NOT_SET'
+					}, {
+						allowDuplicates: true
+					});
+					console.log(`[EMAIL-BACKEND] Successfully created contact via final createContact attempt`);
+				} catch (finalError) {
+					console.error(`[EMAIL-BACKEND] All contact creation methods failed:`, finalError.message);
+					throw new Error(`Failed to create contact ${email}. All creation methods failed. Please manually create the contact in Wix CRM.`);
+				}
+			}
 		}
 		
 		console.log(`[EMAIL-BACKEND] Contact creation result:`, JSON.stringify(contactIdentification, null, 2));
@@ -342,7 +368,7 @@ async function getOrCreateContact(email, name) {
 			if (!contactId) {
 				console.warn('[EMAIL-BACKEND] ContactIdentification missing contact ID, trying retry query...');
 				// Wait a moment for the contact to be fully created
-				await new Promise(resolve => setTimeout(resolve, 500));
+				await new Promise(resolve => setTimeout(resolve, 1000));
 				
 				// Try to get contact by email again (it might have been created)
 				const retryContacts = await wixCrmBackend.contacts.queryContacts()
@@ -354,7 +380,25 @@ async function getOrCreateContact(email, name) {
 					console.log(`[EMAIL-BACKEND] Found contact on retry: ${retryContacts.items[0]._id}`);
 					fullContact = retryContacts.items[0];
 				} else {
-					throw new Error('Failed to create contact - no contact ID returned and retry query failed');
+					// Last attempt: try creating with createContact one more time
+					console.warn(`[EMAIL-BACKEND] Retry query failed, attempting final createContact...`);
+					try {
+						fullContact = await wixCrmBackend.contacts.createContact({
+							primaryInfo: {
+								email: email
+							},
+							name: {
+								first: name || 'Market',
+								last: 'Participant'
+							},
+							subscriptionStatus: 'NOT_SET'
+						}, {
+							allowDuplicates: true
+						});
+						console.log(`[EMAIL-BACKEND] ✅ Created contact via final attempt: ${fullContact._id}`);
+					} catch (finalCreateError) {
+						throw new Error(`Failed to create contact ${email}. Please manually create the contact in Wix CRM.`);
+					}
 				}
 			} else {
 				// Get the full contact object using the ID
@@ -363,7 +407,7 @@ async function getOrCreateContact(email, name) {
 			}
 		}
 		
-		console.log(`[EMAIL-BACKEND] Created new contact: ${fullContact._id}`);
+		console.log(`[EMAIL-BACKEND] Created/found contact: ${fullContact._id}`);
 		
 		// Verify the contact email matches what we're looking for
 		const contactEmail = fullContact.info?.primaryEmail || 
@@ -373,7 +417,7 @@ async function getOrCreateContact(email, name) {
 		console.log(`[EMAIL-BACKEND] Contact email from getContact: ${contactEmail}`);
 		console.log(`[EMAIL-BACKEND] Expected email: ${email}`);
 		
-		if (contactEmail.toLowerCase() !== email.toLowerCase()) {
+		if (contactEmail.toLowerCase() !== email.toLowerCase() && contactEmail !== 'unknown') {
 			console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: Contact email mismatch!`);
 			console.warn(`[EMAIL-BACKEND] Expected: ${email}, Got: ${contactEmail}`);
 			console.warn(`[EMAIL-BACKEND] This might be a reconciled contact. Trying to find correct contact...`);
@@ -449,7 +493,7 @@ async function getOrCreateContact(email, name) {
 					console.log(`[EMAIL-BACKEND] ✅ Successfully created contact with correct email: ${newContact._id}`);
 					return newContact;
 				} else {
-					console.error(`[EMAIL-BACKEND] ❌ Created contact but email still doesn't match!`);
+					console.error(`[EMAIL-BACKEND] ❌ Created contact but email still doesn't match! Got: ${newContactEmail}`);
 				}
 			} catch (finalCreateError) {
 				console.error(`[EMAIL-BACKEND] ❌ Final createContact attempt failed:`, finalCreateError.message);
@@ -460,6 +504,47 @@ async function getOrCreateContact(email, name) {
 			                 `This happens when appendOrCreateContact reconciles with the logged-in admin's contact. ` +
 			                 `The contact ${email} does not exist in Wix CRM. ` +
 			                 `Please ensure the contact is created when the form is submitted, or manually create the contact in Wix CRM.`;
+			console.error(`[EMAIL-BACKEND] ❌ ${errorMsg}`);
+			throw new Error(errorMsg);
+		} else if (contactEmail === 'unknown') {
+			// Contact was created but email is unknown - this is a problem
+			console.error(`[EMAIL-BACKEND] ❌ Contact created but email is 'unknown'! Contact ID: ${fullContact._id}`);
+			console.error(`[EMAIL-BACKEND] This usually means appendOrCreateContact reconciled with admin's contact.`);
+			
+			// Try one final time to create the contact with createContact
+			console.log(`[EMAIL-BACKEND] Attempting to create contact with createContact (bypassing reconciliation)...`);
+			try {
+				const newContact = await wixCrmBackend.contacts.createContact({
+					primaryInfo: {
+						email: email
+					},
+					name: {
+						first: name || 'Market',
+						last: 'Participant'
+					},
+					subscriptionStatus: 'NOT_SET'
+				}, {
+					allowDuplicates: true
+				});
+				
+				const newContactEmail = newContact.info?.primaryEmail || 
+				                       newContact.primaryInfo?.email ||
+				                       newContact.email || '';
+				
+				if (newContactEmail.toLowerCase() === email.toLowerCase()) {
+					console.log(`[EMAIL-BACKEND] ✅ Successfully created contact with correct email: ${newContact._id}`);
+					return newContact;
+				} else {
+					console.error(`[EMAIL-BACKEND] ❌ Even createContact returned wrong email: ${newContactEmail}`);
+				}
+			} catch (finalError) {
+				console.error(`[EMAIL-BACKEND] ❌ Final createContact failed:`, finalError.message);
+			}
+			
+			const errorMsg = `CRITICAL: Contact email is 'unknown'! Expected ${email} but contact ${fullContact._id} has no email. ` +
+			                 `This happens when appendOrCreateContact reconciles with the logged-in admin's contact. ` +
+			                 `The contact ${email} does not exist in Wix CRM. ` +
+			                 `Please manually create the contact ${email} in Wix CRM, then try approving/rejecting again.`;
 			console.error(`[EMAIL-BACKEND] ❌ ${errorMsg}`);
 			throw new Error(errorMsg);
 		}
