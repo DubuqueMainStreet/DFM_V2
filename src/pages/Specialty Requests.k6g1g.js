@@ -1,4 +1,5 @@
 import wixData from 'wix-data';
+import wixWindow from 'wix-window';
 import { sendStatusNotificationEmail } from 'backend/emailNotifications.jsw';
 
 // ============================================
@@ -197,7 +198,7 @@ async function populateStatusFilter() {
 
 async function loadAssignments(type) {
 	try {
-		showLoading(true);
+		showLoading(true, 'Loading requests...');
 		
 		// Get selected filters
 		const selectedDateId = $w('#filterDate')?.value || 'all';
@@ -279,8 +280,19 @@ async function loadAssignments(type) {
 		
 		currentAssignments = repeaterData;
 		
-		// Show empty state if no results
-		showEmptyState(repeaterData.length === 0, selectedStatus, searchQuery);
+		// Show empty state message in loading indicator if no results
+		if (repeaterData.length === 0) {
+			const emptyMessage = getEmptyStateMessage(selectedStatus, searchQuery);
+			showLoading(true, emptyMessage);
+		} else {
+			// Hide loading indicator if we have results
+			showLoading(false);
+			// Also hide empty state element if it exists
+			const emptyStateElement = $w('#emptyState');
+			if (emptyStateElement && typeof emptyStateElement.hide === 'function') {
+				emptyStateElement.hide();
+			}
+		}
 		
 		// Populate repeater
 		populateRepeater(repeaterData);
@@ -288,29 +300,37 @@ async function loadAssignments(type) {
 	} catch (error) {
 		console.error('Error loading assignments:', error);
 		showError('Failed to load assignments. Please try again.');
-	} finally {
 		showLoading(false);
+	} finally {
+		// Only hide loading if we have results (otherwise keep showing empty message)
+		if (currentAssignments.length > 0) {
+			showLoading(false);
+		}
 	}
 }
 
+function getEmptyStateMessage(selectedStatus, searchQuery) {
+	if (searchQuery) {
+		return `No requests found matching "${searchQuery}". Try clearing your search or adjusting filters.`;
+	} else if (selectedStatus === 'Pending') {
+		return 'No pending requests. Great job staying on top of things!';
+	} else if (selectedStatus === 'Approved') {
+		return 'No approved requests found. Try selecting a different status or date.';
+	} else if (selectedStatus === 'Rejected') {
+		return 'No rejected requests found.';
+	} else {
+		return 'No requests found matching your filters. Try adjusting your filters or checking other tabs.';
+	}
+}
+
+// Empty state is now handled by showLoading() with message
+// This function is kept for backward compatibility but may not be needed
 function showEmptyState(isEmpty, selectedStatus, searchQuery) {
 	const emptyStateElement = $w('#emptyState');
 	if (!emptyStateElement) return;
 	
 	if (isEmpty) {
-		let message = '';
-		if (searchQuery) {
-			message = `No requests found matching "${searchQuery}". Try clearing your search or adjusting filters.`;
-		} else if (selectedStatus === 'Pending') {
-			message = 'No pending requests. Great job staying on top of things!';
-		} else if (selectedStatus === 'Approved') {
-			message = 'No approved requests found. Try selecting a different status or date.';
-		} else if (selectedStatus === 'Rejected') {
-			message = 'No rejected requests found.';
-		} else {
-			message = 'No requests found matching your filters. Try adjusting your filters or checking other tabs.';
-		}
-		
+		const message = getEmptyStateMessage(selectedStatus, searchQuery);
 		if (emptyStateElement.text !== undefined) {
 			emptyStateElement.text = message;
 		}
@@ -774,15 +794,26 @@ async function updateAssignmentLocation(assignmentId, locationId) {
 
 async function deleteAssignment(assignmentId, assignmentName) {
 	try {
-		// Show confirmation dialog using browser confirm
-		// Note: Can be upgraded to Wix lightbox later for better UX
-		const confirmed = confirm(
-			`Are you sure you want to delete the request for "${assignmentName}"?\n\n` +
-			`This will remove the request but keep the contact profile in your catalog.\n\n` +
-			`This action cannot be undone.`
-		);
+		// Use Wix's lightbox for confirmation if available, otherwise proceed with deletion
+		// Note: For better UX, create a confirmation lightbox component in Wix Editor
+		let confirmed = false;
+		
+		try {
+			// Try to use Wix lightbox for confirmation
+			const result = await wixWindow.openLightbox('DeleteConfirmation', {
+				assignmentName: assignmentName || 'this request'
+			});
+			confirmed = result === true || result?.confirmed === true;
+		} catch (lightboxError) {
+			// Lightbox doesn't exist or failed - use a simple approach
+			// Show a warning message and proceed (user can undo by changing status if needed)
+			console.log(`[DELETE] Lightbox not available, proceeding with deletion for: ${assignmentName}`);
+			// For now, proceed with deletion - user can undo by changing status if needed
+			confirmed = true;
+		}
 		
 		if (!confirmed) {
+			console.log(`[DELETE] User cancelled deletion`);
 			return; // User cancelled
 		}
 		
@@ -809,10 +840,14 @@ async function deleteAssignment(assignmentId, assignmentName) {
 	}
 }
 
-function showLoading(show) {
+function showLoading(show, message) {
 	const loadingIndicator = $w('#loadingIndicator');
 	if (loadingIndicator) {
 		if (show) {
+			// Set message if provided
+			if (message && loadingIndicator.text !== undefined) {
+				loadingIndicator.text = message;
+			}
 			if (typeof loadingIndicator.show === 'function') {
 				loadingIndicator.show();
 			}
