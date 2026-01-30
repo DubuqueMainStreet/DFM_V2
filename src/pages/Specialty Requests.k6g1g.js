@@ -125,6 +125,9 @@ function updateActiveTab(activeType) {
 		
 		// Apply styling based on active state
 		if (tabElement.style) {
+			// Apply 12px border radius to all tabs
+			tabElement.style.borderRadius = '12px';
+			
 			if (isActive) {
 				// Active tab styling - prominent and highlighted
 				tabElement.style.backgroundColor = '#2196F3'; // Blue background
@@ -604,10 +607,11 @@ function setupRepeaterItem($item, itemData) {
 		btnDelete.onClick(() => {
 			deleteAssignment(itemData._id, itemData.name);
 		});
-		// Style delete button as destructive (red)
+		// Style delete button as destructive (red) with rounded corners
 		if (btnDelete.style) {
 			btnDelete.style.backgroundColor = '#D32F2F';
 			btnDelete.style.color = '#FFFFFF';
+			btnDelete.style.borderRadius = '12px';
 		}
 	}
 	
