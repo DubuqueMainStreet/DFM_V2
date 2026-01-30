@@ -819,13 +819,41 @@ async function deleteAssignment(assignmentId, assignmentName) {
 		
 		console.log(`[DELETE] Deleting assignment ${assignmentId}`);
 		
+		// First verify the item exists before attempting deletion
+		try {
+			const existingRecord = await wixData.get('WeeklyAssignments', assignmentId);
+			if (!existingRecord) {
+				console.log(`[DELETE] Assignment ${assignmentId} does not exist - may have already been deleted`);
+				showSuccess('Request has already been removed.');
+				// Reload to refresh the view
+				await loadAssignments(currentType);
+				return;
+			}
+		} catch (getError) {
+			// If get fails, item likely doesn't exist
+			console.log(`[DELETE] Could not find assignment ${assignmentId} - may have already been deleted`);
+			showSuccess('Request has already been removed.');
+			// Reload to refresh the view
+			await loadAssignments(currentType);
+			return;
+		}
+		
 		// Delete only the WeeklyAssignments record
 		// Profile is kept for contact catalog
-		await wixData.remove('WeeklyAssignments', assignmentId);
-		
-		console.log(`[DELETE] Successfully deleted assignment ${assignmentId}`);
-		
-		showSuccess('Request deleted successfully. Contact profile has been preserved.');
+		try {
+			await wixData.remove('WeeklyAssignments', assignmentId);
+			console.log(`[DELETE] Successfully deleted assignment ${assignmentId}`);
+			showSuccess('Request deleted successfully. Contact profile has been preserved.');
+		} catch (removeError) {
+			// Handle case where item doesn't exist (may have been deleted by another process)
+			if (removeError.errorCode === 'WDE0073' || removeError.message?.includes('does not exist')) {
+				console.log(`[DELETE] Assignment ${assignmentId} was already deleted`);
+				showSuccess('Request has already been removed.');
+			} else {
+				// Re-throw other errors
+				throw removeError;
+			}
+		}
 		
 		// Small delay to ensure database is updated
 		await new Promise(resolve => setTimeout(resolve, 100));
