@@ -43,6 +43,12 @@ async function initializeDashboard() {
 		// Set up search handler
 		setupSearchHandler();
 		
+		// Set up clear filters button
+		setupClearFiltersButton();
+		
+		// Set up refresh button
+		setupRefreshButton();
+		
 		// Set initial active tab styling (Musicians is default)
 		updateActiveTab('Musician');
 		
@@ -56,6 +62,44 @@ async function initializeDashboard() {
 	} catch (error) {
 		console.error('Error initializing dashboard:', error);
 		showError('Failed to load dashboard. Please refresh.');
+	}
+}
+
+function setupClearFiltersButton() {
+	const clearFiltersBtn = $w('#btnClearFilters');
+	if (clearFiltersBtn && typeof clearFiltersBtn.onClick === 'function') {
+		clearFiltersBtn.onClick(async () => {
+			// Reset all filters to defaults
+			const filterDate = $w('#filterDate');
+			if (filterDate && filterDate.value !== undefined) {
+				filterDate.value = 'all';
+			}
+			
+			const filterStatus = $w('#filterStatus');
+			if (filterStatus && filterStatus.value !== undefined) {
+				filterStatus.value = 'Pending'; // Keep default to Pending
+			}
+			
+			const searchInput = $w('#searchName');
+			if (searchInput && searchInput.value !== undefined) {
+				searchInput.value = '';
+			}
+			
+			// Reload with cleared filters
+			await loadAssignments(currentType);
+			showSuccess('Filters cleared');
+		});
+	}
+}
+
+function setupRefreshButton() {
+	const refreshBtn = $w('#btnRefresh');
+	if (refreshBtn && typeof refreshBtn.onClick === 'function') {
+		refreshBtn.onClick(async () => {
+			showLoading(true, 'Refreshing...');
+			await loadAssignments(currentType);
+			showSuccess('Refreshed');
+		});
 	}
 }
 
@@ -311,6 +355,9 @@ async function loadAssignments(type) {
 		
 		currentAssignments = repeaterData;
 		
+		// Update results count display
+		updateResultsCount(repeaterData.length, typeMatched, selectedStatus, searchQuery);
+		
 		// Show empty state message in loading indicator if no results
 		if (repeaterData.length === 0) {
 			const emptyMessage = getEmptyStateMessage(selectedStatus, searchQuery);
@@ -351,6 +398,29 @@ function getEmptyStateMessage(selectedStatus, searchQuery) {
 		return 'No rejected requests found.';
 	} else {
 		return 'No requests found matching your filters. Try adjusting your filters or checking other tabs.';
+	}
+}
+
+function updateResultsCount(displayedCount, totalForType, selectedStatus, searchQuery) {
+	const resultsCountElement = $w('#resultsCount');
+	if (!resultsCountElement) return;
+	
+	let message = '';
+	if (displayedCount === 0) {
+		message = 'No requests found';
+	} else if (searchQuery) {
+		message = `Showing ${displayedCount} request${displayedCount !== 1 ? 's' : ''} matching "${searchQuery}"`;
+	} else if (selectedStatus === 'all') {
+		message = `Showing ${displayedCount} request${displayedCount !== 1 ? 's' : ''}`;
+	} else {
+		message = `Showing ${displayedCount} ${selectedStatus.toLowerCase()} request${displayedCount !== 1 ? 's' : ''}`;
+	}
+	
+	if (resultsCountElement.text !== undefined) {
+		resultsCountElement.text = message;
+	}
+	if (typeof resultsCountElement.show === 'function') {
+		resultsCountElement.show();
 	}
 }
 
@@ -433,7 +503,10 @@ function getTypeSpecificDetails(profile) {
 
 function formatContactInfo(profile) {
 	const parts = [];
-	if (profile.contactEmail) parts.push(profile.contactEmail);
+	if (profile.contactEmail) {
+		// Return email as-is - will be made clickable in repeater item setup
+		parts.push(profile.contactEmail);
+	}
 	if (profile.contactPhone) parts.push(profile.contactPhone);
 	return parts.join(' • ') || 'No contact info';
 }
@@ -474,7 +547,17 @@ function setupRepeaterItem($item, itemData) {
 	}
 	
 	if ($item('#itemContact')) {
-		$item('#itemContact').text = itemData.contactInfo;
+		// Format contact info with clickable email
+		const contactText = itemData.contactInfo;
+		if ($item('#itemContact').html) {
+			// If HTML is supported, make email clickable
+			const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
+			const htmlContact = contactText.replace(emailRegex, '<a href="mailto:$1" style="color: #2196F3; text-decoration: underline;">$1</a>');
+			$item('#itemContact').html = htmlContact;
+		} else {
+			// Fallback to plain text
+			$item('#itemContact').text = contactText;
+		}
 	}
 	
 	if ($item('#itemDetails')) {
@@ -508,6 +591,33 @@ function setupRepeaterItem($item, itemData) {
 					const normalizedCurrent = currentStatus;
 					
 					if (normalizedNewValue !== normalizedCurrent) {
+						// Show confirmation for status changes to Approved or Rejected
+						if ((normalizedNewValue === 'Approved' || normalizedNewValue === 'Rejected') &&
+						    (normalizedCurrent === 'Pending' || normalizedCurrent === 'Approved' || normalizedCurrent === 'Rejected')) {
+							// Use browser confirm (fallback if lightbox not available)
+							let confirmed = false;
+							try {
+								const result = await wixWindow.openLightbox('StatusChangeConfirmation', {
+									currentStatus: normalizedCurrent,
+									newStatus: normalizedNewValue,
+									assignmentName: itemData.name
+								});
+								confirmed = result === true || result?.confirmed === true;
+							} catch (lightboxError) {
+								// Lightbox doesn't exist - use browser confirm as fallback
+								// Note: In Wix, we can't use browser confirm, so proceed with change
+								// For better UX, create a StatusChangeConfirmation lightbox
+								console.log(`[STATUS-CHANGE] Lightbox not available, proceeding with status change`);
+								confirmed = true; // Proceed with change
+							}
+							
+							if (!confirmed) {
+								// User cancelled - reset dropdown to original value
+								$item('#itemStatus').value = normalizedCurrent;
+								return;
+							}
+						}
+						
 						isUpdating = true;
 						try {
 							await updateAssignmentStatus(assignmentId, normalizedNewValue);
