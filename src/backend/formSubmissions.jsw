@@ -20,21 +20,62 @@ export async function submitSpecialtyProfile(profileData, dateIds) {
 		
 		// Create or update Wix CRM contact for email notifications
 		// This ensures the contact exists when we need to send approval/rejection emails
+		// IMPORTANT: Use createContact with allowDuplicates to prevent reconciliation with admin's contact
 		if (profileData.contactEmail) {
 			try {
-				console.log(`[FORM-SUBMISSION] Creating/updating contact for: ${profileData.contactEmail}`);
-				await wixCrmBackend.contacts.appendOrCreateContact({
-					email: profileData.contactEmail,
-					name: {
-						first: profileData.organizationName || 'Market',
-						last: 'Participant'
-					},
-					subscriptionStatus: 'NOT_SET' // Allow emails to be sent
-				});
-				console.log(`[FORM-SUBMISSION] Contact created/updated successfully`);
+				console.log(`[FORM-SUBMISSION] Creating contact for: ${profileData.contactEmail}`);
+				
+				// First, check if contact already exists
+				const existingContacts = await wixCrmBackend.contacts.queryContacts()
+					.eq('primaryInfo.email', profileData.contactEmail)
+					.limit(1)
+					.find();
+				
+				if (existingContacts.items && existingContacts.items.length > 0) {
+					console.log(`[FORM-SUBMISSION] Contact already exists: ${existingContacts.items[0]._id}`);
+					// Update subscription status if needed
+					try {
+						await wixCrmBackend.contacts.updateContact(existingContacts.items[0]._id, {
+							subscriptionStatus: 'NOT_SET'
+						});
+						console.log(`[FORM-SUBMISSION] Updated subscription status to NOT_SET`);
+					} catch (updateError) {
+						console.warn(`[FORM-SUBMISSION] Could not update subscription status:`, updateError.message);
+					}
+				} else {
+					// Create new contact using createContact (not appendOrCreateContact to avoid reconciliation)
+					try {
+						await wixCrmBackend.contacts.createContact({
+							primaryInfo: {
+								email: profileData.contactEmail
+							},
+							name: {
+								first: profileData.organizationName || 'Market',
+								last: 'Participant'
+							},
+							subscriptionStatus: 'NOT_SET' // Allow emails to be sent
+						}, {
+							allowDuplicates: true // Force creation even if email exists elsewhere
+						});
+						console.log(`[FORM-SUBMISSION] Contact created successfully`);
+					} catch (createError) {
+						// If createContact fails, try appendOrCreateContact as fallback
+						console.warn(`[FORM-SUBMISSION] createContact failed, trying appendOrCreateContact:`, createError.message);
+						await wixCrmBackend.contacts.appendOrCreateContact({
+							email: profileData.contactEmail,
+							name: {
+								first: profileData.organizationName || 'Market',
+								last: 'Participant'
+							},
+							subscriptionStatus: 'NOT_SET'
+						});
+						console.log(`[FORM-SUBMISSION] Contact created via appendOrCreateContact`);
+					}
+				}
 			} catch (contactError) {
 				// Don't fail form submission if contact creation fails
 				console.warn(`[FORM-SUBMISSION] Warning: Failed to create contact:`, contactError.message);
+				console.warn(`[FORM-SUBMISSION] Form submission will continue, but email notifications may fail later`);
 			}
 		}
 		

@@ -291,8 +291,24 @@ async function getOrCreateContact(email, name) {
 			});
 			console.log(`[EMAIL-BACKEND] Created new contact using createContact`);
 		} catch (createError) {
-			console.warn(`[EMAIL-BACKEND] createContact failed, trying appendOrCreateContact:`, createError.message);
-			// Fallback to appendOrCreateContact if createContact fails
+			console.warn(`[EMAIL-BACKEND] createContact failed:`, createError.message);
+			console.warn(`[EMAIL-BACKEND] This might mean contact already exists. Searching again...`);
+			
+			// Wait a moment and search again - contact might have been created by form submission
+			await new Promise(resolve => setTimeout(resolve, 500));
+			
+			const retrySearch = await wixCrmBackend.contacts.queryContacts()
+				.eq('primaryInfo.email', email)
+				.limit(1)
+				.find();
+			
+			if (retrySearch.items && retrySearch.items.length > 0) {
+				console.log(`[EMAIL-BACKEND] Found contact on retry after createContact failed: ${retrySearch.items[0]._id}`);
+				return retrySearch.items[0];
+			}
+			
+			// Last resort: try appendOrCreateContact but verify email matches after
+			console.warn(`[EMAIL-BACKEND] Retry search failed, trying appendOrCreateContact as last resort...`);
 			contactIdentification = await wixCrmBackend.contacts.appendOrCreateContact({
 				email: email,
 				name: {
@@ -301,6 +317,7 @@ async function getOrCreateContact(email, name) {
 				},
 				subscriptionStatus: 'NOT_SET'
 			});
+			console.log(`[EMAIL-BACKEND] Used appendOrCreateContact - will verify email matches`);
 		}
 		
 		console.log(`[EMAIL-BACKEND] Contact creation result:`, JSON.stringify(contactIdentification, null, 2));
@@ -361,21 +378,88 @@ async function getOrCreateContact(email, name) {
 			console.warn(`[EMAIL-BACKEND] Expected: ${email}, Got: ${contactEmail}`);
 			console.warn(`[EMAIL-BACKEND] This might be a reconciled contact. Trying to find correct contact...`);
 			
-			// Try to find the correct contact by email
-			const correctContacts = await wixCrmBackend.contacts.queryContacts()
+			// Try multiple search strategies to find the correct contact
+			let correctContact = null;
+			
+			// Strategy 1: Search by primaryInfo.email
+			const searchByPrimary = await wixCrmBackend.contacts.queryContacts()
 				.eq('primaryInfo.email', email)
-				.limit(1)
+				.limit(10)
 				.find();
 			
-			if (correctContacts.items && correctContacts.items.length > 0) {
-				console.log(`[EMAIL-BACKEND] Found correct contact: ${correctContacts.items[0]._id}`);
-				return correctContacts.items[0];
+			if (searchByPrimary.items && searchByPrimary.items.length > 0) {
+				// Find the contact with matching email
+				for (const contact of searchByPrimary.items) {
+					const contactEmailCheck = contact.info?.primaryEmail || 
+					                          contact.primaryInfo?.email ||
+					                          contact.email || '';
+					if (contactEmailCheck.toLowerCase() === email.toLowerCase()) {
+						correctContact = contact;
+						break;
+					}
+				}
 			}
 			
-			// If we can't find it, this is a critical error - we can't send email to wrong recipient
+			// Strategy 2: If not found, search all contacts and filter
+			if (!correctContact) {
+				console.log(`[EMAIL-BACKEND] Primary search failed, trying broader search...`);
+				const allContacts = await wixCrmBackend.contacts.queryContacts()
+					.limit(1000)
+					.find();
+				
+				const matchingContacts = allContacts.items.filter(contact => {
+					const primaryEmail = contact.info?.primaryEmail || contact.primaryInfo?.email || '';
+					const emailsArray = contact.info?.emails || contact.emails || [];
+					return primaryEmail.toLowerCase() === email.toLowerCase() ||
+					       emailsArray.some(e => (e.email || e).toLowerCase() === email.toLowerCase());
+				});
+				
+				if (matchingContacts.length > 0) {
+					correctContact = matchingContacts[0];
+				}
+			}
+			
+			if (correctContact) {
+				console.log(`[EMAIL-BACKEND] ✅ Found correct contact: ${correctContact._id}`);
+				return correctContact;
+			}
+			
+			// If we still can't find it, try creating it one more time with createContact
+			console.warn(`[EMAIL-BACKEND] Could not find contact, attempting to create with createContact...`);
+			try {
+				const newContact = await wixCrmBackend.contacts.createContact({
+					primaryInfo: {
+						email: email
+					},
+					name: {
+						first: name || 'Market',
+						last: 'Participant'
+					},
+					subscriptionStatus: 'NOT_SET'
+				}, {
+					allowDuplicates: true
+				});
+				
+				// Verify the new contact has the correct email
+				const newContactEmail = newContact.info?.primaryEmail || 
+				                       newContact.primaryInfo?.email ||
+				                       newContact.email || '';
+				
+				if (newContactEmail.toLowerCase() === email.toLowerCase()) {
+					console.log(`[EMAIL-BACKEND] ✅ Successfully created contact with correct email: ${newContact._id}`);
+					return newContact;
+				} else {
+					console.error(`[EMAIL-BACKEND] ❌ Created contact but email still doesn't match!`);
+				}
+			} catch (finalCreateError) {
+				console.error(`[EMAIL-BACKEND] ❌ Final createContact attempt failed:`, finalCreateError.message);
+			}
+			
+			// If we can't find or create it, this is a critical error - we can't send email to wrong recipient
 			const errorMsg = `CRITICAL: Contact email mismatch! Expected ${email} but got ${contactEmail}. ` +
 			                 `This happens when appendOrCreateContact reconciles with the logged-in admin's contact. ` +
-			                 `The contact ${email} does not exist in Wix CRM. Please ensure the contact is created when the form is submitted.`;
+			                 `The contact ${email} does not exist in Wix CRM. ` +
+			                 `Please ensure the contact is created when the form is submitted, or manually create the contact in Wix CRM.`;
 			console.error(`[EMAIL-BACKEND] ❌ ${errorMsg}`);
 			throw new Error(errorMsg);
 		}
