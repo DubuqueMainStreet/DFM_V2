@@ -239,54 +239,72 @@
 /* Repeater-based Date Selection Styling */
 /* Target by CSS class */
 #dateRepeater .availability-available,
-#dateRepeater [class*="availability-available"] {
+#dateRepeater [class*="availability-available"],
+#manualEntryDateRepeater .availability-available,
+#manualEntryDateRepeater [class*="availability-available"] {
   border: 3px solid #4CAF50 !important;
   border-width: 3px !important;
   border-style: solid !important;
+  border-color: #4CAF50 !important;
 }
 
 #dateRepeater .availability-limited,
-#dateRepeater [class*="availability-limited"] {
+#dateRepeater [class*="availability-limited"],
+#manualEntryDateRepeater .availability-limited,
+#manualEntryDateRepeater [class*="availability-limited"] {
   border: 3px solid #FF9800 !important;
   border-width: 3px !important;
   border-style: solid !important;
+  border-color: #FF9800 !important;
 }
 
 #dateRepeater .availability-full,
-#dateRepeater [class*="availability-full"] {
+#dateRepeater [class*="availability-full"],
+#manualEntryDateRepeater .availability-full,
+#manualEntryDateRepeater [class*="availability-full"] {
   border: 3px solid #F44336 !important;
   border-width: 3px !important;
   border-style: solid !important;
+  border-color: #F44336 !important;
   opacity: 0.6 !important;
 }
 
 /* Target by data attribute */
-#dateRepeater [data-availability-status="available"] {
+#dateRepeater [data-availability-status="available"],
+#manualEntryDateRepeater [data-availability-status="available"] {
   border: 3px solid #4CAF50 !important;
   border-width: 3px !important;
   border-style: solid !important;
+  border-color: #4CAF50 !important;
 }
 
-#dateRepeater [data-availability-status="limited"] {
+#dateRepeater [data-availability-status="limited"],
+#manualEntryDateRepeater [data-availability-status="limited"] {
   border: 3px solid #FF9800 !important;
   border-width: 3px !important;
   border-style: solid !important;
+  border-color: #FF9800 !important;
 }
 
-#dateRepeater [data-availability-status="full"] {
+#dateRepeater [data-availability-status="full"],
+#manualEntryDateRepeater [data-availability-status="full"] {
   border: 3px solid #F44336 !important;
   border-width: 3px !important;
   border-style: solid !important;
+  border-color: #F44336 !important;
   opacity: 0.6 !important;
 }
 
 /* Ensure repeater items have visible borders */
 #dateRepeater [id*="itemContainer"],
-#dateRepeater [id*="itemContainer"] * {
+#dateRepeater [id*="itemContainer"] *,
+#manualEntryDateRepeater [id*="itemContainer"],
+#manualEntryDateRepeater [id*="itemContainer"] * {
   box-sizing: border-box;
 }
 
-#dateRepeater [id*="itemContainer"] {
+#dateRepeater [id*="itemContainer"],
+#manualEntryDateRepeater [id*="itemContainer"] {
   border-style: solid !important;
   border-width: 3px !important;
   border-radius: 8px;
@@ -300,7 +318,8 @@
 }
 
 /* Selected state - VERY obvious */
-#dateRepeater [id*="itemContainer"].date-selected {
+#dateRepeater [id*="itemContainer"].date-selected,
+#manualEntryDateRepeater [id*="itemContainer"].date-selected {
   background-color: #E3F2FD !important;
   border-width: 4px !important;
   box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4) !important;
@@ -335,7 +354,8 @@
 }
 
 /* Full/unavailable dates - clearly disabled */
-#dateRepeater [id*="itemContainer"].date-full {
+#dateRepeater [id*="itemContainer"].date-full,
+#manualEntryDateRepeater [id*="itemContainer"].date-full {
   opacity: 0.5 !important;
   cursor: not-allowed !important;
   background-color: #F5F5F5 !important;

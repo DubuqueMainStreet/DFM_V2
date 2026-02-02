@@ -1,6 +1,8 @@
 import wixData from 'wix-data';
 import wixWindow from 'wix-window';
 import { sendStatusNotificationEmail } from 'backend/emailNotifications.jsw';
+import { manualEntrySpecialtyProfile } from 'backend/formSubmissions.jsw';
+import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 
 // ============================================
 // EMAIL NOTIFICATIONS ENABLED - VERSION 2.0
@@ -37,6 +39,24 @@ $w.onReady(function () {
 
 async function initializeDashboard() {
 	try {
+		// Ensure manual entry container is hidden by default
+		const manualEntryContainer = $w('#manualEntryContainer');
+		if (manualEntryContainer && typeof manualEntryContainer.hide === 'function') {
+			manualEntryContainer.hide();
+		} else if (manualEntryContainer && manualEntryContainer.style) {
+			manualEntryContainer.style.display = 'none';
+			manualEntryContainer.style.visibility = 'hidden';
+		}
+		
+		// Ensure assignments container is visible by default (don't hide it - let Wix Editor handle default state)
+		const assignmentsContainer = $w('#assignmentsContainer');
+		if (assignmentsContainer && typeof assignmentsContainer.show === 'function') {
+			assignmentsContainer.show();
+		} else if (assignmentsContainer && assignmentsContainer.style) {
+			assignmentsContainer.style.display = 'block';
+			assignmentsContainer.style.visibility = 'visible';
+		}
+		
 		// Set up tab handlers
 		setupTabHandlers();
 		
@@ -48,6 +68,9 @@ async function initializeDashboard() {
 		
 		// Set up refresh button
 		setupRefreshButton();
+		
+		// Set up manual entry button
+		setupManualEntryButton();
 		
 		// Set initial active tab styling (Musicians is default)
 		updateActiveTab('Musician');
@@ -125,6 +148,33 @@ function setupRefreshButton() {
 	}
 }
 
+function setupManualEntryButton() {
+	const manualEntryBtn = $w('#btnManualEntry');
+	if (manualEntryBtn && typeof manualEntryBtn.onClick === 'function') {
+		manualEntryBtn.onClick(() => {
+			console.log('Manual entry button clicked');
+			openManualEntryForm();
+		});
+		
+		// Style the button
+		if (manualEntryBtn.style) {
+			manualEntryBtn.style.borderRadius = '12px';
+			manualEntryBtn.style.backgroundColor = '#4CAF50';
+			manualEntryBtn.style.color = '#FFFFFF';
+			manualEntryBtn.style.fontWeight = '500';
+			manualEntryBtn.style.padding = '10px 20px';
+			manualEntryBtn.style.border = 'none';
+			manualEntryBtn.style.transition = 'all 0.3s ease';
+		}
+		console.log('Manual entry button set up successfully');
+	} else {
+		console.warn('Manual entry button (#btnManualEntry) not found or onClick not available');
+	}
+	
+	// Set up manual entry form handlers
+	setupManualEntryForm();
+}
+
 function setupSearchHandler() {
 	// Set up search input handler if it exists
 	const searchInput = $w('#searchName');
@@ -179,11 +229,60 @@ function setupTabHandlers() {
 async function switchTab(type) {
 	currentType = type;
 	
+	// Ensure manual entry form is closed and assignments container is visible
+	const manualEntryContainer = $w('#manualEntryContainer');
+	if (manualEntryContainer && typeof manualEntryContainer.hide === 'function') {
+		manualEntryContainer.hide();
+	}
+	if (manualEntryContainer && manualEntryContainer.style) {
+		manualEntryContainer.style.display = 'none';
+		manualEntryContainer.style.visibility = 'hidden';
+	}
+	
+	// Ensure assignments container is visible
+	const assignmentsContainer = $w('#assignmentsContainer');
+	if (assignmentsContainer) {
+		if (typeof assignmentsContainer.show === 'function') {
+			assignmentsContainer.show();
+		}
+		if (assignmentsContainer.style) {
+			assignmentsContainer.style.display = 'block';
+			assignmentsContainer.style.visibility = 'visible';
+		}
+		console.log('Assignments container shown when switching to', type, 'tab');
+	}
+	
 	// Update active tab styling
 	updateActiveTab(type);
 	
 	// Load assignments for selected type
 	await loadAssignments(type);
+}
+
+function setAllTabsInactive() {
+	// Set all tabs to inactive/neutral state (used when manual entry form is open)
+	const tabs = ['Musician', 'Volunteer', 'NonProfit'];
+	
+	tabs.forEach(type => {
+		const tabElement = $w(`#tab${type}s`);
+		if (!tabElement) return;
+		
+		if (tabElement.style) {
+			tabElement.style.borderRadius = '12px';
+			// Neutral/inactive styling - all tabs look the same
+			tabElement.style.backgroundColor = '#F5F5F5'; // Light gray background
+			tabElement.style.color = '#999999'; // Lighter gray text (more muted than normal inactive)
+			tabElement.style.fontWeight = '400'; // Normal weight
+			tabElement.style.borderBottom = '3px solid transparent'; // No underline
+			tabElement.style.opacity = '0.6'; // More muted than normal inactive
+		}
+		
+		// Remove active classes if they exist
+		if (tabElement.classes) {
+			tabElement.classes.remove('tab-active');
+			tabElement.classes.add('tab-inactive');
+		}
+	});
 }
 
 function updateActiveTab(activeType) {
@@ -1356,5 +1455,1035 @@ function showSuccess(message) {
 			}, 3000);
 		}
 	}
+}
+
+// ============================================
+// MANUAL ENTRY FORM FUNCTIONS
+// ============================================
+
+let manualEntrySelectedDates = [];
+let manualEntryRepeaterInitialized = false;
+const manualEntryRegisteredHandlers = new Set();
+const manualEntryDateStatus = new Map(); // Track current status of each date
+
+function openManualEntryForm() {
+	console.log('Opening manual entry form...');
+	const manualEntryContainer = $w('#manualEntryContainer');
+	if (!manualEntryContainer) {
+		console.error('❌ Manual entry container (#manualEntryContainer) not found!');
+		showError('Manual entry form container not found. Please check that #manualEntryContainer exists.');
+		return;
+	}
+	
+	// Set all tabs to inactive/neutral state (manual entry form is open)
+	setAllTabsInactive();
+	
+	// Hide assignments container to prevent interference
+	const assignmentsContainer = $w('#assignmentsContainer');
+	if (assignmentsContainer) {
+		if (typeof assignmentsContainer.hide === 'function') {
+			assignmentsContainer.hide();
+		}
+		if (assignmentsContainer.style) {
+			assignmentsContainer.style.display = 'none';
+			assignmentsContainer.style.visibility = 'hidden';
+		}
+		console.log('Assignments container hidden');
+	} else {
+		console.warn('Assignments container (#assignmentsContainer) not found');
+	}
+	
+	console.log('Manual entry container found, showing...');
+	
+	// Show the manual entry container
+	if (typeof manualEntryContainer.show === 'function') {
+		manualEntryContainer.show();
+		console.log('Container shown');
+		
+		// Also ensure it's visible (in case show() doesn't work)
+		if (manualEntryContainer.style) {
+			manualEntryContainer.style.display = 'block';
+			manualEntryContainer.style.visibility = 'visible';
+		}
+	} else {
+		console.warn('Container show() method not available, trying style approach');
+		if (manualEntryContainer.style) {
+			manualEntryContainer.style.display = 'block';
+			manualEntryContainer.style.visibility = 'visible';
+		}
+	}
+	
+	// Reset form
+	resetManualEntryForm();
+	console.log('Form reset');
+	
+	// Hide all section titles initially
+	const sectionTitles = ['manualEntryMusicianTitle', 'manualEntryVolunteerTitle', 'manualEntryNonprofitTitle', 'manualEntryDateTitle'];
+	sectionTitles.forEach(titleId => {
+		const title = $w(`#${titleId}`);
+		if (title && typeof title.hide === 'function') {
+			title.hide();
+		}
+	});
+	
+	// Set default type based on current tab
+	const typeDropdown = $w('#manualEntryType');
+	if (typeDropdown) {
+		if (typeDropdown.value !== undefined) {
+			typeDropdown.value = currentType;
+			onManualEntryTypeChange();
+		} else {
+			// Load dates even if no type selected (will show general availability)
+			populateManualEntryDates();
+			updateManualEntryContainerLayout();
+		}
+	} else {
+		// Try to load dates anyway
+		populateManualEntryDates();
+		updateManualEntryContainerLayout();
+	}
+}
+
+function closeManualEntryForm() {
+	const manualEntryContainer = $w('#manualEntryContainer');
+	if (manualEntryContainer && typeof manualEntryContainer.hide === 'function') {
+		manualEntryContainer.hide();
+	}
+	if (manualEntryContainer && manualEntryContainer.style) {
+		manualEntryContainer.style.display = 'none';
+		manualEntryContainer.style.visibility = 'hidden';
+	}
+	
+	// Reset form and clear repeater
+	resetManualEntryForm();
+	const repeater = $w('#manualEntryDateRepeater');
+	if (repeater && repeater.data !== undefined) {
+		repeater.data = [];
+	}
+	
+	// Reset repeater initialization flags and handlers
+	manualEntryRepeaterInitialized = false;
+	manualEntryRegisteredHandlers.clear();
+	manualEntryDateStatus.clear();
+	
+	// Restore proper tab styling (show which tab is currently active)
+	updateActiveTab(currentType);
+	
+	// Show assignments container again
+	const assignmentsContainer = $w('#assignmentsContainer');
+	if (assignmentsContainer) {
+		if (typeof assignmentsContainer.show === 'function') {
+			assignmentsContainer.show();
+		}
+		if (assignmentsContainer.style) {
+			assignmentsContainer.style.display = 'block';
+			assignmentsContainer.style.visibility = 'visible';
+		}
+		console.log('Assignments container shown');
+	} else {
+		console.warn('Assignments container (#assignmentsContainer) not found');
+	}
+}
+
+function setupManualEntryForm() {
+	console.log('Setting up manual entry form handlers...');
+	
+	// Type dropdown change handler
+	const typeDropdown = $w('#manualEntryType');
+	if (typeDropdown) {
+		if (typeof typeDropdown.onChange === 'function') {
+			typeDropdown.onChange(() => {
+				console.log('Manual entry type changed');
+				onManualEntryTypeChange();
+			});
+		}
+		
+		// Populate type dropdown
+		if (typeDropdown.options) {
+			typeDropdown.options = [
+				{ value: 'Musician', label: 'Musician' },
+				{ value: 'Volunteer', label: 'Volunteer' },
+				{ value: 'NonProfit', label: 'Non-Profit' }
+			];
+			console.log('Type dropdown populated');
+		}
+	} else {
+		console.warn('Type dropdown (#manualEntryType) not found');
+	}
+	
+	// Submit button
+	const submitBtn = $w('#btnManualEntrySubmit');
+	if (submitBtn && typeof submitBtn.onClick === 'function') {
+		submitBtn.onClick(async () => {
+			console.log('Manual entry submit clicked');
+			await handleManualEntrySubmit();
+		});
+		console.log('Submit button handler set');
+	} else {
+		console.warn('Submit button (#btnManualEntrySubmit) not found or onClick not available');
+	}
+	
+	// Cancel button
+	const cancelBtn = $w('#btnManualEntryCancel');
+	if (cancelBtn && typeof cancelBtn.onClick === 'function') {
+		cancelBtn.onClick(() => {
+			console.log('Manual entry cancel clicked');
+			closeManualEntryForm();
+		});
+		console.log('Cancel button handler set');
+	} else {
+		console.warn('Cancel button (#btnManualEntryCancel) not found or onClick not available');
+	}
+	
+	// Populate dropdowns
+	try {
+		populateManualEntryDropdowns();
+		console.log('Manual entry dropdowns populated');
+	} catch (error) {
+		console.error('Error populating manual entry dropdowns:', error);
+	}
+	
+	console.log('Manual entry form setup complete');
+}
+
+function onManualEntryTypeChange() {
+	const type = $w('#manualEntryType')?.value || 'Musician';
+	
+	// Define type-specific fields and titles
+	const musicianFields = ['manualEntryMusicianType', 'manualEntryLocation', 'manualEntryDuration', 'manualEntryGenre', 'manualEntryTechNeeds'];
+	const musicianTitle = 'manualEntryMusicianTitle';
+	
+	const volunteerFields = ['manualEntryVolunteerRole', 'manualEntryShiftPreference'];
+	const volunteerTitle = 'manualEntryVolunteerTitle';
+	
+	const nonprofitFields = ['manualEntryNonProfitType'];
+	const nonprofitTitle = 'manualEntryNonprofitTitle';
+	
+	const dateTitle = 'manualEntryDateTitle';
+	
+	// Hide all fields and titles first
+	const allFields = [...musicianFields, ...volunteerFields, ...nonprofitFields];
+	const allTitles = [musicianTitle, volunteerTitle, nonprofitTitle];
+	
+	allFields.forEach(fieldId => {
+		const field = $w(`#${fieldId}`);
+		if (field && typeof field.hide === 'function') {
+			field.hide();
+		}
+	});
+	
+	allTitles.forEach(titleId => {
+		const title = $w(`#${titleId}`);
+		if (title && typeof title.hide === 'function') {
+			title.hide();
+		}
+	});
+	
+	// Show date title (always visible once type is selected)
+	if (dateTitle) {
+		const dateTitleElement = $w(`#${dateTitle}`);
+		if (dateTitleElement && typeof dateTitleElement.show === 'function') {
+			dateTitleElement.show();
+		}
+	}
+	
+	// Show relevant fields and title based on type
+	if (type === 'Musician') {
+		// Show musician title
+		const musicianTitleElement = $w(`#${musicianTitle}`);
+		if (musicianTitleElement && typeof musicianTitleElement.show === 'function') {
+			musicianTitleElement.show();
+		}
+		
+		// Show musician fields
+		musicianFields.forEach(fieldId => {
+			const field = $w(`#${fieldId}`);
+			if (field && typeof field.show === 'function') {
+				field.show();
+			}
+		});
+	} else if (type === 'Volunteer') {
+		// Show volunteer title
+		const volunteerTitleElement = $w(`#${volunteerTitle}`);
+		if (volunteerTitleElement && typeof volunteerTitleElement.show === 'function') {
+			volunteerTitleElement.show();
+		}
+		
+		// Show volunteer fields
+		volunteerFields.forEach(fieldId => {
+			const field = $w(`#${fieldId}`);
+			if (field && typeof field.show === 'function') {
+				field.show();
+			}
+		});
+	} else if (type === 'NonProfit') {
+		// Show nonprofit title
+		const nonprofitTitleElement = $w(`#${nonprofitTitle}`);
+		if (nonprofitTitleElement && typeof nonprofitTitleElement.show === 'function') {
+			nonprofitTitleElement.show();
+		}
+		
+		// Show nonprofit fields
+		nonprofitFields.forEach(fieldId => {
+			const field = $w(`#${fieldId}`);
+			if (field && typeof field.show === 'function') {
+				field.show();
+			}
+		});
+	}
+	
+	// Reload dates with availability based on selected type
+	populateManualEntryDates();
+	
+	// Ensure container is responsive by triggering a layout update
+	// The container should automatically resize based on visible elements
+	updateManualEntryContainerLayout();
+}
+
+function populateManualEntryDropdowns() {
+	// Musician type
+	const musicianType = $w('#manualEntryMusicianType');
+	if (musicianType && musicianType.options) {
+		musicianType.options = [
+			{ value: 'Solo Acoustic', label: 'Solo Acoustic' },
+			{ value: 'Solo Electric', label: 'Solo Electric' },
+			{ value: 'Duo Acoustic', label: 'Duo Acoustic' },
+			{ value: 'Duo Electric', label: 'Duo Electric' },
+			{ value: 'Small Band (3-4 members)', label: 'Small Band (3-4 members)' },
+			{ value: 'Large Band (5+ members)', label: 'Large Band (5+ members)' },
+			{ value: 'Other', label: 'Other' }
+		];
+	}
+	
+	// Location
+	const location = $w('#manualEntryLocation');
+	if (location && location.options) {
+		location.options = [
+			{ value: 'Location A', label: '13th Street' },
+			{ value: 'Location B', label: 'Food Court' },
+			{ value: 'Location C', label: '10th & Iowa St' }
+		];
+		
+		// Refresh dates when location changes (affects availability for musicians)
+		if (typeof location.onChange === 'function') {
+			location.onChange(() => {
+				const selectedType = $w('#manualEntryType')?.value;
+				if (selectedType === 'Musician') {
+					populateManualEntryDates();
+				}
+			});
+		}
+	}
+	
+	// Duration
+	const duration = $w('#manualEntryDuration');
+	if (duration && duration.options) {
+		duration.options = [
+			{ value: '5 hours', label: '5 hours' },
+			{ value: '4 hours', label: '4 hours' },
+			{ value: '3 hours', label: '3 hours' },
+			{ value: '2 hours', label: '2 hours' },
+			{ value: '1 hour', label: '1 hour' }
+		];
+	}
+	
+	// Genre
+	const genre = $w('#manualEntryGenre');
+	if (genre && genre.options) {
+		genre.options = [
+			{ value: 'Acoustic/Folk', label: 'Acoustic/Folk' },
+			{ value: 'Country', label: 'Country' },
+			{ value: 'Jazz', label: 'Jazz' },
+			{ value: 'Blues', label: 'Blues' },
+			{ value: 'Rock', label: 'Rock' },
+			{ value: 'Pop', label: 'Pop' },
+			{ value: 'Classical', label: 'Classical' },
+			{ value: 'Bluegrass', label: 'Bluegrass' },
+			{ value: 'World Music', label: 'World Music' },
+			{ value: 'Other', label: 'Other' }
+		];
+	}
+	
+	// Volunteer role
+	const volunteerRole = $w('#manualEntryVolunteerRole');
+	if (volunteerRole && volunteerRole.options) {
+		volunteerRole.options = [
+			{ value: 'Token Sales', label: 'Token Sales' },
+			{ value: 'Merch Sales', label: 'Merch Sales' },
+			{ value: 'Setup', label: 'Setup' },
+			{ value: 'Teardown', label: 'Teardown' },
+			{ value: 'Hospitality Support', label: 'Hospitality Support' },
+			{ value: 'No Preference', label: 'No Preference' }
+		];
+		
+		// Refresh dates when volunteer role changes (affects availability)
+		if (typeof volunteerRole.onChange === 'function') {
+			volunteerRole.onChange(() => {
+				const selectedType = $w('#manualEntryType')?.value;
+				if (selectedType === 'Volunteer') {
+					populateManualEntryDates();
+				}
+			});
+		}
+	}
+	
+	// Shift preference
+	const shiftPreference = $w('#manualEntryShiftPreference');
+	if (shiftPreference && shiftPreference.options) {
+		shiftPreference.options = [
+			{ value: 'Early Shift', label: 'Early Shift (7:00 AM - 9:30 AM)' },
+			{ value: 'Late Shift', label: 'Late Shift (9:30 AM - 12:00 PM)' },
+			{ value: 'Both', label: 'Both Shifts' }
+		];
+	}
+	
+	// Non-profit type
+	const nonProfitType = $w('#manualEntryNonProfitType');
+	if (nonProfitType && nonProfitType.options) {
+		nonProfitType.options = [
+			{ value: 'Community Outreach', label: 'Community Outreach' },
+			{ value: 'Health & Wellness', label: 'Health & Wellness' },
+			{ value: 'Arts & Culture', label: 'Arts & Culture' },
+			{ value: 'Education', label: 'Education' },
+			{ value: 'Environment', label: 'Environment' },
+			{ value: 'Social Services', label: 'Social Services' },
+			{ value: 'Other', label: 'Other' }
+		];
+	}
+}
+
+
+async function populateManualEntryDates() {
+	try {
+		const results = await wixData.query('MarketDates2026')
+			.find();
+		
+		// Get availability data for all dates
+		let availability = {};
+		try {
+			if (typeof getDateAvailability === 'function') {
+				availability = await getDateAvailability();
+			} else {
+				console.warn('getDateAvailability not available, showing all dates as available');
+			}
+		} catch (error) {
+			console.error('Error fetching availability for manual entry:', error);
+			availability = {}; // Fallback to empty object
+		}
+		
+		// Get selected type to determine availability logic
+		const selectedType = $w('#manualEntryType')?.value || 'Musician';
+		
+		// Process dates: parse, sort chronologically
+		const dateItems = results.items
+			.map(item => {
+				// Handle date parsing to avoid timezone issues
+				let dateObj;
+				if (typeof item.date === 'string') {
+					const dateStr = item.date.split('T')[0]; // Get YYYY-MM-DD part
+					const [year, month, day] = dateStr.split('-').map(Number);
+					dateObj = new Date(year, month - 1, day, 12, 0, 0, 0); // Use noon local time
+				} else {
+					dateObj = new Date(item.date);
+					dateObj.setHours(12, 0, 0, 0);
+				}
+				
+				return {
+					_id: item._id,
+					date: dateObj,
+					month: dateObj.getMonth(),
+					year: dateObj.getFullYear(),
+					day: dateObj.getDate(),
+					monthName: dateObj.toLocaleDateString('en-US', { month: 'short' })
+				};
+			})
+			.sort((a, b) => a.date - b.date);
+		
+		console.log('📅 Manual Entry - Building repeater data for type:', selectedType);
+		const nonProfitDates = Object.keys(availability).filter(id => availability[id]?.nonProfits > 0);
+		if (nonProfitDates.length > 0) {
+			console.log('📊 Non-profit dates in availability:', nonProfitDates.map(id => ({ id, count: availability[id].nonProfits })));
+		}
+		
+		// Build repeater data with availability status based on type
+		const repeaterData = dateItems.map(item => {
+			const daySuffix = getDaySuffix(item.day);
+			const dateAvailability = availability[item._id];
+			const isCurrentlySelected = manualEntrySelectedDates.includes(item._id);
+			
+			// Determine status and border color based on type
+			let status = 'available';
+			let borderColor = '#4CAF50'; // Green
+			
+			if (selectedType === 'Musician') {
+				// Check musician availability by location
+				const selectedLocation = $w('#manualEntryLocation')?.value;
+				
+				if (selectedLocation && dateAvailability && dateAvailability.musiciansByLocation) {
+					// Check if the selected location is already booked
+					const locationBooked = dateAvailability.musiciansByLocation[selectedLocation] >= 1;
+					
+					if (locationBooked) {
+						// Selected location is already taken - show as full/red
+						status = 'full';
+						borderColor = '#F44336'; // Red
+					} else {
+						// Selected location is available - check overall availability
+						const locations = dateAvailability.musiciansByLocation;
+						let bookedLocations = 0;
+						if (locations['Location A'] >= 1) bookedLocations++;
+						if (locations['Location B'] >= 1) bookedLocations++;
+						if (locations['Location C'] >= 1) bookedLocations++;
+						
+						// Determine status based on other locations
+						if (bookedLocations >= 2) {
+							status = 'limited';
+							borderColor = '#FF9800'; // Orange - other locations getting full
+						}
+						// Otherwise available (green)
+					}
+				} else {
+					// No location selected - show overall availability
+					let bookedLocations = 0;
+					if (dateAvailability && dateAvailability.musiciansByLocation) {
+						const locations = dateAvailability.musiciansByLocation;
+						if (locations['Location A'] >= 1) bookedLocations++;
+						if (locations['Location B'] >= 1) bookedLocations++;
+						if (locations['Location C'] >= 1) bookedLocations++;
+					}
+					
+					if (bookedLocations >= 3) {
+						status = 'full';
+						borderColor = '#F44336'; // Red - all locations booked
+					} else if (bookedLocations === 2) {
+						status = 'limited';
+						borderColor = '#FF9800'; // Orange - only 1 location available
+					}
+				}
+			} else if (selectedType === 'Volunteer') {
+				// Check volunteer availability by role - ONLY use volunteer data, not non-profit data
+				const selectedRole = $w('#manualEntryVolunteerRole')?.value || 'No Preference';
+				const roleLimits = {
+					'Token Sales': 2,
+					'Merch Sales': 2,
+					'Setup': 2,
+					'Teardown': 2,
+					'Hospitality Support': 2,
+					'No Preference': 1
+				};
+				
+				// Only check volunteer data structure, ignore nonProfits field completely
+				if (dateAvailability && dateAvailability.volunteers && typeof dateAvailability.volunteers === 'object') {
+					// Get count for the specific role (default to 0 if role doesn't exist in volunteers object)
+					// IMPORTANT: Only access volunteers object, never touch nonProfits
+					const roleCount = dateAvailability.volunteers[selectedRole] || 0;
+					const limit = roleLimits[selectedRole] || 2;
+					
+					// Calculate status based ONLY on volunteer role count, never on non-profit data
+					if (roleCount >= limit) {
+						status = 'full';
+						borderColor = '#F44336'; // Red
+					} else if (limit > 1 && roleCount >= Math.floor(limit * 0.7)) {
+						// Only show as limited if limit > 1 (for 'No Preference' with limit=1, any count means full)
+						status = 'limited';
+						borderColor = '#FF9800'; // Orange
+					}
+					// Otherwise available (green) - roleCount < Math.floor(limit * 0.7)
+				}
+			} else if (selectedType === 'NonProfit') {
+				// Non-profits: only 1 per week, so 0 = available, 1+ = full
+				const nonProfitCount = dateAvailability ? dateAvailability.nonProfits : 0;
+				
+				if (nonProfitCount >= 1) {
+					status = 'full';
+					borderColor = '#F44336'; // Red
+				}
+			}
+			
+			// Store status in the Map for dynamic lookup in click handlers
+			manualEntryDateStatus.set(item._id, { status, borderColor });
+			
+			return {
+				_id: item._id,
+				label: `${item.monthName} ${item.day}${daySuffix}`,
+				status: status,
+				borderColor: borderColor,
+				isSelected: isCurrentlySelected
+			};
+		});
+		
+		// Log summary of repeater data
+		const fullDates = repeaterData.filter(d => d.status === 'full').map(d => d.label);
+		const limitedDates = repeaterData.filter(d => d.status === 'limited').map(d => d.label);
+		if (fullDates.length > 0 || limitedDates.length > 0) {
+			console.log('📋 Manual Entry - Repeater data built:', {
+				totalDates: repeaterData.length,
+				fullDates: fullDates,
+				limitedDates: limitedDates
+			});
+		}
+		
+		const repeater = $w('#manualEntryDateRepeater');
+		if (!repeater) {
+			console.error('Manual entry date repeater not found');
+			return;
+		}
+		
+		// Set up repeater onItemReady ONLY ONCE (to prevent multiple click handlers)
+		if (!manualEntryRepeaterInitialized && typeof repeater.onItemReady === 'function') {
+			repeater.onItemReady(($item, itemData, index) => {
+				try {
+					// Set label text
+					$item('#itemLabel').text = itemData.label;
+					
+					// Get container element
+					const container = $item('#itemContainer');
+					
+					if (!container) {
+						console.error('Container element not found for item:', itemData.label);
+						return;
+					}
+					
+					// Apply styling function
+					applyManualEntryDateStyling(container, itemData, manualEntrySelectedDates);
+					
+					// Only register onClick handler if not already registered for this item
+					const dateId = itemData._id;
+					if (!manualEntryRegisteredHandlers.has(dateId)) {
+						manualEntryRegisteredHandlers.add(dateId);
+						
+						$item('#itemContainer').onClick(() => {
+							// Get current status from Map (may have changed if type changed)
+							const currentStatus = manualEntryDateStatus.get(dateId);
+							
+							// Prevent clicking on full dates
+							if (currentStatus && currentStatus.status === 'full') {
+								return;
+							}
+							
+							const container = $item('#itemContainer');
+							const isSelected = manualEntrySelectedDates.includes(dateId);
+							
+							if (isSelected) {
+								// Deselect: remove from array
+								manualEntrySelectedDates = manualEntrySelectedDates.filter(id => id !== dateId);
+							} else {
+								// Select: add to array
+								manualEntrySelectedDates.push(dateId);
+							}
+							
+							// Get current item data from repeater for styling
+							const currentItemData = {
+								_id: dateId,
+								status: currentStatus?.status || 'available',
+								borderColor: currentStatus?.borderColor || '#4CAF50'
+							};
+							
+							// Reapply styling to reflect new selection state
+							applyManualEntryDateStyling(container, currentItemData, manualEntrySelectedDates);
+							
+							console.log('Selected dates:', [...manualEntrySelectedDates]);
+						});
+					}
+				} catch (error) {
+					console.error('Error setting up repeater item:', error);
+				}
+			});
+			manualEntryRepeaterInitialized = true;
+		}
+		
+		// Populate repeater with data
+		repeater.data = repeaterData;
+		
+		// Update styling for all items after data is set
+		const applyAllStyling = () => {
+			repeater.forEachItem(($item, itemData, index) => {
+				try {
+					const container = $item('#itemContainer');
+					if (container) {
+						// Use the status from our Map if available (more up-to-date)
+						const currentStatus = manualEntryDateStatus.get(itemData._id);
+						const effectiveItemData = currentStatus ? {
+							...itemData,
+							status: currentStatus.status,
+							borderColor: currentStatus.borderColor
+						} : itemData;
+						
+						applyManualEntryDateStyling(container, effectiveItemData, manualEntrySelectedDates);
+					}
+				} catch (e) {
+					console.warn('Failed to update item styling at index', index, ':', e);
+				}
+			});
+		};
+		
+		// Apply styling multiple times to ensure it takes effect
+		setTimeout(applyAllStyling, 100);
+		setTimeout(applyAllStyling, 500);
+		
+	} catch (error) {
+		console.error('Error populating manual entry dates:', error);
+		showError('Failed to load dates. Please refresh.');
+	}
+}
+
+function applyManualEntryDateStyling(container, itemData, selectedDateIds) {
+	if (!container) {
+		console.warn('applyManualEntryDateStyling: container is null', { itemData });
+		return;
+	}
+	
+	const isSelected = selectedDateIds.includes(itemData._id);
+	const isFull = itemData.status === 'full';
+	const isLimited = itemData.status === 'limited';
+	
+	// Ensure borderColor is in correct format (with safety check)
+	let borderColor = '#4CAF50'; // Default green
+	if (itemData.borderColor) {
+		borderColor = itemData.borderColor.startsWith('#') 
+			? itemData.borderColor 
+			: `#${itemData.borderColor}`;
+	}
+	
+	// Only log styling for full/limited dates to reduce noise (optional - can be removed in production)
+	// if (isFull || isLimited) {
+	// 	console.log(`🎨 Manual Entry STYLING: ${itemData.label || itemData._id} - status: ${itemData.status}, borderColor: ${borderColor}`);
+	// }
+	
+	try {
+		if (!container.style) {
+			console.warn('⚠️ Container has no style property');
+			return;
+		}
+		
+		// Note: Wix Box elements don't support classList or setAttribute
+		// We must use inline styles with !important flags only
+		
+		// Apply inline styles - use setProperty with !important for border color
+		if (container.style) {
+			const borderWidth = isSelected ? '4px' : '3px';
+			
+			// Try Wix design API first if available (for Box elements)
+			if (container.design && typeof container.design.setBorder === 'function') {
+				try {
+					container.design.setBorder({
+						width: parseInt(borderWidth),
+						style: 'solid',
+						color: borderColor
+					});
+				} catch (designErr) {
+					console.warn('Design API not available, using style property');
+				}
+			}
+			
+			// Set border color using setProperty with !important (more reliable)
+			try {
+				container.style.setProperty('border-color', borderColor, 'important');
+				container.style.setProperty('border-width', borderWidth, 'important');
+				container.style.setProperty('border-style', 'solid', 'important');
+				
+				// Also set as CSS string (sometimes works better)
+				container.style.setProperty('border', `${borderWidth} solid ${borderColor}`, 'important');
+			} catch (e) {
+				// Fallback to regular assignment
+				container.style.borderColor = borderColor;
+				container.style.borderWidth = borderWidth;
+				container.style.borderStyle = 'solid';
+				container.style.border = `${borderWidth} solid ${borderColor}`;
+			}
+			
+			// Background color based on selection and availability
+			if (isFull) {
+				container.style.backgroundColor = '#F5F5F5';
+				container.style.opacity = '0.5';
+				container.style.cursor = 'not-allowed';
+			} else if (isSelected) {
+				container.style.backgroundColor = '#E3F2FD';
+				container.style.opacity = '1';
+				container.style.cursor = 'pointer';
+				container.style.fontWeight = '600';
+				container.style.boxShadow = '0 4px 12px rgba(33, 150, 243, 0.4)';
+			} else {
+				container.style.backgroundColor = '#FFFFFF';
+				container.style.opacity = '1';
+				container.style.cursor = 'pointer';
+				container.style.fontWeight = 'normal';
+				container.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+			}
+			
+			container.style.userSelect = 'none';
+			container.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+			
+			// Force re-apply border after a short delay to override Wix's conversion
+			setTimeout(() => {
+				if (container && container.style) {
+					try {
+						container.style.setProperty('border-color', borderColor, 'important');
+						container.style.setProperty('border-width', borderWidth, 'important');
+						container.style.setProperty('border-style', 'solid', 'important');
+						
+						// Log final state for debugging
+						if (isFull || isLimited) {
+							const computedBorder = container.style.borderColor || window.getComputedStyle?.(container)?.borderColor;
+							const actualBorderWidth = container.style.borderWidth;
+							console.log(`   ✅ After timeout - borderColor set to: ${borderColor}, computed: ${computedBorder}`);
+							console.log(`   Border width: ${actualBorderWidth}`);
+							console.log(`   Classes:`, container.classList ? Array.from(container.classList) : 'none');
+							console.log(`   Data attributes:`, {
+								status: container.getAttribute?.('data-status'),
+								availability: container.getAttribute?.('data-availability-status')
+							});
+							
+							// Warn if border isn't visible
+							if (!actualBorderWidth || actualBorderWidth === '0px') {
+								console.warn(`   ⚠️ WARNING: Border width is ${actualBorderWidth}. Make sure #itemContainer Box elements have borders enabled in Wix Editor!`);
+							}
+						}
+					} catch (e) {
+						container.style.borderColor = borderColor;
+						container.style.borderWidth = borderWidth;
+						container.style.borderStyle = 'solid';
+					}
+				}
+			}, 50);
+		}
+		
+	} catch (e) {
+		console.warn('Failed to apply styling:', e);
+	}
+}
+
+function resetManualEntryForm() {
+	manualEntrySelectedDates = [];
+	
+	// Reset all inputs
+	const fields = [
+		'manualEntryType', 'manualEntryName', 'manualEntryEmail', 'manualEntryPhone',
+		'manualEntryBio', 'manualEntryWebsite', 'manualEntryMusicianType',
+		'manualEntryLocation', 'manualEntryDuration', 'manualEntryGenre',
+		'manualEntryTechNeeds', 'manualEntryVolunteerRole', 'manualEntryShiftPreference',
+		'manualEntryNonProfitType'
+	];
+	
+	fields.forEach(fieldId => {
+		const field = $w(`#${fieldId}`);
+		if (field) {
+			if (field.value !== undefined) {
+				field.value = '';
+			}
+			if (field.text !== undefined) {
+				field.text = '';
+			}
+			if (field.checked !== undefined) {
+				field.checked = false;
+			}
+		}
+	});
+	
+	// Hide all section titles
+	const sectionTitles = ['manualEntryMusicianTitle', 'manualEntryVolunteerTitle', 'manualEntryNonprofitTitle', 'manualEntryDateTitle'];
+	sectionTitles.forEach(titleId => {
+		const title = $w(`#${titleId}`);
+		if (title && typeof title.hide === 'function') {
+			title.hide();
+		}
+	});
+}
+
+async function handleManualEntrySubmit() {
+	try {
+		// Get field values with better error handling
+		// Helper function to get value from Wix element (handles both value and text properties)
+		const getFieldValue = (field) => {
+			if (!field) return '';
+			// Try value property first (most common)
+			if (field.value !== undefined && field.value !== null) {
+				const val = String(field.value).trim();
+				if (val) return val;
+			}
+			// Try text property
+			if (field.text !== undefined && field.text !== null) {
+				const val = String(field.text).trim();
+				if (val) return val;
+			}
+			// Try phone property (for phone input elements)
+			if (field.phone !== undefined && field.phone !== null) {
+				const val = String(field.phone).trim();
+				if (val) return val;
+			}
+			return '';
+		};
+		
+		const typeField = $w('#manualEntryType');
+		const nameField = $w('#manualEntryName');
+		const emailField = $w('#manualEntryEmail');
+		const phoneField = $w('#manualEntryPhone');
+		
+		const type = getFieldValue(typeField);
+		const organizationName = getFieldValue(nameField);
+		const contactEmail = getFieldValue(emailField);
+		
+		// Special handling for phone field - try multiple approaches
+		let contactPhone = getFieldValue(phoneField);
+		
+		// If phone is still empty, try direct access methods
+		if (!contactPhone && phoneField) {
+			// Try accessing value directly
+			if (phoneField.value !== undefined && phoneField.value !== null && phoneField.value !== '') {
+				contactPhone = String(phoneField.value).trim();
+			}
+			// Try phone property
+			if (!contactPhone && phoneField.phone !== undefined && phoneField.phone !== null) {
+				contactPhone = String(phoneField.phone).trim();
+			}
+			// Try calling getValue() if it exists
+			if (!contactPhone && typeof phoneField.getValue === 'function') {
+				try {
+					const phoneVal = phoneField.getValue();
+					if (phoneVal) contactPhone = String(phoneVal).trim();
+				} catch (e) {
+					console.warn('getValue() failed for phone field:', e);
+				}
+			}
+		}
+		
+		const bio = getFieldValue($w('#manualEntryBio')) || null;
+		const website = getFieldValue($w('#manualEntryWebsite')) || null;
+		
+		// Debug logging to see what values we're getting, with special focus on phone field
+		console.log('Manual entry form values:', {
+			type: type,
+			organizationName: organizationName,
+			contactEmail: contactEmail,
+			contactPhone: contactPhone,
+			typeFieldExists: !!typeField,
+			nameFieldExists: !!nameField,
+			emailFieldExists: !!emailField,
+			phoneFieldExists: !!phoneField,
+			phoneFieldType: phoneField?.type,
+			phoneFieldValue: phoneField?.value,
+			phoneFieldText: phoneField?.text,
+			phoneFieldPhone: phoneField?.phone,
+			phoneFieldKeys: phoneField ? Object.keys(phoneField).filter(k => !k.startsWith('_')).slice(0, 15) : [],
+			phoneFieldHasGetValue: typeof phoneField?.getValue === 'function'
+		});
+		
+		// Get selected dates from the tracked array (same as submission forms)
+		const dateIds = [...manualEntrySelectedDates];
+		
+		// Validate required fields with specific error messages
+		const missingFields = [];
+		if (!type) missingFields.push('Type');
+		if (!organizationName) missingFields.push('Name');
+		if (!contactEmail) missingFields.push('Email');
+		if (!contactPhone) missingFields.push('Phone');
+		
+		if (missingFields.length > 0) {
+			throw new Error(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+		}
+		
+		if (!dateIds || dateIds.length === 0) {
+			throw new Error('Please select at least one market date.');
+		}
+		
+		// Build profile data based on type
+		const profileData = {
+			type: type,
+			title: organizationName,
+			organizationName: organizationName,
+			contactEmail: contactEmail,
+			contactPhone: contactPhone,
+			bio: bio,
+			website: website
+		};
+		
+		// Add type-specific fields
+		if (type === 'Musician') {
+			const musicianType = $w('#manualEntryMusicianType')?.value?.trim();
+			const preferredLocation = $w('#manualEntryLocation')?.value?.trim();
+			const duration = $w('#manualEntryDuration')?.value?.trim() || null;
+			const genre = $w('#manualEntryGenre')?.value?.trim() || null;
+			const techNeeds = $w('#manualEntryTechNeeds')?.checked || false;
+			
+			if (musicianType) profileData.musicianType = musicianType;
+			if (preferredLocation) profileData.preferredLocation = preferredLocation;
+			if (duration) profileData.duration = duration;
+			if (genre) profileData.genre = genre;
+			if (techNeeds) profileData.techNeeds = techNeeds;
+		} else if (type === 'Volunteer') {
+			const volunteerRole = $w('#manualEntryVolunteerRole')?.value?.trim();
+			const shiftPreference = $w('#manualEntryShiftPreference')?.value?.trim();
+			
+			if (volunteerRole) profileData.volunteerRole = volunteerRole;
+			if (shiftPreference) profileData.shiftPreference = shiftPreference;
+		} else if (type === 'NonProfit') {
+			const nonProfitType = $w('#manualEntryNonProfitType')?.value?.trim();
+			if (nonProfitType) profileData.nonProfitType = nonProfitType;
+		}
+		
+		// Disable submit button
+		const submitBtn = $w('#btnManualEntrySubmit');
+		if (submitBtn && typeof submitBtn.disable === 'function') {
+			submitBtn.disable();
+		}
+		
+		// Submit using manual entry function (skip CRM contact creation by default)
+		const result = await manualEntrySpecialtyProfile(profileData, dateIds, false);
+		
+		showSuccess(`Manual entry created successfully! ${result.assignmentsCreated} assignment(s) created.`);
+		
+		// Close form first
+		closeManualEntryForm();
+		
+		// Ensure assignments container is visible (in case closeManualEntryForm didn't show it)
+		const assignmentsContainer = $w('#assignmentsContainer');
+		if (assignmentsContainer) {
+			if (typeof assignmentsContainer.show === 'function') {
+				assignmentsContainer.show();
+			}
+			if (assignmentsContainer.style) {
+				assignmentsContainer.style.display = 'block';
+				assignmentsContainer.style.visibility = 'visible';
+			}
+			console.log('Assignments container shown after manual entry submission');
+		}
+		
+		// Restore proper tab styling (closeManualEntryForm should do this, but ensure it's done)
+		updateActiveTab(currentType);
+		
+		// Reload assignments for the current tab type (not necessarily the submitted type)
+		await loadAssignments(currentType);
+		
+	} catch (error) {
+		console.error('Manual entry error:', error);
+		showError(error.message || 'Failed to create manual entry. Please try again.');
+	} finally {
+		// Re-enable submit button
+		const submitBtn = $w('#btnManualEntrySubmit');
+		if (submitBtn && typeof submitBtn.enable === 'function') {
+			submitBtn.enable();
+		}
+	}
+}
+
+function updateManualEntryContainerLayout() {
+	// This function ensures the container layout updates when fields are shown/hidden
+	// Wix should handle this automatically, but we can force a refresh if needed
+	const container = $w('#manualEntryContainer');
+	if (!container) return;
+	
+	// Trigger a small delay to allow DOM to update, then ensure container is properly sized
+	setTimeout(() => {
+		// If container has a resize or layout method, call it
+		// Otherwise, Wix will handle it automatically based on visible elements
+		if (container.style) {
+			// Ensure container uses auto height to accommodate content
+			// This is typically handled by Wix automatically, but we can ensure it
+			if (container.style.height === 'fixed') {
+				// If height was fixed, we might want to change it, but usually Wix handles this
+				// Just ensure the container can grow/shrink with content
+			}
+		}
+	}, 100);
 }
 

@@ -104,3 +104,106 @@ export async function submitSpecialtyProfile(profileData, dateIds) {
 		throw error;
 	}
 }
+
+/**
+ * Backend function to manually create a specialty profile and weekly assignments
+ * This is used for entering hard copy form submissions into the system
+ * Same functionality as submitSpecialtyProfile but with optional CRM contact creation
+ * @param {Object} profileData - The profile data to save
+ * @param {Array<string>} dateIds - Array of date IDs from MarketDates2026
+ * @param {boolean} createContact - Whether to create/update CRM contact (default: false for manual entries)
+ * @returns {Promise<Object>} Result object with success status and IDs
+ */
+export async function manualEntrySpecialtyProfile(profileData, dateIds, createContact = false) {
+	try {
+		// Validate inputs
+		if (!profileData) {
+			throw new Error('Profile data is required');
+		}
+		if (!dateIds || dateIds.length === 0) {
+			throw new Error('At least one date must be selected');
+		}
+		
+		// Create or update Wix CRM contact for email notifications (only if requested)
+		// For manual entries, we typically skip this unless email is provided and admin wants it
+		if (createContact && profileData.contactEmail) {
+			try {
+				console.log(`[MANUAL-ENTRY] Creating contact for: ${profileData.contactEmail}`);
+				
+				// First, check if contact already exists
+				const existingContacts = await wixCrmBackend.contacts.queryContacts()
+					.eq('primaryInfo.email', profileData.contactEmail)
+					.limit(1)
+					.find();
+				
+				if (existingContacts.items && existingContacts.items.length > 0) {
+					console.log(`[MANUAL-ENTRY] Contact already exists: ${existingContacts.items[0]._id}`);
+					// Update subscription status if needed
+					try {
+						await wixCrmBackend.contacts.updateContact(existingContacts.items[0]._id, {
+							subscriptionStatus: 'NOT_SET'
+						});
+						console.log(`[MANUAL-ENTRY] Updated subscription status to NOT_SET`);
+					} catch (updateError) {
+						console.warn(`[MANUAL-ENTRY] Could not update subscription status:`, updateError.message);
+					}
+				} else {
+					// Create new contact
+					try {
+						await wixCrmBackend.contacts.createContact({
+							primaryInfo: {
+								email: profileData.contactEmail
+							},
+							name: {
+								first: profileData.organizationName || 'Market',
+								last: 'Participant'
+							},
+							subscriptionStatus: 'NOT_SET'
+						}, {
+							allowDuplicates: true
+						});
+						console.log(`[MANUAL-ENTRY] Contact created successfully`);
+					} catch (createError) {
+						console.warn(`[MANUAL-ENTRY] createContact failed, trying appendOrCreateContact:`, createError.message);
+						await wixCrmBackend.contacts.appendOrCreateContact({
+							email: profileData.contactEmail,
+							name: {
+								first: profileData.organizationName || 'Market',
+								last: 'Participant'
+							},
+							subscriptionStatus: 'NOT_SET'
+						});
+						console.log(`[MANUAL-ENTRY] Contact created via appendOrCreateContact`);
+					}
+				}
+			} catch (contactError) {
+				// Don't fail manual entry if contact creation fails
+				console.warn(`[MANUAL-ENTRY] Warning: Failed to create contact:`, contactError.message);
+			}
+		}
+		
+		// Save the profile
+		const profileResult = await wixData.save('SpecialtyProfiles', profileData);
+		const profileId = profileResult._id;
+		
+		// Create weekly assignment records for each selected date
+		const assignmentPromises = dateIds.map(async (dateId) => {
+			return await wixData.save('WeeklyAssignments', {
+				profileRef: profileId,
+				dateRef: dateId,
+				applicationStatus: 'Pending'
+			});
+		});
+		
+		await Promise.all(assignmentPromises);
+		
+		return {
+			success: true,
+			profileId: profileId,
+			assignmentsCreated: dateIds.length
+		};
+	} catch (error) {
+		console.error('Error in manualEntrySpecialtyProfile:', error);
+		throw error;
+	}
+}
