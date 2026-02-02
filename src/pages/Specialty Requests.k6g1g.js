@@ -553,6 +553,24 @@ function showEmptyState(isEmpty, selectedStatus, searchQuery) {
 	}
 }
 
+// Map location codes to display names
+function getLocationDisplayName(locationCode) {
+	if (!locationCode) return 'Unassigned';
+	
+	const locationMap = {
+		'Location A': '13th Street',
+		'Location B': 'Food Court',
+		'Location C': '10th & Iowa St',
+		'13th Street': '13th Street',
+		'Food Court': 'Food Court',
+		'10th & Iowa St': '10th & Iowa St',
+		'Unassigned': 'Unassigned'
+	};
+	
+	// Return mapped name if exists, otherwise return the original value
+	return locationMap[locationCode] || locationCode;
+}
+
 function prepareRepeaterItem(assignment) {
 	const profile = assignment.profileRef || {};
 	const dateRef = assignment.dateRef || {};
@@ -570,6 +588,11 @@ function prepareRepeaterItem(assignment) {
 	const dateValue = dateRef.date || new Date(0);
 	const formattedDate = formatDateForDisplay(dateValue, dateRef.title);
 	
+	// Get location: prefer admin-assigned location, fall back to user's preferred location
+	// For display, use the actual location name (not the code)
+	let locationCode = assignment.assignedMapId || profile.preferredLocation || 'Unassigned';
+	const locationDisplay = getLocationDisplayName(locationCode);
+	
 	return {
 		_id: assignment._id,
 		name: profile.organizationName || 'Unknown',
@@ -579,7 +602,9 @@ function prepareRepeaterItem(assignment) {
 		contactInfo: contactInfo,
 		details: details,
 		status: status,
-		location: assignment.assignedMapId || 'Unassigned',
+		location: locationCode, // Store the code for dropdown value matching
+		locationDisplay: locationDisplay, // Store display name for showing in cards
+		preferredLocation: profile.preferredLocation || null, // User's original preference
 		profileType: profile.type,
 		profileId: profile._id
 	};
@@ -687,24 +712,30 @@ function getDaySuffix(day) {
 }
 
 function buildLocationOptions(assignments, currentLocation) {
-	// Standard location options - using actual location names
+	// Standard location options - using actual location names as labels, but codes as values
+	// This allows us to store "Location A/B/C" codes but display friendly names
 	const standardLocations = [
 		{ value: 'Unassigned', label: 'Unassigned' },
-		{ value: 'Food Court', label: 'Food Court' },
-		{ value: '13th Street', label: '13th Street' },
-		{ value: '10th & Iowa St', label: '10th & Iowa St' }
+		{ value: 'Location A', label: '13th Street' },
+		{ value: 'Location B', label: 'Food Court' },
+		{ value: 'Location C', label: '10th & Iowa St' }
 	];
 	
-	// Note: These are the only valid locations. Any other location values found in data
-	// will be added dynamically, but these three are the standard options.
+	// Also support direct location names (in case some data uses them)
+	const locationNameMap = {
+		'13th Street': 'Location A',
+		'Food Court': 'Location B',
+		'10th & Iowa St': 'Location C'
+	};
 	
-	// Collect all unique actual location values from assignments
+	// Collect all unique location values from assignments (both codes and names)
 	const actualLocations = new Set();
 	
 	if (assignments && Array.isArray(assignments)) {
 		assignments.forEach(assignment => {
-			if (assignment.profileType === 'Musician' && assignment.location) {
-				const loc = assignment.location.toString().trim();
+			if (assignment.profileType === 'Musician') {
+				// Check both location and preferredLocation
+				const loc = (assignment.location || assignment.preferredLocation || '').toString().trim();
 				if (loc && loc !== 'Unassigned') {
 					actualLocations.add(loc);
 				}
@@ -717,14 +748,23 @@ function buildLocationOptions(assignments, currentLocation) {
 		actualLocations.add(currentLocation.toString().trim());
 	}
 	
-	// Build final options list: standard locations first, then any additional actual locations
+	// Build final options list: standard locations first
 	const options = [...standardLocations];
 	
 	// Add any actual locations that aren't in the standard list
+	// Convert location names to codes if needed
 	actualLocations.forEach(loc => {
-		const exists = standardLocations.some(opt => opt.value === loc);
-		if (!exists) {
-			options.push({ value: loc, label: loc });
+		// Check if it's already in standard locations (by value)
+		const existsInStandard = standardLocations.some(opt => opt.value === loc);
+		
+		// Check if it's a location name that maps to a code
+		const mappedCode = locationNameMap[loc];
+		const existsAsMapped = mappedCode && standardLocations.some(opt => opt.value === mappedCode);
+		
+		if (!existsInStandard && !existsAsMapped) {
+			// Add with display name
+			const displayName = getLocationDisplayName(loc);
+			options.push({ value: loc, label: displayName });
 		}
 	});
 	
@@ -876,15 +916,30 @@ function setupRepeaterItem($item, itemData) {
 				
 				locationElement.options = locationOptions;
 				
-				// Set the current location value - ensure it matches exactly
-				const currentLocation = itemData.location || 'Unassigned';
+				// Set the current location value - use the code for matching
+				// If admin has assigned a location, use that; otherwise use preferred location
+				let currentLocation = itemData.location || 'Unassigned';
+				
+				// Normalize location codes - handle both "Location A" and "13th Street" formats
+				const locationNameMap = {
+					'13th Street': 'Location A',
+					'Food Court': 'Location B',
+					'10th & Iowa St': 'Location C'
+				};
+				
+				// If current location is a display name, convert to code
+				if (locationNameMap[currentLocation]) {
+					currentLocation = locationNameMap[currentLocation];
+				}
+				
 				// Check if current location exists in options, if not add it
 				const locationExists = locationOptions.some(opt => opt.value === currentLocation);
 				if (!locationExists && currentLocation !== 'Unassigned') {
 					// Add the actual location to options if it's not in the list
+					const displayName = getLocationDisplayName(currentLocation);
 					locationElement.options = [
 						...locationOptions,
-						{ value: currentLocation, label: currentLocation }
+						{ value: currentLocation, label: displayName }
 					];
 				}
 				
@@ -916,9 +971,10 @@ function setupRepeaterItem($item, itemData) {
 					});
 				}
 			} else {
-				// It's a text element
+				// It's a text element - show the display name, not the code
 				if (locationElement.text !== undefined) {
-					locationElement.text = itemData.location || 'Unassigned';
+					const displayName = itemData.locationDisplay || getLocationDisplayName(itemData.location) || 'Unassigned';
+					locationElement.text = displayName;
 				}
 				if (typeof locationElement.show === 'function') {
 					locationElement.show();
