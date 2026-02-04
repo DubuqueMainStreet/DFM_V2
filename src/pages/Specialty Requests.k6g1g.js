@@ -472,13 +472,25 @@ async function loadAssignments(type) {
 		let typeMatched = 0;
 		let statusFiltered = 0;
 		let searchFiltered = 0;
+		let missingProfileRef = 0;
 		const statusCounts = {}; // Track actual status values found
+		const brokenRefs = []; // Track assignments with broken references
 		
 		for (const assignment of results.items) {
 			totalChecked++;
 			
 			// Check if profile type matches
-			if (!assignment.profileRef || assignment.profileRef.type !== type) {
+			if (!assignment.profileRef) {
+				missingProfileRef++;
+				brokenRefs.push({
+					id: assignment._id,
+					status: assignment.applicationStatus,
+					issue: 'profileRef is null/undefined after include()',
+					dateTitle: assignment.dateRef?.title || 'Unknown date'
+				});
+				continue;
+			}
+			if (assignment.profileRef.type !== type) {
 				continue;
 			}
 			typeMatched++;
@@ -517,8 +529,19 @@ async function loadAssignments(type) {
 		console.log(`  - Status breakdown:`, statusCounts);
 		console.log(`  - Filtered out by status: ${statusFiltered}`);
 		console.log(`  - Filtered out by search: ${searchFiltered}`);
+		console.log(`  - Missing/broken profileRef: ${missingProfileRef}`);
 		console.log(`  - Final count displayed: ${repeaterData.length}`);
 		console.log(`  - Filters: status="${selectedStatus}", date="${selectedDateId}", search="${searchQuery}"`);
+		
+		if (brokenRefs.length > 0) {
+			console.warn(`⚠️ WARNING: ${brokenRefs.length} assignments have broken profileRef references!`);
+			console.warn('These assignments exist in the database but cannot be displayed:');
+			brokenRefs.forEach(ref => {
+				console.warn(`  - Assignment ID: ${ref.id}, Status: ${ref.status}, Date: ${ref.dateTitle}`);
+				console.warn(`    Issue: ${ref.issue}`);
+			});
+			console.warn('👉 This means the SpecialtyProfile record was deleted or the reference is corrupted.');
+		}
 		
 		// Sort by date, then by name
 		repeaterData.sort((a, b) => {

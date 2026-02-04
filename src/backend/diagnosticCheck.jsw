@@ -9,20 +9,31 @@ export async function checkAssignmentsStatus() {
 	try {
 		console.log('🔍 DIAGNOSTIC CHECK - Starting WeeklyAssignments analysis...');
 		
-		// Get ALL assignments
+		// Get ALL assignments WITHOUT include() first to see raw data
+		const allAssignmentsRaw = await wixData.query('WeeklyAssignments')
+			.find();
+		
+		console.log(`📊 Total assignments in database (raw query): ${allAssignmentsRaw.items.length}`);
+		
+		// Now get with includes
 		const allAssignments = await wixData.query('WeeklyAssignments')
 			.include('profileRef')
 			.include('dateRef')
 			.find();
 		
-		console.log(`📊 Total assignments in database: ${allAssignments.items.length}`);
+		console.log(`📊 Total assignments with includes: ${allAssignments.items.length}`);
 		
 		// Analyze by status
 		const statusBreakdown = {};
 		const approvedAssignments = [];
 		const dataIssues = [];
+		const missingNames = [];
 		
-		allAssignments.items.forEach(assignment => {
+		// Look specifically for "She Unites" and "Natalie Finley"
+		let sheUnitesFound = false;
+		let natalieFinleyFound = false;
+		
+		allAssignmentsRaw.items.forEach(assignment => {
 			// Get status (handle various formats)
 			const rawStatus = assignment.applicationStatus;
 			const normalizedStatus = (rawStatus || 'null').toString().trim();
@@ -30,33 +41,79 @@ export async function checkAssignmentsStatus() {
 			// Count by status
 			statusBreakdown[normalizedStatus] = (statusBreakdown[normalizedStatus] || 0) + 1;
 			
+			// Check for broken references in raw data
+			const hasProfileRef = !!assignment.profileRef;
+			const hasDateRef = !!assignment.dateRef;
+			
+			if (!hasProfileRef) {
+				dataIssues.push({
+					id: assignment._id,
+					issue: 'Missing profileRef',
+					status: normalizedStatus,
+					rawProfileRef: assignment.profileRef
+				});
+			}
+			if (!hasDateRef) {
+				dataIssues.push({
+					id: assignment._id,
+					issue: 'Missing dateRef', 
+					status: normalizedStatus,
+					rawDateRef: assignment.dateRef
+				});
+			}
+			
+			// Try to find She Unites and Natalie Finley by checking raw profileRef ID
+			// We'll need to query SpecialtyProfiles separately to match names
+		});
+		
+		// Now analyze the included data
+		allAssignments.items.forEach(assignment => {
+			const rawStatus = assignment.applicationStatus;
+			const normalizedStatus = (rawStatus || 'null').toString().trim();
+			
+			// Get organization name from profile
+			const orgName = assignment.profileRef?.organizationName || 
+			                assignment.profileRef?.firstName + ' ' + assignment.profileRef?.lastName || 
+			                'Unknown';
+			
+			// Check for specific names
+			if (orgName.toLowerCase().includes('she unites')) {
+				sheUnitesFound = true;
+				console.log(`🔍 FOUND "She Unites": Status="${normalizedStatus}", ID=${assignment._id}`);
+				console.log(`   Profile:`, assignment.profileRef);
+				console.log(`   Date:`, assignment.dateRef);
+			}
+			if (orgName.toLowerCase().includes('natalie finley') || orgName.toLowerCase().includes('finley')) {
+				natalieFinleyFound = true;
+				console.log(`🔍 FOUND "Natalie Finley": Status="${normalizedStatus}", ID=${assignment._id}`);
+				console.log(`   Profile:`, assignment.profileRef);
+				console.log(`   Date:`, assignment.dateRef);
+			}
+			
 			// Track approved assignments
 			if (normalizedStatus.toLowerCase() === 'approved') {
 				approvedAssignments.push({
 					id: assignment._id,
 					status: normalizedStatus,
 					profileType: assignment.profileRef?.type || 'Unknown',
-					organizationName: assignment.profileRef?.organizationName || 'Unknown',
+					organizationName: orgName,
+					profileId: assignment.profileRef?._id || 'No profile ID',
 					dateId: assignment.dateRef?._id || assignment.dateRef || 'Unknown',
 					dateTitle: assignment.dateRef?.title || 'Unknown',
 					createdDate: assignment._createdDate,
-					updatedDate: assignment._updatedDate
+					updatedDate: assignment._updatedDate,
+					hasProfileRef: !!assignment.profileRef,
+					hasDateRef: !!assignment.dateRef
 				});
 			}
 			
-			// Check for data integrity issues
-			if (!assignment.profileRef) {
-				dataIssues.push({
+			// Check if profileRef resolved properly
+			if (assignment.profileRef === null || assignment.profileRef === undefined) {
+				missingNames.push({
 					id: assignment._id,
-					issue: 'Missing profileRef',
-					status: normalizedStatus
-				});
-			}
-			if (!assignment.dateRef) {
-				dataIssues.push({
-					id: assignment._id,
-					issue: 'Missing dateRef',
-					status: normalizedStatus
+					status: normalizedStatus,
+					issue: 'profileRef is null after include()',
+					rawProfileRef: allAssignmentsRaw.items.find(a => a._id === assignment._id)?.profileRef
 				});
 			}
 		});
@@ -64,15 +121,20 @@ export async function checkAssignmentsStatus() {
 		console.log('\n📋 STATUS BREAKDOWN:');
 		console.log(JSON.stringify(statusBreakdown, null, 2));
 		
+		console.log(`\n🔍 SPECIFIC SEARCH RESULTS:`);
+		console.log(`  She Unites found: ${sheUnitesFound ? 'YES ✅' : 'NO ❌'}`);
+		console.log(`  Natalie Finley found: ${natalieFinleyFound ? 'YES ✅' : 'NO ❌'}`);
+		
 		console.log(`\n✅ APPROVED ASSIGNMENTS: ${approvedAssignments.length}`);
 		if (approvedAssignments.length > 0) {
 			console.log('Approved assignments details:');
 			approvedAssignments.forEach(a => {
 				console.log(`  - ${a.profileType}: ${a.organizationName} (Date: ${a.dateTitle})`);
-				console.log(`    ID: ${a.id}`);
+				console.log(`    Assignment ID: ${a.id}`);
+				console.log(`    Profile ID: ${a.profileId}`);
+				console.log(`    Date ID: ${a.dateId}`);
 				console.log(`    Status: "${a.status}"`);
-				console.log(`    Created: ${a.createdDate}`);
-				console.log(`    Updated: ${a.updatedDate}`);
+				console.log(`    Has Profile: ${a.hasProfileRef}, Has Date: ${a.hasDateRef}`);
 				console.log('');
 			});
 		} else {
@@ -80,9 +142,18 @@ export async function checkAssignmentsStatus() {
 		}
 		
 		if (dataIssues.length > 0) {
-			console.log(`\n⚠️ DATA INTEGRITY ISSUES: ${dataIssues.length}`);
+			console.log(`\n⚠️ DATA INTEGRITY ISSUES (broken references): ${dataIssues.length}`);
 			dataIssues.forEach(issue => {
-				console.log(`  - ${issue.issue} (ID: ${issue.id}, Status: ${issue.status})`);
+				console.log(`  - ${issue.issue} (Assignment ID: ${issue.id}, Status: ${issue.status})`);
+				console.log(`    Raw value:`, issue.rawProfileRef || issue.rawDateRef);
+			});
+		}
+		
+		if (missingNames.length > 0) {
+			console.log(`\n⚠️ UNRESOLVED REFERENCES (include() failed): ${missingNames.length}`);
+			missingNames.forEach(issue => {
+				console.log(`  - ${issue.issue} (Assignment ID: ${issue.id}, Status: ${issue.status})`);
+				console.log(`    Raw profileRef from DB:`, issue.rawProfileRef);
 			});
 		}
 		
@@ -94,6 +165,9 @@ export async function checkAssignmentsStatus() {
 			approvedCount: approvedAssignments.length,
 			approvedAssignments,
 			dataIssues,
+			missingNames,
+			sheUnitesFound,
+			natalieFinleyFound,
 			message: approvedAssignments.length > 0 
 				? `Found ${approvedAssignments.length} approved assignments in database. They should be visible when Status filter is set to "Approved" or "All Statuses".`
 				: 'WARNING: No approved assignments found. This indicates potential data loss or status field corruption.'
@@ -101,6 +175,7 @@ export async function checkAssignmentsStatus() {
 		
 	} catch (error) {
 		console.error('❌ ERROR in diagnostic check:', error);
+		console.error('Error details:', error.message, error.stack);
 		return {
 			success: false,
 			error: error.message,
