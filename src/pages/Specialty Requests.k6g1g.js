@@ -3,6 +3,7 @@ import wixWindow from 'wix-window';
 import { sendStatusNotificationEmail } from 'backend/emailNotifications.jsw';
 import { manualEntrySpecialtyProfile } from 'backend/formSubmissions.jsw';
 import { getDateAvailability } from 'backend/availabilityStatus.jsw';
+import { checkAssignmentsStatus } from 'backend/diagnosticCheck.jsw';
 
 // ============================================
 // EMAIL NOTIFICATIONS ENABLED - VERSION 2.0
@@ -39,6 +40,23 @@ $w.onReady(function () {
 
 async function initializeDashboard() {
 	try {
+		// 🔍 RUN DIAGNOSTIC CHECK - Check for approved assignments
+		console.log('🔍🔍🔍 RUNNING DIAGNOSTIC CHECK 🔍🔍🔍');
+		try {
+			const diagnosticResult = await checkAssignmentsStatus();
+			console.log('📊 DIAGNOSTIC RESULT:', diagnosticResult);
+			if (diagnosticResult.approvedCount === 0) {
+				console.error('⚠️⚠️⚠️ WARNING: NO APPROVED ASSIGNMENTS FOUND IN DATABASE ⚠️⚠️⚠️');
+				console.error('This suggests data loss or corruption. Check the logs above for details.');
+			} else {
+				console.log(`✅ Found ${diagnosticResult.approvedCount} approved assignments in database.`);
+				console.log('💡 TIP: Make sure Status filter is set to "Approved" or "All Statuses" to see them!');
+			}
+		} catch (diagError) {
+			console.error('❌ Diagnostic check failed:', diagError);
+		}
+		console.log('🔍🔍🔍 DIAGNOSTIC CHECK COMPLETE 🔍🔍🔍\n');
+		
 		// Ensure manual entry container is hidden by default
 		const manualEntryContainer = $w('#manualEntryContainer');
 		if (manualEntryContainer && typeof manualEntryContainer.hide === 'function') {
@@ -2486,4 +2504,3 @@ function updateManualEntryContainerLayout() {
 		}
 	}, 100);
 }
-

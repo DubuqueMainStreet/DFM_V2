@@ -1,0 +1,170 @@
+import wixData from 'wix-data';
+
+/**
+ * DIAGNOSTIC FUNCTION - Check WeeklyAssignments data integrity
+ * This will help us verify if approved assignments are actually in the database
+ * and identify any data issues
+ */
+export async function checkAssignmentsStatus() {
+	try {
+		console.log('🔍 DIAGNOSTIC CHECK - Starting WeeklyAssignments analysis...');
+		
+		// Get ALL assignments
+		const allAssignments = await wixData.query('WeeklyAssignments')
+			.include('profileRef')
+			.include('dateRef')
+			.find();
+		
+		console.log(`📊 Total assignments in database: ${allAssignments.items.length}`);
+		
+		// Analyze by status
+		const statusBreakdown = {};
+		const approvedAssignments = [];
+		const dataIssues = [];
+		
+		allAssignments.items.forEach(assignment => {
+			// Get status (handle various formats)
+			const rawStatus = assignment.applicationStatus;
+			const normalizedStatus = (rawStatus || 'null').toString().trim();
+			
+			// Count by status
+			statusBreakdown[normalizedStatus] = (statusBreakdown[normalizedStatus] || 0) + 1;
+			
+			// Track approved assignments
+			if (normalizedStatus.toLowerCase() === 'approved') {
+				approvedAssignments.push({
+					id: assignment._id,
+					status: normalizedStatus,
+					profileType: assignment.profileRef?.type || 'Unknown',
+					organizationName: assignment.profileRef?.organizationName || 'Unknown',
+					dateId: assignment.dateRef?._id || assignment.dateRef || 'Unknown',
+					dateTitle: assignment.dateRef?.title || 'Unknown',
+					createdDate: assignment._createdDate,
+					updatedDate: assignment._updatedDate
+				});
+			}
+			
+			// Check for data integrity issues
+			if (!assignment.profileRef) {
+				dataIssues.push({
+					id: assignment._id,
+					issue: 'Missing profileRef',
+					status: normalizedStatus
+				});
+			}
+			if (!assignment.dateRef) {
+				dataIssues.push({
+					id: assignment._id,
+					issue: 'Missing dateRef',
+					status: normalizedStatus
+				});
+			}
+		});
+		
+		console.log('\n📋 STATUS BREAKDOWN:');
+		console.log(JSON.stringify(statusBreakdown, null, 2));
+		
+		console.log(`\n✅ APPROVED ASSIGNMENTS: ${approvedAssignments.length}`);
+		if (approvedAssignments.length > 0) {
+			console.log('Approved assignments details:');
+			approvedAssignments.forEach(a => {
+				console.log(`  - ${a.profileType}: ${a.organizationName} (Date: ${a.dateTitle})`);
+				console.log(`    ID: ${a.id}`);
+				console.log(`    Status: "${a.status}"`);
+				console.log(`    Created: ${a.createdDate}`);
+				console.log(`    Updated: ${a.updatedDate}`);
+				console.log('');
+			});
+		} else {
+			console.warn('⚠️ WARNING: NO APPROVED ASSIGNMENTS FOUND IN DATABASE');
+		}
+		
+		if (dataIssues.length > 0) {
+			console.log(`\n⚠️ DATA INTEGRITY ISSUES: ${dataIssues.length}`);
+			dataIssues.forEach(issue => {
+				console.log(`  - ${issue.issue} (ID: ${issue.id}, Status: ${issue.status})`);
+			});
+		}
+		
+		// Return summary
+		return {
+			success: true,
+			totalAssignments: allAssignments.items.length,
+			statusBreakdown,
+			approvedCount: approvedAssignments.length,
+			approvedAssignments,
+			dataIssues,
+			message: approvedAssignments.length > 0 
+				? `Found ${approvedAssignments.length} approved assignments in database. They should be visible when Status filter is set to "Approved" or "All Statuses".`
+				: 'WARNING: No approved assignments found. This indicates potential data loss or status field corruption.'
+		};
+		
+	} catch (error) {
+		console.error('❌ ERROR in diagnostic check:', error);
+		return {
+			success: false,
+			error: error.message,
+			stack: error.stack
+		};
+	}
+}
+
+/**
+ * Check specific date availability status
+ * Useful for debugging why dates show as "available" when they should be reserved
+ */
+export async function checkDateAvailability(dateId) {
+	try {
+		console.log(`🔍 Checking availability for date ID: ${dateId}`);
+		
+		// Get all assignments for this date
+		const assignments = await wixData.query('WeeklyAssignments')
+			.eq('dateRef', dateId)
+			.include('profileRef')
+			.include('dateRef')
+			.find();
+		
+		console.log(`Found ${assignments.items.length} total assignments for this date`);
+		
+		// Filter for approved only
+		const approved = assignments.items.filter(a => {
+			const status = (a.applicationStatus || '').toString().trim().toLowerCase();
+			return status === 'approved';
+		});
+		
+		console.log(`Found ${approved.items.length} APPROVED assignments for this date`);
+		
+		// Breakdown by type
+		const breakdown = {
+			Musician: 0,
+			NonProfit: 0,
+			Volunteer: 0
+		};
+		
+		approved.forEach(a => {
+			const type = a.profileRef?.type;
+			if (breakdown[type] !== undefined) {
+				breakdown[type]++;
+			}
+		});
+		
+		console.log('Approved assignments by type:', breakdown);
+		
+		return {
+			dateId,
+			totalAssignments: assignments.items.length,
+			approvedAssignments: approved.length,
+			breakdown,
+			details: approved.map(a => ({
+				id: a._id,
+				type: a.profileRef?.type,
+				name: a.profileRef?.organizationName,
+				status: a.applicationStatus
+			}))
+		};
+		
+	} catch (error) {
+		console.error('Error checking date availability:', error);
+		return { error: error.message };
+	}
+}
