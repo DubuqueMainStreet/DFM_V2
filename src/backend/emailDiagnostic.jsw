@@ -1,0 +1,240 @@
+import wixData from 'wix-data';
+import wixCrmBackend from 'wix-crm-backend';
+import { sendStatusNotificationEmail } from './emailNotifications.jsw';
+
+/**
+ * Diagnostic function to check which approved assignments may not have received emails
+ * @returns {Promise<Object>} Diagnostic results
+ */
+export async function checkApprovedAssignmentsEmailStatus() {
+	try {
+		console.log('🔍 EMAIL DIAGNOSTIC - Checking approved assignments...');
+		
+		// Get all approved assignments
+		const allAssignments = await wixData.query('WeeklyAssignments')
+			.include('profileRef')
+			.include('dateRef')
+			.limit(1000)
+			.find();
+		
+		// Filter for approved
+		const approvedAssignments = allAssignments.items.filter(a => {
+			const status = (a.applicationStatus || '').toString().trim();
+			return status.toLowerCase() === 'approved';
+		});
+		
+		console.log(`📊 Found ${approvedAssignments.length} approved assignments`);
+		
+		const results = {
+			totalApproved: approvedAssignments.length,
+			withContacts: [],
+			withoutContacts: [],
+			unsubscribedContacts: [],
+			missingEmails: [],
+			errors: []
+		};
+		
+		// Check each approved assignment
+		for (const assignment of approvedAssignments) {
+			const profile = assignment.profileRef;
+			if (!profile || !profile.contactEmail) {
+				results.withoutContacts.push({
+					assignmentId: assignment._id,
+					profileId: assignment.profileRef?._id || 'No profile',
+					organizationName: profile?.organizationName || 'Unknown',
+					reason: 'No profile or missing contactEmail'
+				});
+				continue;
+			}
+			
+			const email = profile.contactEmail;
+			const orgName = profile.organizationName || 'Unknown';
+			
+			try {
+				// Try to find contact
+				const contacts = await wixCrmBackend.contacts.queryContacts()
+					.eq('primaryInfo.email', email)
+					.limit(1)
+					.find();
+				
+				if (!contacts.items || contacts.items.length === 0) {
+					results.withoutContacts.push({
+						assignmentId: assignment._id,
+						organizationName: orgName,
+						email: email,
+						reason: 'Contact not found in Wix CRM'
+					});
+					continue;
+				}
+				
+				const contact = contacts.items[0];
+				const subscriptionStatus = contact.info?.extendedFields?.emailSubscriptions?.subscriptionStatus ||
+				                          contact.subscriptionStatus ||
+				                          contact.emailSubscriptions?.subscriptionStatus ||
+				                          'UNKNOWN';
+				
+				if (subscriptionStatus === 'UNSUBSCRIBED') {
+					results.unsubscribedContacts.push({
+						assignmentId: assignment._id,
+						organizationName: orgName,
+						email: email,
+						contactId: contact._id,
+						subscriptionStatus: subscriptionStatus
+					});
+				} else {
+					results.withContacts.push({
+						assignmentId: assignment._id,
+						organizationName: orgName,
+						email: email,
+						contactId: contact._id,
+						subscriptionStatus: subscriptionStatus
+					});
+				}
+			} catch (error) {
+				results.errors.push({
+					assignmentId: assignment._id,
+					organizationName: orgName,
+					email: email,
+					error: error.message
+				});
+			}
+		}
+		
+		console.log('\n📊 EMAIL DIAGNOSTIC RESULTS:');
+		console.log(`  Total Approved: ${results.totalApproved}`);
+		console.log(`  With Valid Contacts: ${results.withContacts.length}`);
+		console.log(`  Without Contacts: ${results.withoutContacts.length}`);
+		console.log(`  Unsubscribed Contacts: ${results.unsubscribedContacts.length}`);
+		console.log(`  Errors: ${results.errors.length}`);
+		
+		if (results.withoutContacts.length > 0) {
+			console.log('\n⚠️ ASSIGNMENTS WITHOUT CONTACTS:');
+			results.withoutContacts.forEach(item => {
+				console.log(`  - ${item.organizationName} (${item.email || 'No email'}) - ${item.reason}`);
+			});
+		}
+		
+		if (results.unsubscribedContacts.length > 0) {
+			console.log('\n⚠️ ASSIGNMENTS WITH UNSUBSCRIBED CONTACTS:');
+			results.unsubscribedContacts.forEach(item => {
+				console.log(`  - ${item.organizationName} (${item.email}) - Contact ID: ${item.contactId}`);
+			});
+		}
+		
+		return results;
+		
+	} catch (error) {
+		console.error('❌ Error in email diagnostic:', error);
+		return {
+			error: error.message,
+			stack: error.stack
+		};
+	}
+}
+
+/**
+ * Manually send approval emails to approved assignments that may not have received them
+ * @param {Array<string>} assignmentIds - Optional array of specific assignment IDs to send emails to. If omitted, sends to all approved without valid contacts.
+ * @returns {Promise<Object>} Results of email sending attempts
+ */
+export async function sendMissingApprovalEmails(assignmentIds = null) {
+	try {
+		console.log('📧 SENDING MISSING APPROVAL EMAILS...');
+		
+		// Get diagnostic results
+		const diagnostic = await checkApprovedAssignmentsEmailStatus();
+		
+		if (diagnostic.error) {
+			throw new Error(diagnostic.error);
+		}
+		
+		// Determine which assignments to send emails to
+		let assignmentsToEmail = [];
+		
+		if (assignmentIds && assignmentIds.length > 0) {
+			// Send to specific assignment IDs
+			assignmentsToEmail = assignmentIds.map(id => ({ assignmentId: id }));
+		} else {
+			// Send to all approved assignments (will handle duplicates/errors gracefully)
+			assignmentsToEmail = [
+				...diagnostic.withContacts,
+				...diagnostic.withoutContacts.map(item => ({ assignmentId: item.assignmentId })),
+				...diagnostic.unsubscribedContacts.map(item => ({ assignmentId: item.assignmentId }))
+			];
+		}
+		
+		console.log(`📧 Attempting to send emails to ${assignmentsToEmail.length} assignment(s)...`);
+		
+		const results = {
+			success: [],
+			failed: [],
+			skipped: []
+		};
+		
+		for (const item of assignmentsToEmail) {
+			const assignmentId = item.assignmentId;
+			try {
+				console.log(`\n📧 Sending email for assignment: ${assignmentId}`);
+				const emailResult = await sendStatusNotificationEmail(assignmentId, 'Approved');
+				
+				if (emailResult.success && emailResult.emailSent) {
+					results.success.push({
+						assignmentId: assignmentId,
+						recipient: emailResult.recipient
+					});
+					console.log(`  ✅ Email sent successfully to ${emailResult.recipient}`);
+				} else if (emailResult.skipped) {
+					results.skipped.push({
+						assignmentId: assignmentId,
+						reason: emailResult.reason
+					});
+					console.log(`  ⏭️ Email skipped: ${emailResult.reason}`);
+				} else {
+					results.failed.push({
+						assignmentId: assignmentId,
+						error: emailResult.error
+					});
+					console.log(`  ❌ Email failed: ${emailResult.error}`);
+				}
+				
+				// Small delay between emails to avoid rate limiting
+				await new Promise(resolve => setTimeout(resolve, 500));
+				
+			} catch (error) {
+				results.failed.push({
+					assignmentId: assignmentId,
+					error: error.message
+				});
+				console.error(`  ❌ Exception: ${error.message}`);
+			}
+		}
+		
+		console.log('\n📊 EMAIL SENDING RESULTS:');
+		console.log(`  ✅ Successfully sent: ${results.success.length}`);
+		console.log(`  ⏭️ Skipped: ${results.skipped.length}`);
+		console.log(`  ❌ Failed: ${results.failed.length}`);
+		
+		if (results.success.length > 0) {
+			console.log('\n✅ Successfully sent emails to:');
+			results.success.forEach(item => {
+				console.log(`  - ${item.recipient} (Assignment: ${item.assignmentId})`);
+			});
+		}
+		
+		if (results.failed.length > 0) {
+			console.log('\n❌ Failed to send emails:');
+			results.failed.forEach(item => {
+				console.log(`  - Assignment ${item.assignmentId}: ${item.error}`);
+			});
+		}
+		
+		return results;
+		
+	} catch (error) {
+		console.error('❌ Error sending missing approval emails:', error);
+		return {
+			error: error.message,
+			stack: error.stack
+		};
+	}
+}

@@ -4,6 +4,7 @@ import { sendStatusNotificationEmail } from 'backend/emailNotifications.jsw';
 import { manualEntrySpecialtyProfile } from 'backend/formSubmissions.jsw';
 import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 import { checkAssignmentsStatus } from 'backend/diagnosticCheck.jsw';
+import { checkApprovedAssignmentsEmailStatus, sendMissingApprovalEmails } from 'backend/emailDiagnostic.jsw';
 
 // ============================================
 // EMAIL NOTIFICATIONS ENABLED - VERSION 2.0
@@ -54,6 +55,44 @@ async function initializeDashboard() {
 			// console.log(`✅ Found ${diagnosticResult.approvedCount} approved assignments in database.`);
 		} catch (diagError) {
 			console.error('❌ Diagnostic check failed:', diagError);
+		}
+		
+		// 📧 RUN EMAIL DIAGNOSTIC - Check which approved assignments may not have received emails
+		try {
+			console.log('📧📧📧 RUNNING EMAIL DIAGNOSTIC 📧📧📧');
+			const emailDiagnostic = await checkApprovedAssignmentsEmailStatus();
+			if (emailDiagnostic.error) {
+				console.error('❌ Email diagnostic failed:', emailDiagnostic.error);
+			} else {
+				const totalApproved = emailDiagnostic.totalApproved || 0;
+				const withContacts = emailDiagnostic.withContacts?.length || 0;
+				const withoutContacts = emailDiagnostic.withoutContacts?.length || 0;
+				const unsubscribed = emailDiagnostic.unsubscribedContacts?.length || 0;
+				
+				console.log(`📊 Email Diagnostic Summary:`);
+				console.log(`  Total Approved: ${totalApproved}`);
+				console.log(`  With Valid Contacts: ${withContacts}`);
+				console.log(`  Without Contacts: ${withoutContacts}`);
+				console.log(`  Unsubscribed: ${unsubscribed}`);
+				
+				if (withoutContacts > 0 || unsubscribed > 0) {
+					console.warn(`⚠️ WARNING: ${withoutContacts + unsubscribed} approved assignment(s) may not have received emails!`);
+					console.warn(`💡 To send missing emails, run: sendMissingApprovalEmails()`);
+				}
+			}
+			console.log('📧📧📧 EMAIL DIAGNOSTIC COMPLETE 📧📧📧\n');
+		} catch (emailDiagError) {
+			console.error('❌ Email diagnostic check failed:', emailDiagError);
+		}
+		
+		// Expose email diagnostic functions globally for manual use
+		if (typeof window !== 'undefined') {
+			window.checkEmailStatus = checkApprovedAssignmentsEmailStatus;
+			window.sendMissingEmails = sendMissingApprovalEmails;
+			console.log('💡 Email diagnostic functions available in console:');
+			console.log('   - checkEmailStatus() - Check which approved assignments have contacts');
+			console.log('   - sendMissingEmails() - Send approval emails to all approved assignments');
+			console.log('   - sendMissingEmails([id1, id2]) - Send emails to specific assignment IDs');
 		}
 		
 		// Ensure manual entry container is hidden by default
