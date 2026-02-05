@@ -77,7 +77,7 @@ async function initializeDashboard() {
 				
 				if (withoutContacts > 0 || unsubscribed > 0) {
 					console.warn(`⚠️ WARNING: ${withoutContacts + unsubscribed} approved assignment(s) may not have received emails!`);
-					console.warn(`💡 To send missing emails, run: sendMissingApprovalEmails()`);
+					console.warn(`💡 To send missing emails, run: sendMissingEmails()`);
 				}
 			}
 			console.log('📧📧📧 EMAIL DIAGNOSTIC COMPLETE 📧📧📧\n');
