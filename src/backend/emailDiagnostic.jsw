@@ -102,16 +102,29 @@ export async function checkApprovedAssignmentsEmailStatus() {
 		
 		console.log('\n📊 EMAIL DIAGNOSTIC RESULTS:');
 		console.log(`  Total Approved: ${results.totalApproved}`);
-		console.log(`  With Valid Contacts: ${results.withContacts.length}`);
-		console.log(`  Without Contacts: ${results.withoutContacts.length}`);
-		console.log(`  Unsubscribed Contacts: ${results.unsubscribedContacts.length}`);
+		console.log(`  With Valid Contacts: ${results.withContacts.length} ✅ (These CAN receive emails)`);
+		console.log(`  Without Contacts: ${results.withoutContacts.length} ❌ (These did NOT receive emails)`);
+		console.log(`  Unsubscribed Contacts: ${results.unsubscribedContacts.length} ⚠️ (These cannot receive emails)`);
 		console.log(`  Errors: ${results.errors.length}`);
 		
-		if (results.withoutContacts.length > 0) {
-			console.log('\n⚠️ ASSIGNMENTS WITHOUT CONTACTS:');
-			results.withoutContacts.forEach(item => {
-				console.log(`  - ${item.organizationName} (${item.email || 'No email'}) - ${item.reason}`);
+		if (results.withContacts.length > 0) {
+			console.log('\n✅ ASSIGNMENTS WITH VALID CONTACTS (These likely received emails):');
+			results.withContacts.forEach((item, index) => {
+				console.log(`  ${index + 1}. ${item.organizationName} (${item.email}) - Contact ID: ${item.contactId}`);
 			});
+		}
+		
+		if (results.withoutContacts.length > 0) {
+			console.log('\n⚠️ ASSIGNMENTS WITHOUT CONTACTS (These did NOT receive emails):');
+			console.log('='.repeat(80));
+			results.withoutContacts.forEach((item, index) => {
+				console.log(`\n${index + 1}. ${item.organizationName}`);
+				console.log(`   Email: ${item.email || 'No email'}`);
+				console.log(`   Assignment ID: ${item.assignmentId}`);
+				console.log(`   Reason: ${item.reason}`);
+			});
+			console.log('='.repeat(80));
+			console.log(`\n💡 SOLUTION: Run sendMissingEmails() to automatically create contacts and send emails.`);
 		}
 		
 		if (results.unsubscribedContacts.length > 0) {
