@@ -123,11 +123,33 @@ async function initializeDashboard() {
 			console.log('   - await checkEmailStatus() - Check which approved assignments have contacts');
 			console.log('   - await sendMissingEmails() - Send approval emails to all approved assignments');
 			console.log('   - await sendMissingEmails([id1, id2]) - Send emails to specific assignment IDs');
-		} catch (exposeError) {
-			console.warn('⚠️ Could not expose functions globally:', exposeError);
-			console.log('💡 Call functions directly:');
+			console.log('');
+			console.log('💡 If functions are not available, use the imported functions directly:');
 			console.log('   - await checkApprovedAssignmentsEmailStatus()');
 			console.log('   - await sendMissingApprovalEmails()');
+		} catch (exposeError) {
+			console.warn('⚠️ Could not expose functions globally:', exposeError);
+			console.log('💡 Call imported functions directly:');
+			console.log('   - await checkApprovedAssignmentsEmailStatus()');
+			console.log('   - await sendMissingApprovalEmails()');
+		}
+		
+		// Also store functions in a way that's accessible
+		// Store reference to the functions for easy access
+		try {
+			// Try to make them available via a known object
+			const emailFunctions = {
+				checkStatus: checkApprovedAssignmentsEmailStatus,
+				sendEmails: sendMissingApprovalEmails
+			};
+			// Try to attach to a Wix element as data (fallback)
+			const container = $w('#assignmentsContainer');
+			if (container) {
+				container.data = container.data || {};
+				container.data.emailFunctions = emailFunctions;
+			}
+		} catch (e) {
+			// Ignore errors
 		}
 		
 		// Ensure manual entry container is hidden by default
