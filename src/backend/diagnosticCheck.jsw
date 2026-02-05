@@ -10,18 +10,23 @@ export async function checkAssignmentsStatus() {
 		console.log('🔍 DIAGNOSTIC CHECK - Starting WeeklyAssignments analysis...');
 		
 		// Get ALL assignments WITHOUT include() first to see raw data
+		// Use limit(1000) to ensure we get all records (Wix default is 50)
 		const allAssignmentsRaw = await wixData.query('WeeklyAssignments')
+			.limit(1000)
 			.find();
 		
 		console.log(`📊 Total assignments in database (raw query): ${allAssignmentsRaw.items.length}`);
+		console.log(`📊 Query hasMore: ${allAssignmentsRaw.hasMore || false}`);
 		
-		// Now get with includes
+		// Now get with includes (also with limit to ensure we get all)
 		const allAssignments = await wixData.query('WeeklyAssignments')
 			.include('profileRef')
 			.include('dateRef')
+			.limit(1000)
 			.find();
 		
 		console.log(`📊 Total assignments with includes: ${allAssignments.items.length}`);
+		console.log(`📊 Include query hasMore: ${allAssignments.hasMore || false}`);
 		
 		// Analyze by status
 		const statusBreakdown = {};
@@ -106,12 +111,28 @@ export async function checkAssignmentsStatus() {
 				for (const a of sheUnitesAssignments.items) {
 					console.log(`    - Assignment ID: ${a._id}, Status: "${a.applicationStatus}"`);
 					
+					// Try to get the assignment directly by ID
+					try {
+						const directAssignment = await wixData.get('WeeklyAssignments', a._id);
+						console.log(`      Direct get by ID: SUCCESS`);
+						console.log(`      Direct assignment status: "${directAssignment.applicationStatus}"`);
+						console.log(`      Direct assignment profileRef: ${directAssignment.profileRef}`);
+						console.log(`      Direct assignment dateRef: ${directAssignment.dateRef}`);
+					} catch (getError) {
+						console.error(`      Direct get by ID FAILED: ${getError.message}`);
+					}
+					
 					// Check if this assignment is in the raw query results
 					const inRawQuery = allAssignmentsRaw.items.find(raw => raw._id === a._id);
 					const inIncludeQuery = allAssignments.items.find(inc => inc._id === a._id);
 					
 					console.log(`      In raw query: ${!!inRawQuery}`);
 					console.log(`      In include query: ${!!inIncludeQuery}`);
+					
+					if (!inRawQuery) {
+						console.error(`      ⚠️ CRITICAL: Assignment NOT in main query results!`);
+						console.error(`      This suggests the main query has a filter, limit, or permissions issue.`);
+					}
 					
 					if (inRawQuery && !inIncludeQuery) {
 						console.error(`      ⚠️ PROBLEM: Assignment exists in raw query but MISSING from include query!`);
@@ -152,12 +173,28 @@ export async function checkAssignmentsStatus() {
 				for (const a of finleyAssignments.items) {
 					console.log(`    - Assignment ID: ${a._id}, Status: "${a.applicationStatus}"`);
 					
+					// Try to get the assignment directly by ID
+					try {
+						const directAssignment = await wixData.get('WeeklyAssignments', a._id);
+						console.log(`      Direct get by ID: SUCCESS`);
+						console.log(`      Direct assignment status: "${directAssignment.applicationStatus}"`);
+						console.log(`      Direct assignment profileRef: ${directAssignment.profileRef}`);
+						console.log(`      Direct assignment dateRef: ${directAssignment.dateRef}`);
+					} catch (getError) {
+						console.error(`      Direct get by ID FAILED: ${getError.message}`);
+					}
+					
 					// Check if this assignment is in the raw query results
 					const inRawQuery = allAssignmentsRaw.items.find(raw => raw._id === a._id);
 					const inIncludeQuery = allAssignments.items.find(inc => inc._id === a._id);
 					
 					console.log(`      In raw query: ${!!inRawQuery}`);
 					console.log(`      In include query: ${!!inIncludeQuery}`);
+					
+					if (!inRawQuery) {
+						console.error(`      ⚠️ CRITICAL: Assignment NOT in main query results!`);
+						console.error(`      This suggests the main query has a filter, limit, or permissions issue.`);
+					}
 					
 					if (inRawQuery && !inIncludeQuery) {
 						console.error(`      ⚠️ PROBLEM: Assignment exists in raw query but MISSING from include query!`);

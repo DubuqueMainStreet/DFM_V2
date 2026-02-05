@@ -13,13 +13,18 @@ export async function getDateAvailability() {
 		// Get all assignments (we'll filter by status in code to handle case/whitespace issues)
 		// Include both profileRef and dateRef to ensure we can access them
 		// Note: Backend functions (.jsw) run with elevated permissions by default
+		// Use limit(1000) to ensure we get all records (Wix default is 50)
 		let allAssignments;
 		try {
 			allAssignments = await wixData.query('WeeklyAssignments')
 				.include('profileRef')
 				.include('dateRef')
+				.limit(1000)
 				.find();
 			console.log(`📦 Query returned ${allAssignments.items.length} total assignments`);
+			if (allAssignments.hasMore) {
+				console.warn(`⚠️ WARNING: Query hasMore=true. Some assignments may be missing from availability calculation!`);
+			}
 		} catch (queryError) {
 			console.error('❌ ERROR querying WeeklyAssignments:', queryError);
 			console.error('This might indicate a permissions issue with the collection');

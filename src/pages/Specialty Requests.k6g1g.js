@@ -455,9 +455,11 @@ async function loadAssignments(type) {
 		const searchQuery = ($w('#searchName')?.value || '').toLowerCase().trim();
 		
 		// Build query
+		// Use limit(1000) to ensure we get all records (Wix default is 50)
 		let query = wixData.query('WeeklyAssignments')
 			.include('profileRef')
-			.include('dateRef');
+			.include('dateRef')
+			.limit(1000);
 		
 		// Filter by date if not "all"
 		if (selectedDateId !== 'all') {
@@ -465,6 +467,11 @@ async function loadAssignments(type) {
 		}
 		
 		const results = await query.find();
+		
+		// Log if we hit the limit
+		if (results.hasMore) {
+			console.warn(`⚠️ WARNING: Query returned ${results.items.length} items but hasMore=true. Some assignments may be missing!`);
+		}
 		
 		// Filter by profile type, status, and search query, then prepare data for repeater
 		const repeaterData = [];
