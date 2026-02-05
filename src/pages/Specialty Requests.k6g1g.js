@@ -40,22 +40,21 @@ $w.onReady(function () {
 
 async function initializeDashboard() {
 	try {
-		// 🔍 RUN DIAGNOSTIC CHECK - Check for approved assignments
-		console.log('🔍🔍🔍 RUNNING DIAGNOSTIC CHECK 🔍🔍🔍');
+		// 🔍 RUN DIAGNOSTIC CHECK - Check for approved assignments (only log if issues found)
 		try {
 			const diagnosticResult = await checkAssignmentsStatus();
-			console.log('📊 DIAGNOSTIC RESULT:', diagnosticResult);
 			if (diagnosticResult.approvedCount === 0) {
 				console.error('⚠️⚠️⚠️ WARNING: NO APPROVED ASSIGNMENTS FOUND IN DATABASE ⚠️⚠️⚠️');
 				console.error('This suggests data loss or corruption. Check the logs above for details.');
-			} else {
-				console.log(`✅ Found ${diagnosticResult.approvedCount} approved assignments in database.`);
-				console.log('💡 TIP: Make sure Status filter is set to "Approved" or "All Statuses" to see them!');
+			} else if (diagnosticResult.missingAssignments && diagnosticResult.missingAssignments.length > 0) {
+				console.error(`⚠️ WARNING: ${diagnosticResult.missingAssignments.length} approved assignment(s) are missing from query results.`);
+				console.error('Check diagnostic logs above for details.');
 			}
+			// Only log success in verbose mode (commented out for production)
+			// console.log(`✅ Found ${diagnosticResult.approvedCount} approved assignments in database.`);
 		} catch (diagError) {
 			console.error('❌ Diagnostic check failed:', diagError);
 		}
-		console.log('🔍🔍🔍 DIAGNOSTIC CHECK COMPLETE 🔍🔍🔍\n');
 		
 		// Ensure manual entry container is hidden by default
 		const manualEntryContainer = $w('#manualEntryContainer');

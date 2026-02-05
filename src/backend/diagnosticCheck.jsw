@@ -7,7 +7,8 @@ import wixData from 'wix-data';
  */
 export async function checkAssignmentsStatus() {
 	try {
-		console.log('🔍 DIAGNOSTIC CHECK - Starting WeeklyAssignments analysis...');
+		// Reduced verbosity - only log if issues found
+		// console.log('🔍 DIAGNOSTIC CHECK - Starting WeeklyAssignments analysis...');
 		
 		// Get ALL assignments WITHOUT include() first to see raw data
 		// Use limit(1000) to ensure we get all records (Wix default is 50)
