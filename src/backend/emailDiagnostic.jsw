@@ -38,12 +38,13 @@ export async function checkApprovedAssignmentsEmailStatus() {
 		for (const assignment of approvedAssignments) {
 			const profile = assignment.profileRef;
 			if (!profile || !profile.contactEmail) {
-				results.withoutContacts.push({
-					assignmentId: assignment._id,
-					profileId: assignment.profileRef?._id || 'No profile',
-					organizationName: profile?.organizationName || 'Unknown',
-					reason: 'No profile or missing contactEmail'
-				});
+			results.withoutContacts.push({
+				assignmentId: assignment._id,
+				profileId: assignment.profileRef?._id || 'No profile',
+				organizationName: profile?.organizationName || 'Unknown',
+				email: profile?.contactEmail || 'No email',
+				reason: 'No profile or missing contactEmail'
+			});
 				continue;
 			}
 			
@@ -60,9 +61,10 @@ export async function checkApprovedAssignmentsEmailStatus() {
 				if (!contacts.items || contacts.items.length === 0) {
 					results.withoutContacts.push({
 						assignmentId: assignment._id,
+						profileId: assignment.profileRef?._id || 'Unknown',
 						organizationName: orgName,
 						email: email,
-						reason: 'Contact not found in Wix CRM'
+						reason: 'Contact not found in Wix CRM - likely failed during form submission'
 					});
 					continue;
 				}
@@ -121,10 +123,18 @@ export async function checkApprovedAssignmentsEmailStatus() {
 				console.log(`\n${index + 1}. ${item.organizationName}`);
 				console.log(`   Email: ${item.email || 'No email'}`);
 				console.log(`   Assignment ID: ${item.assignmentId}`);
+				console.log(`   Profile ID: ${item.profileId || 'Unknown'}`);
 				console.log(`   Reason: ${item.reason}`);
 			});
 			console.log('='.repeat(80));
-			console.log(`\n💡 SOLUTION: Run sendMissingEmails() to automatically create contacts and send emails.`);
+			console.log(`\n💡 POSSIBLE CAUSES:`);
+			console.log(`   1. Contact creation failed during form submission (check backend logs)`);
+			console.log(`   2. Form was submitted via manual entry (which doesn't create contacts by default)`);
+			console.log(`   3. Backend permissions issue preventing contact creation`);
+			console.log(`\n💡 SOLUTION:`);
+			console.log(`   - Check Wix Editor → Dev Tools → Backend Logs for "[FORM-SUBMISSION]" errors`);
+			console.log(`   - Manually create these contacts in Wix CRM`);
+			console.log(`   - Or run sendMissingEmails() to attempt automatic contact creation (may fail due to permissions)`);
 		}
 		
 		if (results.unsubscribedContacts.length > 0) {

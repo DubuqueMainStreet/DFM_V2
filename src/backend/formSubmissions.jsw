@@ -45,7 +45,8 @@ export async function submitSpecialtyProfile(profileData, dateIds) {
 				} else {
 					// Create new contact using createContact (not appendOrCreateContact to avoid reconciliation)
 					try {
-						await wixCrmBackend.contacts.createContact({
+						console.log(`[FORM-SUBMISSION] Attempting to create contact for: ${profileData.contactEmail}`);
+						const newContact = await wixCrmBackend.contacts.createContact({
 							primaryInfo: {
 								email: profileData.contactEmail
 							},
@@ -57,25 +58,59 @@ export async function submitSpecialtyProfile(profileData, dateIds) {
 						}, {
 							allowDuplicates: true // Force creation even if email exists elsewhere
 						});
-						console.log(`[FORM-SUBMISSION] Contact created successfully`);
+						console.log(`[FORM-SUBMISSION] ✅ Contact created successfully: ${newContact._id}`);
 					} catch (createError) {
-						// If createContact fails, try appendOrCreateContact as fallback
-						console.warn(`[FORM-SUBMISSION] createContact failed, trying appendOrCreateContact:`, createError.message);
-						await wixCrmBackend.contacts.appendOrCreateContact({
-							email: profileData.contactEmail,
-							name: {
-								first: profileData.organizationName || 'Market',
-								last: 'Participant'
-							},
-							subscriptionStatus: 'NOT_SET'
+						// Log detailed error information
+						console.error(`[FORM-SUBMISSION] ❌ createContact failed for ${profileData.contactEmail}:`, {
+							message: createError.message,
+							code: createError.details?.applicationError?.code,
+							description: createError.details?.applicationError?.description,
+							error: createError
 						});
-						console.log(`[FORM-SUBMISSION] Contact created via appendOrCreateContact`);
+						
+						// If createContact fails, try appendOrCreateContact as fallback
+						console.warn(`[FORM-SUBMISSION] Trying appendOrCreateContact as fallback...`);
+						try {
+							const fallbackContact = await wixCrmBackend.contacts.appendOrCreateContact({
+								email: profileData.contactEmail,
+								name: {
+									first: profileData.organizationName || 'Market',
+									last: 'Participant'
+								},
+								subscriptionStatus: 'NOT_SET'
+							});
+							console.log(`[FORM-SUBMISSION] ✅ Contact created via appendOrCreateContact: ${fallbackContact.contactId || 'ID not returned'}`);
+							
+							// Verify the contact was created with correct email
+							if (fallbackContact.contactId) {
+								const verifyContact = await wixCrmBackend.contacts.getContact(fallbackContact.contactId);
+								const verifyEmail = verifyContact.info?.primaryEmail || verifyContact.primaryInfo?.email;
+								if (verifyEmail && verifyEmail.toLowerCase() !== profileData.contactEmail.toLowerCase()) {
+									console.error(`[FORM-SUBMISSION] ⚠️ WARNING: Contact email mismatch! Expected ${profileData.contactEmail}, got ${verifyEmail}`);
+									console.error(`[FORM-SUBMISSION] This may indicate appendOrCreateContact reconciled with admin's contact.`);
+								}
+							}
+						} catch (appendError) {
+							console.error(`[FORM-SUBMISSION] ❌ appendOrCreateContact also failed:`, {
+								message: appendError.message,
+								code: appendError.details?.applicationError?.code,
+								description: appendError.details?.applicationError?.description
+							});
+							// Re-throw to be caught by outer catch block
+							throw appendError;
+						}
 					}
 				}
 			} catch (contactError) {
-				// Don't fail form submission if contact creation fails
-				console.warn(`[FORM-SUBMISSION] Warning: Failed to create contact:`, contactError.message);
-				console.warn(`[FORM-SUBMISSION] Form submission will continue, but email notifications may fail later`);
+				// Log detailed error but don't fail form submission
+				console.error(`[FORM-SUBMISSION] ❌ CRITICAL: Failed to create contact for ${profileData.contactEmail}:`, {
+					message: contactError.message,
+					code: contactError.details?.applicationError?.code,
+					description: contactError.details?.applicationError?.description,
+					stack: contactError.stack
+				});
+				console.error(`[FORM-SUBMISSION] ⚠️ Form submission will continue, but email notifications WILL FAIL for this contact.`);
+				console.error(`[FORM-SUBMISSION] 💡 SOLUTION: Manually create contact in Wix CRM or fix permissions issue.`);
 			}
 		}
 		
