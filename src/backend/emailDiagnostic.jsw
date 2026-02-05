@@ -3,21 +3,38 @@ import wixCrmBackend from 'wix-crm-backend';
 import { sendStatusNotificationEmail } from './emailNotifications.jsw';
 
 /**
- * Backend function to send missing approval emails
- * Can be called from frontend using wixFetch
- * @param {Object} options - Options object (can be empty)
- * @param {Array<string>} options.assignmentIds - Optional array of specific assignment IDs
+ * Backend HTTP function to send missing approval emails
+ * Can be called from frontend using fetch('/_functions/sendMissingApprovalEmailsBackend')
+ * This is an HTTP function - use POST method
+ * @param {Object} request - HTTP request object
  * @returns {Promise<Object>} Results of email sending attempts
  */
-export async function sendMissingApprovalEmailsBackend(options = {}) {
+export async function sendMissingApprovalEmailsBackend(request) {
 	try {
-		const assignmentIds = options.assignmentIds || null;
-		return await sendMissingApprovalEmails(assignmentIds);
+		// Parse request body if provided
+		let assignmentIds = null;
+		if (request && request.body) {
+			try {
+				const body = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
+				assignmentIds = body.assignmentIds || null;
+			} catch (e) {
+				// Body parsing failed, use default
+			}
+		}
+		
+		const result = await sendMissingApprovalEmails(assignmentIds);
+		return {
+			status: 200,
+			body: result
+		};
 	} catch (error) {
 		console.error('Error in sendMissingApprovalEmailsBackend:', error);
 		return {
-			error: error.message,
-			stack: error.stack
+			status: 500,
+			body: {
+				error: error.message,
+				stack: error.stack
+			}
 		};
 	}
 }

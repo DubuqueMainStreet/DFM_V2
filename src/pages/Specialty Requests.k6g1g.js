@@ -78,7 +78,10 @@ async function initializeDashboard() {
 				
 				if (withoutContacts > 0 || unsubscribed > 0) {
 					console.warn(`⚠️ WARNING: ${withoutContacts + unsubscribed} approved assignment(s) may not have received emails!`);
-					console.warn(`💡 To send missing emails, run: sendMissingEmails()`);
+					console.warn(`💡 To send missing emails:`);
+					console.warn(`   1. Add a button with ID "#btnSendMissingEmails" in Wix Editor, OR`);
+					console.warn(`   2. Call: await sendMissingApprovalEmails()`);
+					console.warn(`   3. Or use backend HTTP function: fetch('/_functions/sendMissingApprovalEmailsBackend', {method: 'POST'})`);
 				}
 			}
 			console.log('📧📧📧 EMAIL DIAGNOSTIC COMPLETE 📧📧📧\n');
@@ -104,15 +107,23 @@ async function initializeDashboard() {
 		
 		// Expose to global scope for console access
 		try {
-			// Try window first (standard browser)
-			if (typeof window !== 'undefined') {
-				window.checkEmailStatus = checkEmailStatus;
-				window.sendMissingEmails = sendMissingEmails;
+			// Try window first (standard browser) - check exists before accessing
+			try {
+				if (typeof window !== 'undefined' && window) {
+					window.checkEmailStatus = checkEmailStatus;
+					window.sendMissingEmails = sendMissingEmails;
+				}
+			} catch (e) {
+				// window not available, skip
 			}
 			// Try self (web workers)
-			if (typeof self !== 'undefined' && self !== window) {
-				self.checkEmailStatus = checkEmailStatus;
-				self.sendMissingEmails = sendMissingEmails;
+			try {
+				if (typeof self !== 'undefined' && self) {
+					self.checkEmailStatus = checkEmailStatus;
+					self.sendMissingEmails = sendMissingEmails;
+				}
+			} catch (e) {
+				// self not available, skip
 			}
 			
 			console.log('💡 Email diagnostic functions available in console:');
@@ -182,6 +193,9 @@ async function initializeDashboard() {
 		
 		// Set up manual entry button
 		setupManualEntryButton();
+		
+		// Set up send missing emails button (if it exists)
+		setupSendMissingEmailsButton();
 		
 		// Set initial active tab styling (Musicians is default)
 		updateActiveTab('Musician');
@@ -256,6 +270,52 @@ function setupRefreshButton() {
 			refreshBtn.style.border = 'none';
 			refreshBtn.style.transition = 'all 0.3s ease';
 		}
+	}
+}
+
+function setupSendMissingEmailsButton() {
+	const sendEmailsBtn = $w('#btnSendMissingEmails');
+	if (sendEmailsBtn && typeof sendEmailsBtn.onClick === 'function') {
+		sendEmailsBtn.onClick(async () => {
+			console.log('Send missing emails button clicked');
+			showLoading(true, 'Sending approval emails...');
+			try {
+				const result = await sendMissingApprovalEmails();
+				if (result.error) {
+					showError(`Failed to send some emails: ${result.error}`);
+				} else {
+					const successCount = result.success?.length || 0;
+					const failedCount = result.failed?.length || 0;
+					const skippedCount = result.skipped?.length || 0;
+					
+					if (successCount > 0) {
+						showSuccess(`Successfully sent ${successCount} email(s)${failedCount > 0 ? `, ${failedCount} failed` : ''}${skippedCount > 0 ? `, ${skippedCount} skipped (duplicates)` : ''}`);
+					} else if (failedCount > 0) {
+						showError(`Failed to send ${failedCount} email(s). Check console for details.`);
+					} else {
+						showSuccess('All emails were skipped (likely duplicates or already sent)');
+					}
+				}
+			} catch (error) {
+				console.error('Error sending missing emails:', error);
+				showError(`Error: ${error.message}`);
+			} finally {
+				showLoading(false);
+			}
+		});
+		
+		// Style the button
+		if (sendEmailsBtn.style) {
+			sendEmailsBtn.style.borderRadius = '12px';
+			sendEmailsBtn.style.backgroundColor = '#4CAF50';
+			sendEmailsBtn.style.color = '#FFFFFF';
+			sendEmailsBtn.style.fontWeight = '500';
+			sendEmailsBtn.style.padding = '10px 20px';
+			sendEmailsBtn.style.border = 'none';
+			sendEmailsBtn.style.transition = 'all 0.3s ease';
+		}
+	} else {
+		console.log('Send missing emails button (#btnSendMissingEmails) not found - you can add this button in the Wix Editor');
 	}
 }
 
