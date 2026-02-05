@@ -5,6 +5,7 @@ import { manualEntrySpecialtyProfile } from 'backend/formSubmissions.jsw';
 import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 import { checkAssignmentsStatus } from 'backend/diagnosticCheck.jsw';
 import { checkApprovedAssignmentsEmailStatus, sendMissingApprovalEmails } from 'backend/emailDiagnostic.jsw';
+import wixFetch from 'wix-fetch';
 
 // ============================================
 // EMAIL NOTIFICATIONS ENABLED - VERSION 2.0
@@ -119,9 +120,11 @@ async function initializeDashboard() {
 			console.log('   - await sendMissingEmails() - Send approval emails to all approved assignments');
 			console.log('   - await sendMissingEmails([id1, id2]) - Send emails to specific assignment IDs');
 			console.log('');
-			console.log('💡 If functions are not available, use the imported functions directly:');
-			console.log('   - await checkApprovedAssignmentsEmailStatus()');
-			console.log('   - await sendMissingApprovalEmails()');
+			console.log('💡 ALTERNATIVE: If functions are not available in console, copy/paste this code:');
+			console.log('   (async () => {');
+			console.log('     const { sendMissingApprovalEmails } = await import("backend/emailDiagnostic.jsw");');
+			console.log('     return await sendMissingApprovalEmails();');
+			console.log('   })()');
 		} catch (exposeError) {
 			console.warn('⚠️ Could not expose functions globally:', exposeError);
 			console.log('💡 Call imported functions directly:');
