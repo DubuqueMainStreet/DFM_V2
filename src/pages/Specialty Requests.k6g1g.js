@@ -100,9 +100,43 @@ async function initializeDashboard() {
 		
 		async function sendMissingEmails(assignmentIds = null) {
 			console.log('📧 Sending missing approval emails...');
-			const result = await sendMissingApprovalEmails(assignmentIds);
-			console.log('📊 Results:', result);
-			return result;
+			try {
+				// Use wix-fetch to call the backend HTTP function (works from site page)
+				const response = await wixFetch.fetch('/_functions/sendMissingApprovalEmailsBackend', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						assignmentIds: assignmentIds
+					})
+				});
+				
+				const result = await response.json();
+				console.log('📊 Email sending results:', result);
+				
+				if (result.error) {
+					console.error('❌ Error:', result.error);
+					return result;
+				}
+				
+				const successCount = result.success?.length || 0;
+				const failedCount = result.failed?.length || 0;
+				const skippedCount = result.skipped?.length || 0;
+				
+				console.log(`✅ Successfully sent: ${successCount}`);
+				console.log(`⏭️ Skipped: ${skippedCount}`);
+				console.log(`❌ Failed: ${failedCount}`);
+				
+				return result;
+			} catch (error) {
+				console.error('❌ Error calling backend function:', error);
+				// Fallback to direct call if fetch fails
+				console.log('⚠️ Falling back to direct function call...');
+				const result = await sendMissingApprovalEmails(assignmentIds);
+				console.log('📊 Results:', result);
+				return result;
+			}
 		}
 		
 		// Expose to global scope for console access
@@ -131,11 +165,8 @@ async function initializeDashboard() {
 			console.log('   - await sendMissingEmails() - Send approval emails to all approved assignments');
 			console.log('   - await sendMissingEmails([id1, id2]) - Send emails to specific assignment IDs');
 			console.log('');
-			console.log('💡 ALTERNATIVE: If functions are not available in console, copy/paste this code:');
-			console.log('   (async () => {');
-			console.log('     const { sendMissingApprovalEmails } = await import("backend/emailDiagnostic.jsw");');
-			console.log('     return await sendMissingApprovalEmails();');
-			console.log('   })()');
+			console.log('💡 IMPORTANT: These functions work when called from the actual site page.');
+			console.log('   If you are in the Wix Editor (manage.wix.com), use the button instead.');
 		} catch (exposeError) {
 			console.warn('⚠️ Could not expose functions globally:', exposeError);
 			console.log('💡 Call imported functions directly:');
@@ -280,7 +311,17 @@ function setupSendMissingEmailsButton() {
 			console.log('Send missing emails button clicked');
 			showLoading(true, 'Sending approval emails...');
 			try {
-				const result = await sendMissingApprovalEmails();
+				// Use wix-fetch to call backend HTTP function (more reliable)
+				const response = await wixFetch.fetch('/_functions/sendMissingApprovalEmailsBackend', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({})
+				});
+				
+				const result = await response.json();
+				
 				if (result.error) {
 					showError(`Failed to send some emails: ${result.error}`);
 				} else {
@@ -298,7 +339,27 @@ function setupSendMissingEmailsButton() {
 				}
 			} catch (error) {
 				console.error('Error sending missing emails:', error);
-				showError(`Error: ${error.message}`);
+				// Fallback to direct function call
+				try {
+					const result = await sendMissingApprovalEmails();
+					if (result.error) {
+						showError(`Failed: ${result.error}`);
+					} else {
+						const successCount = result.success?.length || 0;
+						const failedCount = result.failed?.length || 0;
+						const skippedCount = result.skipped?.length || 0;
+						
+						if (successCount > 0) {
+							showSuccess(`Successfully sent ${successCount} email(s)${failedCount > 0 ? `, ${failedCount} failed` : ''}${skippedCount > 0 ? `, ${skippedCount} skipped` : ''}`);
+						} else if (failedCount > 0) {
+							showError(`Failed to send ${failedCount} email(s)`);
+						} else {
+							showSuccess('All emails were skipped');
+						}
+					}
+				} catch (fallbackError) {
+					showError(`Error: ${error.message}`);
+				}
 			} finally {
 				showLoading(false);
 			}
