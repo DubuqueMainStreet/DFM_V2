@@ -108,17 +108,8 @@ async function initializeDashboard() {
 				window.checkEmailStatus = checkEmailStatus;
 				window.sendMissingEmails = sendMissingEmails;
 			}
-			// Try globalThis (modern JS/Node) - check if it exists first
-			try {
-				if (typeof globalThis !== 'undefined') {
-					globalThis.checkEmailStatus = checkEmailStatus;
-					globalThis.sendMissingEmails = sendMissingEmails;
-				}
-			} catch (e) {
-				// globalThis not available, skip
-			}
 			// Try self (web workers)
-			if (typeof self !== 'undefined') {
+			if (typeof self !== 'undefined' && self !== window) {
 				self.checkEmailStatus = checkEmailStatus;
 				self.sendMissingEmails = sendMissingEmails;
 			}
