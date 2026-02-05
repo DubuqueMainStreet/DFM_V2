@@ -76,6 +76,7 @@ export async function checkAssignmentsStatus() {
 		
 		// Direct search for "She Unites" and "Natalie Finley" in SpecialtyProfiles
 		console.log('\n🔍 SEARCHING FOR SPECIFIC PROFILES:');
+		const missingAssignments = [];
 		try {
 			const sheUnitesProfiles = await wixData.query('SpecialtyProfiles')
 				.contains('organizationName', 'She Unites')
@@ -104,6 +105,41 @@ export async function checkAssignmentsStatus() {
 				console.log(`  Found ${sheUnitesAssignments.items.length} assignment(s) for She Unites profile`);
 				sheUnitesAssignments.items.forEach(a => {
 					console.log(`    - Assignment ID: ${a._id}, Status: "${a.applicationStatus}"`);
+					
+					// Check if this assignment is in the raw query results
+					const inRawQuery = allAssignmentsRaw.items.find(raw => raw._id === a._id);
+					const inIncludeQuery = allAssignments.items.find(inc => inc._id === a._id);
+					
+					console.log(`      In raw query: ${!!inRawQuery}`);
+					console.log(`      In include query: ${!!inIncludeQuery}`);
+					
+					if (inRawQuery && !inIncludeQuery) {
+						console.error(`      ⚠️ PROBLEM: Assignment exists in raw query but MISSING from include query!`);
+						console.error(`      Raw profileRef: ${inRawQuery.profileRef}`);
+						console.error(`      Raw dateRef: ${inRawQuery.dateRef}`);
+						
+						// Try to verify if the references are valid
+						try {
+							if (inRawQuery.profileRef) {
+								const profileCheck = await wixData.get('SpecialtyProfiles', inRawQuery.profileRef);
+								console.log(`      Profile exists: ${!!profileCheck}`);
+							}
+							if (inRawQuery.dateRef) {
+								const dateCheck = await wixData.get('MarketDates2026', inRawQuery.dateRef);
+								console.log(`      Date exists: ${!!dateCheck}`);
+							}
+						} catch (refError) {
+							console.error(`      Error checking references: ${refError.message}`);
+						}
+						
+						missingAssignments.push({
+							name: 'She Unites',
+							assignmentId: a._id,
+							profileRef: inRawQuery.profileRef,
+							dateRef: inRawQuery.dateRef,
+							status: a.applicationStatus
+						});
+					}
 				});
 			}
 			
@@ -115,6 +151,50 @@ export async function checkAssignmentsStatus() {
 				console.log(`  Found ${finleyAssignments.items.length} assignment(s) for Natalie Finley profile`);
 				finleyAssignments.items.forEach(a => {
 					console.log(`    - Assignment ID: ${a._id}, Status: "${a.applicationStatus}"`);
+					
+					// Check if this assignment is in the raw query results
+					const inRawQuery = allAssignmentsRaw.items.find(raw => raw._id === a._id);
+					const inIncludeQuery = allAssignments.items.find(inc => inc._id === a._id);
+					
+					console.log(`      In raw query: ${!!inRawQuery}`);
+					console.log(`      In include query: ${!!inIncludeQuery}`);
+					
+					if (inRawQuery && !inIncludeQuery) {
+						console.error(`      ⚠️ PROBLEM: Assignment exists in raw query but MISSING from include query!`);
+						console.error(`      Raw profileRef: ${inRawQuery.profileRef}`);
+						console.error(`      Raw dateRef: ${inRawQuery.dateRef}`);
+						
+						// Try to verify if the references are valid
+						try {
+							if (inRawQuery.profileRef) {
+								const profileCheck = await wixData.get('SpecialtyProfiles', inRawQuery.profileRef);
+								console.log(`      Profile exists: ${!!profileCheck}`);
+							}
+							if (inRawQuery.dateRef) {
+								const dateCheck = await wixData.get('MarketDates2026', inRawQuery.dateRef);
+								console.log(`      Date exists: ${!!dateCheck}`);
+							}
+						} catch (refError) {
+							console.error(`      Error checking references: ${refError.message}`);
+						}
+						
+						missingAssignments.push({
+							name: 'Natalie Finley',
+							assignmentId: a._id,
+							profileRef: inRawQuery.profileRef,
+							dateRef: inRawQuery.dateRef,
+							status: a.applicationStatus
+						});
+					}
+				});
+			}
+			
+			if (missingAssignments.length > 0) {
+				console.error(`\n❌ CRITICAL ISSUE: ${missingAssignments.length} approved assignment(s) are MISSING from include query results:`);
+				missingAssignments.forEach(m => {
+					console.error(`  - ${m.name} (Assignment ID: ${m.assignmentId})`);
+					console.error(`    ProfileRef: ${m.profileRef}`);
+					console.error(`    DateRef: ${m.dateRef}`);
 				});
 			}
 		} catch (searchError) {
@@ -228,6 +308,12 @@ export async function checkAssignmentsStatus() {
 		}
 		
 		// Return summary
+		const summaryMessage = missingAssignments.length > 0
+			? `⚠️ CRITICAL: Found ${approvedAssignments.length} approved assignments, but ${missingAssignments.length} are MISSING from query results due to broken references. Check console for details.`
+			: approvedAssignments.length > 0 
+				? `Found ${approvedAssignments.length} approved assignments in database. They should be visible when Status filter is set to "Approved" or "All Statuses".`
+				: 'WARNING: No approved assignments found. This indicates potential data loss or status field corruption.';
+		
 		return {
 			success: true,
 			totalAssignments: allAssignments.items.length,
@@ -236,11 +322,10 @@ export async function checkAssignmentsStatus() {
 			approvedAssignments,
 			dataIssues,
 			missingNames,
+			missingAssignments,
 			sheUnitesFound,
 			natalieFinleyFound,
-			message: approvedAssignments.length > 0 
-				? `Found ${approvedAssignments.length} approved assignments in database. They should be visible when Status filter is set to "Approved" or "All Statuses".`
-				: 'WARNING: No approved assignments found. This indicates potential data loss or status field corruption.'
+			message: summaryMessage
 		};
 		
 	} catch (error) {
