@@ -85,14 +85,49 @@ async function initializeDashboard() {
 			console.error('❌ Email diagnostic check failed:', emailDiagError);
 		}
 		
-		// Expose email diagnostic functions globally for manual use
-		if (typeof window !== 'undefined') {
-			window.checkEmailStatus = checkApprovedAssignmentsEmailStatus;
-			window.sendMissingEmails = sendMissingApprovalEmails;
+		// Expose email functions for console use
+		// Create async wrapper functions that can be called from browser console
+		async function checkEmailStatus() {
+			console.log('🔍 Checking email status...');
+			const result = await checkApprovedAssignmentsEmailStatus();
+			console.log('📊 Results:', result);
+			return result;
+		}
+		
+		async function sendMissingEmails(assignmentIds = null) {
+			console.log('📧 Sending missing approval emails...');
+			const result = await sendMissingApprovalEmails(assignmentIds);
+			console.log('📊 Results:', result);
+			return result;
+		}
+		
+		// Expose to global scope for console access
+		try {
+			// Try window first (standard browser)
+			if (typeof window !== 'undefined') {
+				window.checkEmailStatus = checkEmailStatus;
+				window.sendMissingEmails = sendMissingEmails;
+			}
+			// Try globalThis (modern JS/Node)
+			if (typeof globalThis !== 'undefined') {
+				globalThis.checkEmailStatus = checkEmailStatus;
+				globalThis.sendMissingEmails = sendMissingEmails;
+			}
+			// Try self (web workers)
+			if (typeof self !== 'undefined') {
+				self.checkEmailStatus = checkEmailStatus;
+				self.sendMissingEmails = sendMissingEmails;
+			}
+			
 			console.log('💡 Email diagnostic functions available in console:');
-			console.log('   - checkEmailStatus() - Check which approved assignments have contacts');
-			console.log('   - sendMissingEmails() - Send approval emails to all approved assignments');
-			console.log('   - sendMissingEmails([id1, id2]) - Send emails to specific assignment IDs');
+			console.log('   - await checkEmailStatus() - Check which approved assignments have contacts');
+			console.log('   - await sendMissingEmails() - Send approval emails to all approved assignments');
+			console.log('   - await sendMissingEmails([id1, id2]) - Send emails to specific assignment IDs');
+		} catch (exposeError) {
+			console.warn('⚠️ Could not expose functions globally:', exposeError);
+			console.log('💡 Call functions directly:');
+			console.log('   - await checkApprovedAssignmentsEmailStatus()');
+			console.log('   - await sendMissingApprovalEmails()');
 		}
 		
 		// Ensure manual entry container is hidden by default
