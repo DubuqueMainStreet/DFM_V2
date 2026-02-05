@@ -103,7 +103,7 @@ export async function checkAssignmentsStatus() {
 					.eq('profileRef', sheUnitesProfileId)
 					.find();
 				console.log(`  Found ${sheUnitesAssignments.items.length} assignment(s) for She Unites profile`);
-				sheUnitesAssignments.items.forEach(a => {
+				for (const a of sheUnitesAssignments.items) {
 					console.log(`    - Assignment ID: ${a._id}, Status: "${a.applicationStatus}"`);
 					
 					// Check if this assignment is in the raw query results
@@ -140,7 +140,7 @@ export async function checkAssignmentsStatus() {
 							status: a.applicationStatus
 						});
 					}
-				});
+				}
 			}
 			
 			if (finleyProfiles.items.length > 0) {
@@ -149,7 +149,7 @@ export async function checkAssignmentsStatus() {
 					.eq('profileRef', finleyProfileId)
 					.find();
 				console.log(`  Found ${finleyAssignments.items.length} assignment(s) for Natalie Finley profile`);
-				finleyAssignments.items.forEach(a => {
+				for (const a of finleyAssignments.items) {
 					console.log(`    - Assignment ID: ${a._id}, Status: "${a.applicationStatus}"`);
 					
 					// Check if this assignment is in the raw query results
@@ -186,7 +186,7 @@ export async function checkAssignmentsStatus() {
 							status: a.applicationStatus
 						});
 					}
-				});
+				}
 			}
 			
 			if (missingAssignments.length > 0) {
