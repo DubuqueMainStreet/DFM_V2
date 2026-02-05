@@ -81,7 +81,7 @@ async function initializeDashboard() {
 					console.warn(`💡 To send missing emails:`);
 					console.warn(`   1. Add a button with ID "#btnSendMissingEmails" in Wix Editor, OR`);
 					console.warn(`   2. Call: await sendMissingApprovalEmails()`);
-					console.warn(`   3. Or use backend HTTP function: fetch('/_functions/sendMissingApprovalEmailsBackend', {method: 'POST'})`);
+					console.warn(`   3. Or use backend HTTP function: await wixFetch.fetch('/_functions/sendMissingApprovalEmailsBackend', {method: 'POST'})`);
 				}
 			}
 			console.log('📧📧📧 EMAIL DIAGNOSTIC COMPLETE 📧📧📧\n');
