@@ -112,6 +112,21 @@ async function initializeDashboard() {
 					})
 				});
 				
+				// Check response status before parsing
+				if (!response.ok) {
+					const text = await response.text();
+					console.error('HTTP function returned error:', response.status, text.substring(0, 200));
+					throw new Error(`HTTP function returned status ${response.status}`);
+				}
+				
+				// Check content type before parsing JSON
+				const contentType = response.headers.get('content-type') || '';
+				if (!contentType.includes('application/json')) {
+					const text = await response.text();
+					console.error('HTTP function returned non-JSON:', contentType, text.substring(0, 200));
+					throw new Error(`HTTP function returned non-JSON content: ${contentType}`);
+				}
+				
 				const result = await response.json();
 				console.log('📊 Email sending results:', result);
 				
@@ -130,12 +145,17 @@ async function initializeDashboard() {
 				
 				return result;
 			} catch (error) {
-				console.error('❌ Error calling backend function:', error);
-				// Fallback to direct call if fetch fails
+				console.error('❌ Error calling backend HTTP function:', error);
 				console.log('⚠️ Falling back to direct function call...');
-				const result = await sendMissingApprovalEmails(assignmentIds);
-				console.log('📊 Results:', result);
-				return result;
+				// Fallback to direct call if fetch fails
+				try {
+					const result = await sendMissingApprovalEmails(assignmentIds);
+					console.log('📊 Results:', result);
+					return result;
+				} catch (fallbackError) {
+					console.error('❌ Fallback also failed:', fallbackError);
+					throw fallbackError;
+				}
 			}
 		}
 		
@@ -320,6 +340,21 @@ function setupSendMissingEmailsButton() {
 					body: JSON.stringify({})
 				});
 				
+				// Check response status before parsing
+				if (!response.ok) {
+					const text = await response.text();
+					console.error('HTTP function returned error:', response.status, text);
+					throw new Error(`HTTP function returned status ${response.status}: ${text.substring(0, 100)}`);
+				}
+				
+				// Check content type before parsing JSON
+				const contentType = response.headers.get('content-type') || '';
+				if (!contentType.includes('application/json')) {
+					const text = await response.text();
+					console.error('HTTP function returned non-JSON:', contentType, text.substring(0, 200));
+					throw new Error(`HTTP function returned non-JSON content: ${contentType}`);
+				}
+				
 				const result = await response.json();
 				
 				if (result.error) {
@@ -338,7 +373,8 @@ function setupSendMissingEmailsButton() {
 					}
 				}
 			} catch (error) {
-				console.error('Error sending missing emails:', error);
+				console.error('Error sending missing emails via HTTP function:', error);
+				console.log('Falling back to direct function call...');
 				// Fallback to direct function call
 				try {
 					const result = await sendMissingApprovalEmails();
@@ -358,7 +394,8 @@ function setupSendMissingEmailsButton() {
 						}
 					}
 				} catch (fallbackError) {
-					showError(`Error: ${error.message}`);
+					console.error('Fallback also failed:', fallbackError);
+					showError(`Error: ${error.message}. Fallback also failed: ${fallbackError.message}`);
 				}
 			} finally {
 				showLoading(false);
