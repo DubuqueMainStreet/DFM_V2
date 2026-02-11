@@ -1211,27 +1211,45 @@ function populateRepeater(data) {
 }
 
 function setupRepeaterItem($item, itemData) {
-	// Populate text elements
+	// Populate text elements with proper typography hierarchy
 	// Display name: show contact name and organization name clearly
 	if ($item('#itemName')) {
+		// Apply base styling for name element
+		if ($item('#itemName').style) {
+			$item('#itemName').style.fontSize = '18px';
+			$item('#itemName').style.fontWeight = '600';
+			$item('#itemName').style.lineHeight = '1.4';
+			$item('#itemName').style.color = '#212121';
+			$item('#itemName').style.marginBottom = '4px';
+		}
+		
 		// If contactName exists, show both names on separate lines or formatted nicely
 		if (itemData.contactName && itemData.contactName.trim()) {
-			// Format: "Contact Name\nOrganization Name" or "Contact Name - Organization Name"
+			// Format: "Contact Name\nOrganization Name" with proper typography hierarchy
 			// Check if HTML is supported for line breaks
 			if ($item('#itemName').html) {
-				$item('#itemName').html = `<strong>${itemData.contactName}</strong><br><span style="color: #666; font-size: 0.9em;">${itemData.organizationName}</span>`;
+				$item('#itemName').html = `<div style="font-size: 18px; font-weight: 600; color: #212121; line-height: 1.4; margin-bottom: 3px; display: block;">${itemData.contactName}</div><div style="font-size: 15px; font-weight: 400; color: #666; line-height: 1.3; display: block;">${itemData.organizationName}</div>`;
 			} else {
 				// Fallback: use dash separator if HTML not supported
 				$item('#itemName').text = `${itemData.contactName} - ${itemData.organizationName}`;
 			}
 		} else {
-			// Only organization name available
+			// Only organization name available - use larger size since it's the primary
 			$item('#itemName').text = itemData.organizationName;
 		}
 	}
 	
 	// Set date display with relative date if available
 	if ($item('#itemDate')) {
+		// Apply styling for date element
+		if ($item('#itemDate').style) {
+			$item('#itemDate').style.fontSize = '15px';
+			$item('#itemDate').style.fontWeight = '500';
+			$item('#itemDate').style.color = '#424242';
+			$item('#itemDate').style.lineHeight = '1.4';
+			$item('#itemDate').style.marginBottom = '6px';
+		}
+		
 		// Show formatted date with relative indicator if available
 		let dateText = itemData.date;
 		if (itemData.dateRelative) {
@@ -1244,13 +1262,22 @@ function setupRepeaterItem($item, itemData) {
 	
 	// Set up contact info display with clickable email
 	if ($item('#itemContact')) {
+		// Apply styling for contact info element
+		if ($item('#itemContact').style) {
+			$item('#itemContact').style.fontSize = '15px';
+			$item('#itemContact').style.fontWeight = '400';
+			$item('#itemContact').style.color = '#424242';
+			$item('#itemContact').style.lineHeight = '1.5';
+			$item('#itemContact').style.marginBottom = '6px';
+		}
+		
 		// Format contact info with clickable email
 		const contactText = itemData.contactInfo;
 		
 		if ($item('#itemContact').html) {
-			// If HTML is supported, make email clickable
+			// If HTML is supported, make email clickable with proper styling
 			const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
-			const htmlContact = contactText.replace(emailRegex, '<a href="mailto:$1" style="color: #2196F3; text-decoration: underline;">$1</a>');
+			const htmlContact = contactText.replace(emailRegex, '<a href="mailto:$1" style="color: #2196F3; text-decoration: underline; font-size: 15px; font-weight: 500;">$1</a>');
 			$item('#itemContact').html = htmlContact;
 		} else {
 			// Fallback to plain text
@@ -1259,6 +1286,14 @@ function setupRepeaterItem($item, itemData) {
 	}
 	
 	if ($item('#itemDetails')) {
+		// Apply styling for details element
+		if ($item('#itemDetails').style) {
+			$item('#itemDetails').style.fontSize = '14px';
+			$item('#itemDetails').style.fontWeight = '400';
+			$item('#itemDetails').style.color = '#666';
+			$item('#itemDetails').style.lineHeight = '1.5';
+			$item('#itemDetails').style.marginTop = '4px';
+		}
 		$item('#itemDetails').text = itemData.details;
 	}
 	
