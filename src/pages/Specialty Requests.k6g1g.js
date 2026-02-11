@@ -772,10 +772,17 @@ async function loadAssignments(type) {
 			// Prepare item data for search filtering
 			const itemData = prepareRepeaterItem(assignment);
 			
-			// Filter by search query (search in organization name)
-			if (searchQuery && !itemData.name.toLowerCase().includes(searchQuery)) {
-				searchFiltered++;
-				continue;
+			// Filter by search query (search in both contact name and organization name)
+			if (searchQuery) {
+				const searchLower = searchQuery.toLowerCase();
+				const nameMatches = itemData.name.toLowerCase().includes(searchLower);
+				const contactNameMatches = itemData.contactName ? itemData.contactName.toLowerCase().includes(searchLower) : false;
+				const orgNameMatches = itemData.organizationName.toLowerCase().includes(searchLower);
+				
+				if (!nameMatches && !contactNameMatches && !orgNameMatches) {
+					searchFiltered++;
+					continue;
+				}
 			}
 			
 			repeaterData.push(itemData);
@@ -991,9 +998,18 @@ function prepareRepeaterItem(assignment) {
 	let locationCode = assignment.assignedMapId || profile.preferredLocation || 'Unassigned';
 	const locationDisplay = getLocationDisplayName(locationCode);
 	
+	// Build display name: show contactName if available, otherwise organizationName
+	// Format: "Contact Name (Organization Name)" or just "Organization Name"
+	let displayName = profile.organizationName || 'Unknown';
+	if (profile.contactName && profile.contactName.trim()) {
+		displayName = `${profile.contactName} (${profile.organizationName || 'Unknown'})`;
+	}
+	
 	return {
 		_id: assignment._id,
-		name: profile.organizationName || 'Unknown',
+		name: displayName,
+		organizationName: profile.organizationName || 'Unknown',
+		contactName: profile.contactName || null,
 		date: formattedDate.display, // Formatted date string
 		dateValue: dateValue, // Original date for sorting
 		dateRelative: formattedDate.relative, // Relative date (e.g., "Next Saturday")
@@ -1196,8 +1212,22 @@ function populateRepeater(data) {
 
 function setupRepeaterItem($item, itemData) {
 	// Populate text elements
+	// Display name: show contact name and organization name clearly
 	if ($item('#itemName')) {
-		$item('#itemName').text = itemData.name;
+		// If contactName exists, show both names on separate lines or formatted nicely
+		if (itemData.contactName && itemData.contactName.trim()) {
+			// Format: "Contact Name\nOrganization Name" or "Contact Name - Organization Name"
+			// Check if HTML is supported for line breaks
+			if ($item('#itemName').html) {
+				$item('#itemName').html = `<strong>${itemData.contactName}</strong><br><span style="color: #666; font-size: 0.9em;">${itemData.organizationName}</span>`;
+			} else {
+				// Fallback: use dash separator if HTML not supported
+				$item('#itemName').text = `${itemData.contactName} - ${itemData.organizationName}`;
+			}
+		} else {
+			// Only organization name available
+			$item('#itemName').text = itemData.organizationName;
+		}
 	}
 	
 	// Set date display with relative date if available
@@ -2557,7 +2587,7 @@ function resetManualEntryForm() {
 	
 	// Reset all inputs
 	const fields = [
-		'manualEntryType', 'manualEntryName', 'manualEntryEmail', 'manualEntryPhone',
+		'manualEntryType', 'manualEntryName', 'manualEntryContactName', 'manualEntryEmail', 'manualEntryPhone',
 		'manualEntryBio', 'manualEntryWebsite', 'manualEntryMusicianType',
 		'manualEntryLocation', 'manualEntryDuration', 'manualEntryGenre',
 		'manualEntryTechNeeds', 'manualEntryVolunteerRole', 'manualEntryShiftPreference',
@@ -2615,11 +2645,13 @@ async function handleManualEntrySubmit() {
 		
 		const typeField = $w('#manualEntryType');
 		const nameField = $w('#manualEntryName');
+		const contactNameField = $w('#manualEntryContactName');
 		const emailField = $w('#manualEntryEmail');
 		const phoneField = $w('#manualEntryPhone');
 		
 		const type = getFieldValue(typeField);
 		const organizationName = getFieldValue(nameField);
+		const contactName = getFieldValue(contactNameField) || null;
 		const contactEmail = getFieldValue(emailField);
 		
 		// Special handling for phone field - try multiple approaches
@@ -2653,6 +2685,7 @@ async function handleManualEntrySubmit() {
 		console.log('Manual entry form values:', {
 			type: type,
 			organizationName: organizationName,
+			contactName: contactName,
 			contactEmail: contactEmail,
 			contactPhone: contactPhone,
 			typeFieldExists: !!typeField,
@@ -2690,6 +2723,7 @@ async function handleManualEntrySubmit() {
 			type: type,
 			title: organizationName,
 			organizationName: organizationName,
+			contactName: contactName, // Optional - actual contact person name
 			contactEmail: contactEmail,
 			contactPhone: contactPhone,
 			bio: bio,

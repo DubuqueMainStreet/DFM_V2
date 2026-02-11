@@ -1,6 +1,7 @@
 import wixData from 'wix-data';
 import wixCrmBackend from 'wix-crm-backend';
 import { triggeredEmails } from 'wix-crm-backend';
+import { elevate } from 'wix-auth';
 
 // In-memory cache to prevent duplicate emails within the same execution context
 // Key: `${assignmentId}-${status}`, Value: timestamp
@@ -112,7 +113,9 @@ export async function sendStatusNotificationEmail(assignmentId, newStatus) {
 		console.log('Email variables prepared:', emailVariables);
 
 		// Get or create Wix CRM contact for the recipient
-		const contact = await getOrCreateContact(profile.contactEmail, profile.organizationName);
+		// Prefer contactName if available, otherwise use organizationName
+		const contactDisplayName = profile.contactName || profile.organizationName;
+		const contact = await getOrCreateContact(profile.contactEmail, contactDisplayName);
 		
 		// Verify the contact email matches - critical check to prevent sending to wrong recipient
 		const contactEmail = contact.info?.primaryEmail || 
@@ -199,7 +202,7 @@ async function getOrCreateContact(email, name) {
 		
 		// If not found, try searching in the emails array
 		if (!existingContacts.items || existingContacts.items.length === 0) {
-			console.log(`[EMAIL-BACKEND] Not found in primaryInfo.email, trying emails array...`);
+			console.log(`[EMAIL-BACKEND] Not found in primaryInfo.email, searching all contacts for email in emails array...`);
 			// Try to find by searching all contacts and filtering (less efficient but more thorough)
 			const allContacts = await wixCrmBackend.contacts.queryContacts()
 				.limit(1000) // Get a batch to search through
@@ -209,87 +212,163 @@ async function getOrCreateContact(email, name) {
 			const matchingContacts = allContacts.items.filter(contact => {
 				const primaryEmail = contact.info?.primaryEmail || contact.primaryInfo?.email || '';
 				const emailsArray = contact.info?.emails || contact.emails || [];
-				return primaryEmail.toLowerCase() === email.toLowerCase() ||
-				       emailsArray.some(e => (e.email || e).toLowerCase() === email.toLowerCase());
+				const hasEmail = primaryEmail.toLowerCase() === email.toLowerCase() ||
+				                emailsArray.some(e => {
+					                const emailValue = typeof e === 'string' ? e : (e.email || '');
+					                return emailValue.toLowerCase() === email.toLowerCase();
+				                });
+				return hasEmail;
 			});
 			
 			if (matchingContacts.length > 0) {
 				existingContacts = { items: [matchingContacts[0]] };
-				console.log(`[EMAIL-BACKEND] Found contact in emails array: ${matchingContacts[0]._id}`);
+				const foundEmail = matchingContacts[0].info?.primaryEmail || 
+				                  matchingContacts[0].primaryInfo?.email || 
+				                  'found in array';
+				console.log(`[EMAIL-BACKEND] Found contact in emails array: ${matchingContacts[0]._id}, email: ${foundEmail}`);
+			} else {
+				console.log(`[EMAIL-BACKEND] No existing contact found with email: ${email}`);
 			}
+		} else {
+			const foundEmail = existingContacts.items[0].info?.primaryEmail || 
+			                  existingContacts.items[0].primaryInfo?.email || 
+			                  'found';
+			console.log(`[EMAIL-BACKEND] Found existing contact: ${existingContacts.items[0]._id}, email: ${foundEmail}`);
 		}
 
 		if (existingContacts.items && existingContacts.items.length > 0) {
 			const existingContact = existingContacts.items[0];
-			console.log(`[EMAIL-BACKEND] Found existing contact: ${existingContact._id}`);
+			const existingEmail = existingContact.info?.primaryEmail || 
+			                     existingContact.primaryInfo?.email ||
+			                     existingContact.email || '';
 			
-			// Check subscription status - emails only send to SUBSCRIBED or NOT_SET contacts
-			// Subscription status can be in multiple locations depending on Wix version
-			const subscriptionStatus = existingContact.info?.extendedFields?.emailSubscriptions?.subscriptionStatus ||
-			                           existingContact.subscriptionStatus ||
-			                           existingContact.emailSubscriptions?.subscriptionStatus ||
-			                           'UNKNOWN';
-			console.log(`[EMAIL-BACKEND] Existing contact subscription status: ${subscriptionStatus}`);
-			console.log(`[EMAIL-BACKEND] Full contact object structure:`, JSON.stringify({
-				_id: existingContact._id,
-				hasInfo: !!existingContact.info,
-				hasExtendedFields: !!existingContact.info?.extendedFields,
-				hasEmailSubscriptions: !!existingContact.info?.extendedFields?.emailSubscriptions,
-				subscriptionStatus: subscriptionStatus
-			}, null, 2));
+			console.log(`[EMAIL-BACKEND] Found existing contact: ${existingContact._id}, email: ${existingEmail || 'MISSING'}`);
 			
-			// If contact is UNSUBSCRIBED, log a warning
-			if (subscriptionStatus === 'UNSUBSCRIBED') {
-				console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: Contact ${existingContact._id} is UNSUBSCRIBED. Email may not be sent!`);
-				console.warn(`[EMAIL-BACKEND] Contact must be SUBSCRIBED or NOT_SET to receive emails.`);
-			}
-			
-			// If subscription status is UNKNOWN, update it to NOT_SET to ensure email can be sent
-			if (subscriptionStatus === 'UNKNOWN') {
-				console.log(`[EMAIL-BACKEND] Updating subscription status from UNKNOWN to NOT_SET for contact ${existingContact._id}`);
-				try {
-					// Use appendOrCreateContact to update subscription status (simpler than updateContact)
-					// This will update the existing contact's subscription status
-					const contactEmail = existingContact.info?.primaryEmail || 
-					                   existingContact.primaryInfo?.email ||
-					                   email;
-					await wixCrmBackend.contacts.appendOrCreateContact({
-						email: contactEmail,
-						subscriptionStatus: 'NOT_SET'
-					});
-					console.log(`[EMAIL-BACKEND] ✅ Successfully updated subscription status to NOT_SET`);
-					// Refresh the contact to get updated status
-					const updatedContact = await wixCrmBackend.contacts.getContact(existingContact._id);
-					return updatedContact;
-				} catch (updateError) {
-					console.warn(`[EMAIL-BACKEND] ⚠️ Warning: Failed to update subscription status:`, updateError.message);
-					console.warn(`[EMAIL-BACKEND] Returning contact with UNKNOWN status - will attempt update before sending email`);
+			// CRITICAL: If the contact has no email or wrong email, don't use it - create a new one instead
+			if (!existingEmail || existingEmail.toLowerCase() !== email.toLowerCase()) {
+				console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: Found contact ${existingContact._id} but email is missing or incorrect!`);
+				console.warn(`[EMAIL-BACKEND] Expected: ${email}, Got: ${existingEmail || 'MISSING'}`);
+				console.warn(`[EMAIL-BACKEND] This contact cannot be used. Will create a new contact instead.`);
+				// Don't return this contact - fall through to create a new one
+			} else {
+				// Contact has correct email - use it
+				console.log(`[EMAIL-BACKEND] ✅ Contact has correct email, using it`);
+				
+				// Check subscription status - emails only send to SUBSCRIBED or NOT_SET contacts
+				// Subscription status can be in multiple locations depending on Wix version
+				const subscriptionStatus = existingContact.info?.extendedFields?.emailSubscriptions?.subscriptionStatus ||
+				                           existingContact.subscriptionStatus ||
+				                           existingContact.emailSubscriptions?.subscriptionStatus ||
+				                           'UNKNOWN';
+				console.log(`[EMAIL-BACKEND] Existing contact subscription status: ${subscriptionStatus}`);
+				
+				// If contact is UNSUBSCRIBED, log a warning
+				if (subscriptionStatus === 'UNSUBSCRIBED') {
+					console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: Contact ${existingContact._id} is UNSUBSCRIBED. Email may not be sent!`);
+					console.warn(`[EMAIL-BACKEND] Contact must be SUBSCRIBED or NOT_SET to receive emails.`);
 				}
+				
+				// If subscription status is UNKNOWN, update it to NOT_SET to ensure email can be sent
+				if (subscriptionStatus === 'UNKNOWN') {
+					console.log(`[EMAIL-BACKEND] Updating subscription status from UNKNOWN to NOT_SET for contact ${existingContact._id}`);
+					try {
+						// Use appendOrCreateContact to update subscription status (simpler than updateContact)
+						// This will update the existing contact's subscription status
+						await wixCrmBackend.contacts.appendOrCreateContact({
+							email: existingEmail,
+							subscriptionStatus: 'NOT_SET'
+						});
+						console.log(`[EMAIL-BACKEND] ✅ Successfully updated subscription status to NOT_SET`);
+						// Refresh the contact to get updated status
+						const updatedContact = await wixCrmBackend.contacts.getContact(existingContact._id);
+						return updatedContact;
+					} catch (updateError) {
+						console.warn(`[EMAIL-BACKEND] ⚠️ Warning: Failed to update subscription status:`, updateError.message);
+						console.warn(`[EMAIL-BACKEND] Returning contact with UNKNOWN status - will attempt update before sending email`);
+					}
+				}
+				
+				return existingContact;
 			}
-			
-			return existingContact;
 		}
 
 		// Contact doesn't exist, create a new one
 		// Use createContact with allowDuplicates to ensure we create a new contact
 		// instead of reconciling with an existing one
+		// IMPORTANT: Use elevate() to grant required permissions for createContact
 		console.log(`[EMAIL-BACKEND] Creating new contact for email: ${email}`);
 		let contactIdentification;
 		try {
 			// Try createContact first to force a new contact
-			contactIdentification = await wixCrmBackend.contacts.createContact({
-				primaryInfo: {
-					email: email
-				},
+			const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+			contactIdentification = await elevatedCreateContact({
 				name: {
 					first: name || 'Market',
 					last: 'Participant'
 				},
-				subscriptionStatus: 'NOT_SET'
+				emails: {
+					items: [
+						{
+							email: email,
+							primary: true
+						}
+					]
+				}
 			}, {
-				allowDuplicates: true // Allow duplicate emails to force new contact creation
+				allowDuplicates: true // Force creation even if email exists elsewhere
 			});
 			console.log(`[EMAIL-BACKEND] Created new contact using createContact`);
+			
+			// Immediately verify the email was set correctly
+			if (contactIdentification && contactIdentification._id) {
+				const createdEmail = contactIdentification.info?.primaryEmail || 
+				                     contactIdentification.primaryInfo?.email || 
+				                     contactIdentification.email || '';
+				console.log(`[EMAIL-BACKEND] Contact created with email: ${createdEmail || 'MISSING!'}`);
+				if (!createdEmail || createdEmail.toLowerCase() !== email.toLowerCase()) {
+					console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: Contact created but email is missing or incorrect!`);
+					console.warn(`[EMAIL-BACKEND] Expected: ${email}, Got: ${createdEmail || 'MISSING'}`);
+					console.warn(`[EMAIL-BACKEND] Attempting to update email immediately...`);
+					
+					// Immediately try to update the contact with the correct email
+					try {
+						const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+						const revision = contactIdentification.revision || contactIdentification.info?.revision || 1;
+					await elevatedUpdateContact(contactIdentification._id, {
+						emails: {
+							items: [
+								{
+									email: email,
+									primary: true
+								}
+							]
+						}
+					}, revision);
+						
+						// Wait and refresh to verify
+						await new Promise(resolve => setTimeout(resolve, 500));
+						const refreshedContact = await wixCrmBackend.contacts.getContact(contactIdentification._id);
+						const refreshedEmail = refreshedContact.info?.primaryEmail || 
+						                       refreshedContact.primaryInfo?.email ||
+						                       refreshedContact.email || '';
+						
+						if (refreshedEmail.toLowerCase() === email.toLowerCase()) {
+							console.log(`[EMAIL-BACKEND] ✅ Successfully updated contact email immediately after creation`);
+							contactIdentification = refreshedContact; // Use the refreshed contact
+						} else {
+							console.error(`[EMAIL-BACKEND] ❌ Update failed - email still: ${refreshedEmail || 'MISSING'}`);
+							// Don't throw yet - will continue to fallback strategies
+						}
+					} catch (immediateUpdateError) {
+						console.error(`[EMAIL-BACKEND] ❌ Failed to immediately update email:`, immediateUpdateError.message);
+						console.error(`[EMAIL-BACKEND] Error details:`, JSON.stringify({
+							message: immediateUpdateError.message,
+							code: immediateUpdateError.details?.applicationError?.code,
+							description: immediateUpdateError.details?.applicationError?.description
+						}, null, 2));
+					}
+				}
+			}
 		} catch (createError) {
 			console.warn(`[EMAIL-BACKEND] createContact failed:`, createError.message);
 			console.warn(`[EMAIL-BACKEND] This might mean contact already exists. Searching again...`);
@@ -309,7 +388,7 @@ async function getOrCreateContact(email, name) {
 			
 			// Last resort: try appendOrCreateContact but we MUST verify email matches after
 			console.warn(`[EMAIL-BACKEND] Retry search failed, trying appendOrCreateContact as last resort...`);
-			console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: appendOrCreateContact may reconcile with admin's contact. Will verify email after.`);
+			console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: appendOrCreateContact may reconcile with admin's contact. Will verify and update email after.`);
 			
 			try {
 				contactIdentification = await wixCrmBackend.contacts.appendOrCreateContact({
@@ -320,24 +399,62 @@ async function getOrCreateContact(email, name) {
 					},
 					subscriptionStatus: 'NOT_SET'
 				});
-				console.log(`[EMAIL-BACKEND] Used appendOrCreateContact - will verify email matches`);
+				console.log(`[EMAIL-BACKEND] Used appendOrCreateContact - will verify and update email if needed`);
+				
+				// Immediately verify and update email if needed (don't wait until later)
+				if (contactIdentification && (contactIdentification.contactId || contactIdentification._id || contactIdentification.id)) {
+					const tempContactId = contactIdentification.contactId || contactIdentification._id || contactIdentification.id;
+					console.log(`[EMAIL-BACKEND] Immediately verifying contact ${tempContactId} created via appendOrCreateContact...`);
+					try {
+						// Wait a moment for contact to be fully created
+						await new Promise(resolve => setTimeout(resolve, 500));
+						const tempContact = await wixCrmBackend.contacts.getContact(tempContactId);
+						const tempEmail = tempContact.info?.primaryEmail || 
+						                  tempContact.primaryInfo?.email || 
+						                  tempContact.email || '';
+						
+						if (!tempEmail || tempEmail.toLowerCase() !== email.toLowerCase()) {
+							console.log(`[EMAIL-BACKEND] ⚠️ Contact email missing/incorrect immediately after appendOrCreateContact. Updating now...`);
+							const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+							const tempRevision = tempContact.revision || tempContact.info?.revision || 1;
+							await elevatedUpdateContact(tempContactId, {
+								emails: {
+									items: [
+										{
+											email: email,
+											primary: true
+										}
+									]
+								}
+							}, tempRevision);
+							console.log(`[EMAIL-BACKEND] ✅ Updated contact email immediately after appendOrCreateContact`);
+						}
+					} catch (immediateUpdateError) {
+						console.warn(`[EMAIL-BACKEND] ⚠️ Could not immediately update email (will retry later):`, immediateUpdateError.message);
+					}
+				}
 			} catch (appendError) {
 				console.error(`[EMAIL-BACKEND] appendOrCreateContact also failed:`, appendError.message);
 				// If appendOrCreateContact fails, try one more time with createContact
 				console.log(`[EMAIL-BACKEND] Attempting final createContact with allowDuplicates...`);
 				try {
-					contactIdentification = await wixCrmBackend.contacts.createContact({
-						primaryInfo: {
-							email: email
-						},
-						name: {
-							first: name || 'Market',
-							last: 'Participant'
-						},
-						subscriptionStatus: 'NOT_SET'
-					}, {
-						allowDuplicates: true
-					});
+				const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+			contactIdentification = await elevatedCreateContact({
+				name: {
+					first: name || 'Market',
+					last: 'Participant'
+				},
+				emails: {
+					items: [
+						{
+							email: email,
+							primary: true
+						}
+					]
+				}
+			}, {
+				allowDuplicates: true
+			});
 					console.log(`[EMAIL-BACKEND] Successfully created contact via final createContact attempt`);
 				} catch (finalError) {
 					console.error(`[EMAIL-BACKEND] All contact creation methods failed:`, finalError.message);
@@ -382,20 +499,25 @@ async function getOrCreateContact(email, name) {
 				} else {
 					// Last attempt: try creating with createContact one more time
 					console.warn(`[EMAIL-BACKEND] Retry query failed, attempting final createContact...`);
-					try {
-						fullContact = await wixCrmBackend.contacts.createContact({
-							primaryInfo: {
-								email: email
-							},
-							name: {
-								first: name || 'Market',
-								last: 'Participant'
-							},
-							subscriptionStatus: 'NOT_SET'
-						}, {
-							allowDuplicates: true
-						});
-						console.log(`[EMAIL-BACKEND] ✅ Created contact via final attempt: ${fullContact._id}`);
+				try {
+				const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+			fullContact = await elevatedCreateContact({
+				name: {
+					first: name || 'Market',
+					last: 'Participant'
+				},
+				emails: {
+					items: [
+						{
+							email: email,
+							primary: true
+						}
+					]
+				}
+			}, {
+				allowDuplicates: true
+			});
+					console.log(`[EMAIL-BACKEND] ✅ Created contact via final attempt: ${fullContact._id}`);
 					} catch (finalCreateError) {
 						throw new Error(`Failed to create contact ${email}. Please manually create the contact in Wix CRM.`);
 					}
@@ -404,18 +526,288 @@ async function getOrCreateContact(email, name) {
 				// Get the full contact object using the ID
 				fullContact = await wixCrmBackend.contacts.getContact(contactId);
 				console.log(`[EMAIL-BACKEND] Got full contact from getContact: ${fullContact._id}`);
+				
+				// CRITICAL: Check if this contact has the correct email
+				// If appendOrCreateContact reconciled with admin's contact, it might have no email
+				const retrievedEmail = fullContact.info?.primaryEmail || 
+				                      fullContact.primaryInfo?.email ||
+				                      fullContact.email || '';
+				
+				if (!retrievedEmail || retrievedEmail.toLowerCase() !== email.toLowerCase()) {
+					console.warn(`[EMAIL-BACKEND] ⚠️ CRITICAL: Contact ${fullContact._id} retrieved from getContact has no/wrong email!`);
+					console.warn(`[EMAIL-BACKEND] Expected: ${email}, Got: ${retrievedEmail || 'MISSING'}`);
+					console.warn(`[EMAIL-BACKEND] This contact was likely reconciled with admin's contact. Creating a NEW contact instead...`);
+					
+					// Don't use this contact - create a new one instead
+					fullContact = null; // Reset so we create a new one
+				}
+			}
+		}
+		
+		// If we don't have a valid contact (or it was reset because it had no email), create a new one
+		if (!fullContact) {
+			console.log(`[EMAIL-BACKEND] No valid contact found/created, creating a new contact with email: ${email}`);
+			
+			// First, try to search for any contact with this email (even if it has no primary email)
+			// and try to update it one more time
+			console.log(`[EMAIL-BACKEND] Searching for any contact with email ${email} before creating new one...`);
+			try {
+				const allContacts = await wixCrmBackend.contacts.queryContacts()
+					.limit(1000)
+					.find();
+				
+				// Look for contacts that might have this email anywhere
+				const contactsWithEmail = allContacts.items.filter(contact => {
+					const primaryEmail = contact.info?.primaryEmail || contact.primaryInfo?.email || '';
+					const emailsArray = contact.info?.emails || contact.emails || [];
+					const hasEmailInArray = emailsArray.some(e => {
+						const emailValue = typeof e === 'string' ? e : (e.email || '');
+						return emailValue.toLowerCase() === email.toLowerCase();
+					});
+					return primaryEmail.toLowerCase() === email.toLowerCase() || hasEmailInArray;
+				});
+				
+				if (contactsWithEmail.length > 0) {
+					console.log(`[EMAIL-BACKEND] Found ${contactsWithEmail.length} contact(s) with this email. Trying to update the first one...`);
+					const contactToUpdate = contactsWithEmail[0];
+					
+					try {
+						const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+						const revision = contactToUpdate.revision || contactToUpdate.info?.revision || 1;
+					await elevatedUpdateContact(contactToUpdate._id, {
+						emails: {
+							items: [
+								{
+									email: email,
+									primary: true
+								}
+							]
+						}
+					}, revision);
+						
+						// Wait and refresh
+						await new Promise(resolve => setTimeout(resolve, 1000));
+						const updatedContact = await wixCrmBackend.contacts.getContact(contactToUpdate._id);
+						const updatedEmail = updatedContact.info?.primaryEmail || 
+						                     updatedContact.primaryInfo?.email ||
+						                     updatedContact.email || '';
+						
+						if (updatedEmail.toLowerCase() === email.toLowerCase()) {
+							console.log(`[EMAIL-BACKEND] ✅ Successfully updated existing contact with email: ${updatedContact._id}`);
+							fullContact = updatedContact;
+						}
+					} catch (updateError) {
+						console.warn(`[EMAIL-BACKEND] ⚠️ Failed to update existing contact:`, updateError.message);
+					}
+				}
+			} catch (searchError) {
+				console.warn(`[EMAIL-BACKEND] ⚠️ Search failed:`, searchError.message);
+			}
+			
+			// If we still don't have a contact, try to create a new one
+			if (!fullContact) {
+				try {
+				const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+			fullContact = await elevatedCreateContact({
+				name: {
+					first: name || 'Market',
+					last: 'Participant'
+				},
+				emails: {
+					items: [
+						{
+							email: email,
+							primary: true
+						}
+					]
+				}
+			}, {
+				allowDuplicates: true // Force creation even if email exists
+			});
+					console.log(`[EMAIL-BACKEND] ✅ Created new contact: ${fullContact._id}`);
+					
+					// CRITICAL: Verify the email was actually set
+					const createdEmail = fullContact.info?.primaryEmail || 
+					                     fullContact.primaryInfo?.email ||
+					                     fullContact.email || '';
+					console.log(`[EMAIL-BACKEND] Contact created with email: ${createdEmail || 'MISSING!'}`);
+					
+					if (!createdEmail || createdEmail.toLowerCase() !== email.toLowerCase()) {
+						console.warn(`[EMAIL-BACKEND] ⚠️ CRITICAL: Contact created but email is missing or incorrect!`);
+						console.warn(`[EMAIL-BACKEND] Expected: ${email}, Got: ${createdEmail || 'MISSING'}`);
+						console.warn(`[EMAIL-BACKEND] Attempting to update contact immediately...`);
+						
+						// Try to update the contact immediately
+						try {
+							const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+							const revision = fullContact.revision || fullContact.info?.revision || 1;
+						await elevatedUpdateContact(fullContact._id, {
+							emails: {
+								items: [
+									{
+										email: email,
+										primary: true
+									}
+								]
+							}
+						}, revision);
+							
+							// Wait and refresh
+							await new Promise(resolve => setTimeout(resolve, 1000));
+							fullContact = await wixCrmBackend.contacts.getContact(fullContact._id);
+							const updatedEmail = fullContact.info?.primaryEmail || 
+							                     fullContact.primaryInfo?.email ||
+							                     fullContact.email || '';
+							
+							if (updatedEmail.toLowerCase() === email.toLowerCase()) {
+								console.log(`[EMAIL-BACKEND] ✅ Successfully updated contact email after creation: ${fullContact._id}`);
+							} else {
+								console.error(`[EMAIL-BACKEND] ❌ Update failed - email still: ${updatedEmail || 'MISSING'}`);
+								// Don't throw yet - will try other methods
+							}
+						} catch (updateError) {
+							console.error(`[EMAIL-BACKEND] ❌ Failed to update contact email:`, updateError.message);
+							// Don't throw yet - will try other methods
+						}
+					}
+				} catch (createError) {
+					console.error(`[EMAIL-BACKEND] ❌ Failed to create new contact:`, createError.message);
+					console.error(`[EMAIL-BACKEND] Error details:`, JSON.stringify({
+						message: createError.message,
+						code: createError.details?.applicationError?.code,
+						description: createError.details?.applicationError?.description,
+						error: createError
+					}, null, 2));
+					
+					// Last resort: try appendOrCreateContact one more time
+					console.log(`[EMAIL-BACKEND] Trying appendOrCreateContact as absolute last resort...`);
+					try {
+						const lastResortContact = await wixCrmBackend.contacts.appendOrCreateContact({
+							email: email,
+							name: {
+								first: name || 'Market',
+								last: 'Participant'
+							},
+							subscriptionStatus: 'NOT_SET'
+						});
+						
+						const lastResortId = lastResortContact.contactId || lastResortContact._id || lastResortContact.id;
+						if (lastResortId) {
+							await new Promise(resolve => setTimeout(resolve, 1000));
+							const lastResortFull = await wixCrmBackend.contacts.getContact(lastResortId);
+							const lastResortEmail = lastResortFull.info?.primaryEmail || 
+							                       lastResortFull.primaryInfo?.email ||
+							                       lastResortFull.email || '';
+							
+							if (lastResortEmail.toLowerCase() === email.toLowerCase()) {
+								console.log(`[EMAIL-BACKEND] ✅ appendOrCreateContact worked and has correct email: ${lastResortFull._id}`);
+								fullContact = lastResortFull;
+							} else {
+								throw new Error(`appendOrCreateContact returned contact with wrong email: ${lastResortEmail || 'MISSING'}`);
+							}
+						} else {
+							throw new Error('appendOrCreateContact did not return a contact ID');
+						}
+					} catch (lastResortError) {
+						console.error(`[EMAIL-BACKEND] ❌ Last resort also failed:`, lastResortError.message);
+						throw new Error(`Failed to create contact ${email}. All methods failed. Error: ${createError.message}. Please manually create the contact in Wix CRM.`);
+					}
+				}
 			}
 		}
 		
 		console.log(`[EMAIL-BACKEND] Created/found contact: ${fullContact._id}`);
 		
 		// Verify the contact email matches what we're looking for
-		const contactEmail = fullContact.info?.primaryEmail || 
-		                     fullContact.primaryInfo?.email ||
-		                     fullContact.email ||
-		                     'unknown';
+		let contactEmail = fullContact.info?.primaryEmail || 
+		                   fullContact.primaryInfo?.email ||
+		                   fullContact.email ||
+		                   'unknown';
 		console.log(`[EMAIL-BACKEND] Contact email from getContact: ${contactEmail}`);
 		console.log(`[EMAIL-BACKEND] Expected email: ${email}`);
+		
+		// If email is missing or doesn't match, update the contact with the correct email
+		if (contactEmail === 'unknown' || contactEmail.toLowerCase() !== email.toLowerCase()) {
+			console.log(`[EMAIL-BACKEND] ⚠️ Contact email is missing or incorrect. Updating contact with correct email...`);
+			let updateSucceeded = false;
+			
+			// Try multiple update strategies
+			// Strategy 1: Use emails.items structure with elevate
+			try {
+				const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+				const revision = fullContact.revision || fullContact.info?.revision || 1;
+				console.log(`[EMAIL-BACKEND] Attempting update with revision: ${revision} using emails.items`);
+				await elevatedUpdateContact(fullContact._id, {
+					emails: {
+						items: [
+							{
+								email: email,
+								primary: true
+							}
+						]
+					}
+				}, revision);
+				console.log(`[EMAIL-BACKEND] ✅ Update call succeeded, verifying...`);
+				
+				// Wait a moment for the update to propagate
+				await new Promise(resolve => setTimeout(resolve, 1000));
+				
+				// Refresh the contact to get the updated email
+				fullContact = await wixCrmBackend.contacts.getContact(fullContact._id);
+				contactEmail = fullContact.info?.primaryEmail || 
+				               fullContact.primaryInfo?.email ||
+				               fullContact.email ||
+				               'unknown';
+				console.log(`[EMAIL-BACKEND] Contact email after update: ${contactEmail}`);
+				
+				if (contactEmail.toLowerCase() === email.toLowerCase()) {
+					updateSucceeded = true;
+					console.log(`[EMAIL-BACKEND] ✅ Email update verified successfully!`);
+				} else {
+					console.warn(`[EMAIL-BACKEND] ⚠️ Update call succeeded but email still doesn't match. Got: ${contactEmail}`);
+				}
+			} catch (updateError) {
+				console.error(`[EMAIL-BACKEND] ❌ Update strategy 1 failed:`, updateError.message);
+				console.error(`[EMAIL-BACKEND] Error details:`, JSON.stringify({
+					message: updateError.message,
+					code: updateError.details?.applicationError?.code,
+					description: updateError.details?.applicationError?.description
+				}, null, 2));
+			}
+			
+			// Strategy 2: If first update failed, try using appendOrCreateContact to update
+			if (!updateSucceeded) {
+				console.log(`[EMAIL-BACKEND] Trying appendOrCreateContact to update email...`);
+				try {
+					await wixCrmBackend.contacts.appendOrCreateContact({
+						email: email,
+						name: {
+							first: name || 'Market',
+							last: 'Participant'
+						}
+					});
+					
+					// Wait and refresh
+					await new Promise(resolve => setTimeout(resolve, 1000));
+					fullContact = await wixCrmBackend.contacts.getContact(fullContact._id);
+					contactEmail = fullContact.info?.primaryEmail || 
+					               fullContact.primaryInfo?.email ||
+					               fullContact.email ||
+					               'unknown';
+					
+					if (contactEmail.toLowerCase() === email.toLowerCase()) {
+						updateSucceeded = true;
+						console.log(`[EMAIL-BACKEND] ✅ Email updated via appendOrCreateContact!`);
+					}
+				} catch (appendError) {
+					console.error(`[EMAIL-BACKEND] ❌ appendOrCreateContact update failed:`, appendError.message);
+				}
+			}
+			
+			if (!updateSucceeded) {
+				console.error(`[EMAIL-BACKEND] ❌ All email update strategies failed. Contact ${fullContact._id} still has email: ${contactEmail}`);
+			}
+		}
 		
 		if (contactEmail.toLowerCase() !== email.toLowerCase() && contactEmail !== 'unknown') {
 			console.warn(`[EMAIL-BACKEND] ⚠️ WARNING: Contact email mismatch!`);
@@ -471,18 +863,23 @@ async function getOrCreateContact(email, name) {
 			// If we still can't find it, try creating it one more time with createContact
 			console.warn(`[EMAIL-BACKEND] Could not find contact, attempting to create with createContact...`);
 			try {
-				const newContact = await wixCrmBackend.contacts.createContact({
-					primaryInfo: {
-						email: email
-					},
-					name: {
-						first: name || 'Market',
-						last: 'Participant'
-					},
-					subscriptionStatus: 'NOT_SET'
-				}, {
-					allowDuplicates: true
-				});
+				const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+			const newContact = await elevatedCreateContact({
+				name: {
+					first: name || 'Market',
+					last: 'Participant'
+				},
+				emails: {
+					items: [
+						{
+							email: email,
+							primary: true
+						}
+					]
+				}
+			}, {
+				allowDuplicates: true
+			});
 				
 				// Verify the new contact has the correct email
 				const newContactEmail = newContact.info?.primaryEmail || 
@@ -510,26 +907,38 @@ async function getOrCreateContact(email, name) {
 			// Contact was created but email is unknown - this is a problem
 			console.error(`[EMAIL-BACKEND] ❌ Contact created but email is 'unknown'! Contact ID: ${fullContact._id}`);
 			console.error(`[EMAIL-BACKEND] This usually means appendOrCreateContact reconciled with admin's contact.`);
+			console.error(`[EMAIL-BACKEND] The existing contact cannot be updated. Creating a new contact instead...`);
 			
-			// Try one final time to create the contact with createContact
-			console.log(`[EMAIL-BACKEND] Attempting to create contact with createContact (bypassing reconciliation)...`);
+			// The existing contact can't be updated (probably admin's contact). Create a new one.
+			// First, try to delete or mark the old contact as invalid, but we can't delete contacts via API
+			// So we'll just create a new one with allowDuplicates: true
+			console.log(`[EMAIL-BACKEND] Creating NEW contact with createContact (bypassing reconciliation)...`);
 			try {
-				const newContact = await wixCrmBackend.contacts.createContact({
-					primaryInfo: {
-						email: email
-					},
-					name: {
-						first: name || 'Market',
-						last: 'Participant'
-					},
-					subscriptionStatus: 'NOT_SET'
-				}, {
-					allowDuplicates: true
-				});
+				const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+		const newContact = await elevatedCreateContact({
+			name: {
+				first: name || 'Market',
+				last: 'Participant'
+			},
+			emails: {
+				items: [
+					{
+						email: email,
+						primary: true
+					}
+				]
+			}
+		}, {
+			allowDuplicates: true // Force creation even if email exists
+		});
 				
-				const newContactEmail = newContact.info?.primaryEmail || 
+				console.log(`[EMAIL-BACKEND] New contact created: ${newContact._id}`);
+				
+				const newContactEmail = newContact.info?.primaryEmail ||
 				                       newContact.primaryInfo?.email ||
 				                       newContact.email || '';
+				
+				console.log(`[EMAIL-BACKEND] New contact email: ${newContactEmail}`);
 				
 				if (newContactEmail.toLowerCase() === email.toLowerCase()) {
 					console.log(`[EMAIL-BACKEND] ✅ Successfully created contact with correct email: ${newContact._id}`);
@@ -541,11 +950,18 @@ async function getOrCreateContact(email, name) {
 					if (!newContactEmail || newContactEmail === 'unknown' || newContactEmail === '') {
 						console.log(`[EMAIL-BACKEND] Attempting to update contact ${newContact._id} with correct email: ${email}`);
 						try {
-							await wixCrmBackend.contacts.updateContact(newContact._id, {
-								primaryInfo: {
-									email: email
-								}
-							});
+							const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+							const revision = newContact.revision || newContact.info?.revision || 1;
+						await elevatedUpdateContact(newContact._id, {
+							emails: {
+								items: [
+									{
+										email: email,
+										primary: true
+									}
+								]
+							}
+						}, revision);
 							
 							// Refresh the contact to verify the update
 							const updatedContact = await wixCrmBackend.contacts.getContact(newContact._id);
@@ -568,14 +984,24 @@ async function getOrCreateContact(email, name) {
 				console.error(`[EMAIL-BACKEND] ❌ Final createContact failed:`, finalError.message);
 			}
 			
-			// Last resort: Try to update the original contact's email
+			// Last resort: Try to update the original contact's email using correct structure
 			console.log(`[EMAIL-BACKEND] Attempting to update original contact ${fullContact._id} with email: ${email}`);
-			try {
-				await wixCrmBackend.contacts.updateContact(fullContact._id, {
-					primaryInfo: {
-						email: email
-					}
-				});
+						try {
+							const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+							const revision = fullContact.revision || fullContact.info?.revision || 1;
+						await elevatedUpdateContact(fullContact._id, {
+							emails: {
+								items: [
+									{
+										email: email,
+										primary: true
+									}
+								]
+							}
+						}, revision);
+				
+				// Wait a moment for the update to propagate
+				await new Promise(resolve => setTimeout(resolve, 500));
 				
 				// Refresh the contact
 				const updatedContact = await wixCrmBackend.contacts.getContact(fullContact._id);
@@ -588,9 +1014,94 @@ async function getOrCreateContact(email, name) {
 					return updatedContact;
 				} else {
 					console.error(`[EMAIL-BACKEND] ❌ Update of original contact failed - email still: ${updatedEmail}`);
+					console.error(`[EMAIL-BACKEND] Contact structure:`, JSON.stringify({
+						_id: updatedContact._id,
+						hasInfo: !!updatedContact.info,
+						hasPrimaryEmail: !!updatedContact.info?.primaryEmail,
+						hasPrimaryInfo: !!updatedContact.primaryInfo,
+						hasEmails: !!updatedContact.info?.emails,
+						revision: updatedContact.revision || updatedContact.info?.revision
+					}, null, 2));
 				}
 			} catch (updateError) {
 				console.error(`[EMAIL-BACKEND] ❌ Failed to update original contact email:`, updateError.message);
+				console.error(`[EMAIL-BACKEND] Update error details:`, JSON.stringify({
+					message: updateError.message,
+					code: updateError.details?.applicationError?.code,
+					description: updateError.details?.applicationError?.description
+				}, null, 2));
+			}
+			
+			// Last attempt: Try to create a completely new contact (the existing one might be locked/unupdateable)
+			if (contactEmail === 'unknown') {
+				console.log(`[EMAIL-BACKEND] Contact has no email and updates failed. Attempting to create a new contact as last resort...`);
+				try {
+					const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+					const newContact = await elevatedCreateContact({
+						name: {
+							first: name || 'Market',
+							last: 'Participant'
+						},
+						emails: {
+							items: [
+								{
+									email: email,
+									primary: true
+								}
+							]
+						}
+					}, {
+						allowDuplicates: true
+					});
+					
+					const newContactEmail = newContact.info?.primaryEmail || 
+					                       newContact.primaryInfo?.email ||
+					                       newContact.email || '';
+					
+					if (newContactEmail.toLowerCase() === email.toLowerCase()) {
+						console.log(`[EMAIL-BACKEND] ✅ Successfully created new contact with email: ${newContact._id}`);
+						return newContact;
+					} else {
+						console.error(`[EMAIL-BACKEND] ❌ Even new contact creation returned wrong email: ${newContactEmail}`);
+					}
+				} catch (finalCreateError) {
+					console.error(`[EMAIL-BACKEND] ❌ Final contact creation attempt failed:`, finalCreateError.message);
+				}
+			}
+			
+			// Last resort: Try to create a completely new contact (the existing one might be locked/unupdateable)
+			console.log(`[EMAIL-BACKEND] All attempts failed. Trying to create a completely new contact as absolute last resort...`);
+			try {
+				const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+		const lastResortContact = await elevatedCreateContact({
+			name: {
+				first: name || 'Market',
+				last: 'Participant'
+			},
+			emails: {
+				items: [
+					{
+						email: email,
+						primary: true
+					}
+				]
+			}
+		}, {
+			allowDuplicates: true // Force creation even if email exists
+		});
+				
+				const lastResortEmail = lastResortContact.info?.primaryEmail || 
+				                       lastResortContact.primaryInfo?.email ||
+				                       lastResortContact.email || '';
+				
+				if (lastResortEmail.toLowerCase() === email.toLowerCase()) {
+					console.log(`[EMAIL-BACKEND] ✅ Successfully created new contact as last resort: ${lastResortContact._id}`);
+					return lastResortContact;
+				} else {
+					console.error(`[EMAIL-BACKEND] ❌ Last resort contact also has wrong email: ${lastResortEmail}`);
+				}
+			} catch (lastResortError) {
+				console.error(`[EMAIL-BACKEND] ❌ Last resort contact creation also failed:`, lastResortError.message);
 			}
 			
 			const errorMsg = `CRITICAL: Contact email is 'unknown'! Expected ${email} but contact ${fullContact._id} has no email. ` +
@@ -656,33 +1167,39 @@ export async function createContactForProfile(email, name) {
 		}
 		
 		// Create new contact using createContact with allowDuplicates
-		const newContact = await wixCrmBackend.contacts.createContact({
-			primaryInfo: {
-				email: email
-			},
-			name: {
-				first: name || 'Market',
-				last: 'Participant'
-			},
-			subscriptionStatus: 'NOT_SET'
-		}, {
-			allowDuplicates: true
-		});
-		
-		const contactEmail = newContact.info?.primaryEmail || 
-		                     newContact.primaryInfo?.email ||
-		                     newContact.email || '';
-		
-		if (contactEmail.toLowerCase() !== email.toLowerCase()) {
-			return {
-				success: false,
-				error: `Contact created but email mismatch. Expected: ${email}, Got: ${contactEmail}`,
-				contactId: newContact._id,
-				email: contactEmail
-			};
-		}
-		
-		console.log(`[CREATE-CONTACT] ✅ Successfully created contact: ${newContact._id}`);
+		// IMPORTANT: Use elevate() to grant required permissions for createContact
+	const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+const newContact = await elevatedCreateContact({
+	name: {
+		first: name || 'Market',
+		last: 'Participant'
+	},
+	emails: {
+		items: [
+			{
+				email: email,
+				primary: true
+			}
+		]
+	}
+}, {
+	allowDuplicates: true
+});
+	
+	const contactEmail = newContact.info?.primaryEmail || 
+	                     newContact.primaryInfo?.email ||
+	                     newContact.email || '';
+	
+	if (contactEmail.toLowerCase() !== email.toLowerCase()) {
+		return {
+			success: false,
+			error: `Contact created but email mismatch. Expected: ${email}, Got: ${contactEmail}`,
+			contactId: newContact._id,
+			email: contactEmail
+		};
+	}
+	
+	console.log(`[CREATE-CONTACT] ✅ Successfully created contact: ${newContact._id}`);
 		return {
 			success: true,
 			message: 'Contact created successfully',

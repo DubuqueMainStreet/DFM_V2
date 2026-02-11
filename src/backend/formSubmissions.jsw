@@ -1,5 +1,6 @@
 import wixData from 'wix-data';
 import wixCrmBackend from 'wix-crm-backend';
+import { elevate } from 'wix-auth';
 
 /**
  * Backend function to create a specialty profile and weekly assignments
@@ -25,36 +26,86 @@ export async function submitSpecialtyProfile(profileData, dateIds) {
 			try {
 				console.log(`[FORM-SUBMISSION] Creating contact for: ${profileData.contactEmail}`);
 				
-				// First, check if contact already exists
-				const existingContacts = await wixCrmBackend.contacts.queryContacts()
+				// First, check if contact already exists by email
+				let existingContacts = await wixCrmBackend.contacts.queryContacts()
 					.eq('primaryInfo.email', profileData.contactEmail)
 					.limit(1)
 					.find();
 				
+				// If not found by email, also check by name (to catch contacts created without emails)
+				if ((!existingContacts.items || existingContacts.items.length === 0) && profileData.organizationName) {
+					console.log(`[FORM-SUBMISSION] Not found by email, checking by name: ${profileData.organizationName}`);
+					const nameSearch = await wixCrmBackend.contacts.queryContacts()
+						.limit(100)
+						.find();
+					
+					const matchingByName = nameSearch.items.filter(contact => {
+						const firstName = contact.info?.name?.first || contact.name?.first || '';
+						const lastName = contact.info?.name?.last || contact.name?.last || '';
+						const fullName = `${firstName} ${lastName}`.trim();
+						const orgName = profileData.organizationName.trim();
+						
+						// Check if name matches (exact or contains "Participant" suffix)
+						return fullName.toLowerCase() === orgName.toLowerCase() ||
+						       fullName.toLowerCase() === `${orgName} Participant`.toLowerCase() ||
+						       (firstName.toLowerCase() === orgName.toLowerCase() && lastName === 'Participant');
+					});
+					
+					if (matchingByName.length > 0) {
+						existingContacts = { items: [matchingByName[0]] };
+						console.log(`[FORM-SUBMISSION] Found existing contact by name: ${matchingByName[0]._id}`);
+					}
+				}
+				
 				if (existingContacts.items && existingContacts.items.length > 0) {
-					console.log(`[FORM-SUBMISSION] Contact already exists: ${existingContacts.items[0]._id}`);
-					// Update subscription status if needed
-					try {
-						await wixCrmBackend.contacts.updateContact(existingContacts.items[0]._id, {
-							subscriptionStatus: 'NOT_SET'
-						});
-						console.log(`[FORM-SUBMISSION] Updated subscription status to NOT_SET`);
-					} catch (updateError) {
-						console.warn(`[FORM-SUBMISSION] Could not update subscription status:`, updateError.message);
+					const existingContact = existingContacts.items[0];
+					const existingEmail = existingContact.info?.primaryEmail || 
+					                     existingContact.primaryInfo?.email || '';
+					
+					console.log(`[FORM-SUBMISSION] Contact already exists: ${existingContact._id}, email: ${existingEmail || 'none'}`);
+					
+					// If contact exists but has no email, update it with the email
+					if (!existingEmail && profileData.contactEmail) {
+						console.log(`[FORM-SUBMISSION] Updating existing contact with email: ${profileData.contactEmail}`);
+						try {
+							const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+							const revision = existingContact.revision || existingContact.info?.revision || 1;
+							await elevatedUpdateContact(existingContact._id, {
+								emails: {
+									items: [
+										{
+											email: profileData.contactEmail,
+											primary: true
+										}
+									]
+								}
+							}, revision);
+							console.log(`[FORM-SUBMISSION] ✅ Updated contact with email`);
+						} catch (updateError) {
+							console.warn(`[FORM-SUBMISSION] Could not update contact with email:`, updateError.message);
+						}
 					}
 				} else {
 					// Create new contact using createContact (not appendOrCreateContact to avoid reconciliation)
+					// IMPORTANT: Use elevate() to grant required permissions for createContact
 					try {
 						console.log(`[FORM-SUBMISSION] Attempting to create contact for: ${profileData.contactEmail}`);
-						const newContact = await wixCrmBackend.contacts.createContact({
-							primaryInfo: {
-								email: profileData.contactEmail
-							},
+						const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+						// Use contactName if available, otherwise use organizationName
+						const contactDisplayName = profileData.contactName || profileData.organizationName || 'Market';
+						const newContact = await elevatedCreateContact({
 							name: {
-								first: profileData.organizationName || 'Market',
+								first: contactDisplayName,
 								last: 'Participant'
 							},
-							subscriptionStatus: 'NOT_SET' // Allow emails to be sent
+							emails: {
+								items: [
+									{
+										email: profileData.contactEmail,
+										primary: true
+									}
+								]
+							}
 						}, {
 							allowDuplicates: true // Force creation even if email exists elsewhere
 						});
@@ -71,23 +122,47 @@ export async function submitSpecialtyProfile(profileData, dateIds) {
 						// If createContact fails, try appendOrCreateContact as fallback
 						console.warn(`[FORM-SUBMISSION] Trying appendOrCreateContact as fallback...`);
 						try {
+							// Use contactName if available, otherwise use organizationName
+							const contactDisplayName = profileData.contactName || profileData.organizationName || 'Market';
 							const fallbackContact = await wixCrmBackend.contacts.appendOrCreateContact({
 								email: profileData.contactEmail,
 								name: {
-									first: profileData.organizationName || 'Market',
+									first: contactDisplayName,
 									last: 'Participant'
 								},
 								subscriptionStatus: 'NOT_SET'
 							});
 							console.log(`[FORM-SUBMISSION] ✅ Contact created via appendOrCreateContact: ${fallbackContact.contactId || 'ID not returned'}`);
 							
-							// Verify the contact was created with correct email
-							if (fallbackContact.contactId) {
-								const verifyContact = await wixCrmBackend.contacts.getContact(fallbackContact.contactId);
-								const verifyEmail = verifyContact.info?.primaryEmail || verifyContact.primaryInfo?.email;
-								if (verifyEmail && verifyEmail.toLowerCase() !== profileData.contactEmail.toLowerCase()) {
-									console.error(`[FORM-SUBMISSION] ⚠️ WARNING: Contact email mismatch! Expected ${profileData.contactEmail}, got ${verifyEmail}`);
-									console.error(`[FORM-SUBMISSION] This may indicate appendOrCreateContact reconciled with admin's contact.`);
+							// Verify and update the contact email if needed
+							if (fallbackContact && (fallbackContact.contactId || fallbackContact._id)) {
+								const contactId = fallbackContact.contactId || fallbackContact._id;
+								try {
+									const verifyContact = await wixCrmBackend.contacts.getContact(contactId);
+									const verifyEmail = verifyContact.info?.primaryEmail || 
+									                   verifyContact.primaryInfo?.email || 
+									                   verifyContact.email || '';
+									
+									if (!verifyEmail || verifyEmail.toLowerCase() !== profileData.contactEmail.toLowerCase()) {
+										console.log(`[FORM-SUBMISSION] ⚠️ Contact email is missing or incorrect. Updating contact with correct email...`);
+										const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+										const revision = verifyContact.revision || verifyContact.info?.revision || 1;
+										await elevatedUpdateContact(contactId, {
+											emails: {
+												items: [
+													{
+														email: profileData.contactEmail,
+														primary: true
+													}
+												]
+											}
+										}, revision);
+										console.log(`[FORM-SUBMISSION] ✅ Successfully updated contact with email: ${profileData.contactEmail}`);
+									} else {
+										console.log(`[FORM-SUBMISSION] ✅ Contact email verified: ${verifyEmail}`);
+									}
+								} catch (updateError) {
+									console.warn(`[FORM-SUBMISSION] ⚠️ Warning: Failed to verify/update contact email:`, updateError.message);
 								}
 							}
 						} catch (appendError) {
@@ -165,50 +240,131 @@ export async function manualEntrySpecialtyProfile(profileData, dateIds, createCo
 			try {
 				console.log(`[MANUAL-ENTRY] Creating contact for: ${profileData.contactEmail}`);
 				
-				// First, check if contact already exists
-				const existingContacts = await wixCrmBackend.contacts.queryContacts()
+				// First, check if contact already exists by email
+				let existingContacts = await wixCrmBackend.contacts.queryContacts()
 					.eq('primaryInfo.email', profileData.contactEmail)
 					.limit(1)
 					.find();
 				
+				// If not found by email, also check by name (to catch contacts created without emails)
+				if ((!existingContacts.items || existingContacts.items.length === 0) && profileData.organizationName) {
+					console.log(`[MANUAL-ENTRY] Not found by email, checking by name: ${profileData.organizationName}`);
+					const nameSearch = await wixCrmBackend.contacts.queryContacts()
+						.limit(100)
+						.find();
+					
+					const matchingByName = nameSearch.items.filter(contact => {
+						const firstName = contact.info?.name?.first || contact.name?.first || '';
+						const lastName = contact.info?.name?.last || contact.name?.last || '';
+						const fullName = `${firstName} ${lastName}`.trim();
+						const orgName = profileData.organizationName.trim();
+						
+						return fullName.toLowerCase() === orgName.toLowerCase() ||
+						       fullName.toLowerCase() === `${orgName} Participant`.toLowerCase() ||
+						       (firstName.toLowerCase() === orgName.toLowerCase() && lastName === 'Participant');
+					});
+					
+					if (matchingByName.length > 0) {
+						existingContacts = { items: [matchingByName[0]] };
+						console.log(`[MANUAL-ENTRY] Found existing contact by name: ${matchingByName[0]._id}`);
+					}
+				}
+				
 				if (existingContacts.items && existingContacts.items.length > 0) {
-					console.log(`[MANUAL-ENTRY] Contact already exists: ${existingContacts.items[0]._id}`);
-					// Update subscription status if needed
-					try {
-						await wixCrmBackend.contacts.updateContact(existingContacts.items[0]._id, {
-							subscriptionStatus: 'NOT_SET'
-						});
-						console.log(`[MANUAL-ENTRY] Updated subscription status to NOT_SET`);
-					} catch (updateError) {
-						console.warn(`[MANUAL-ENTRY] Could not update subscription status:`, updateError.message);
+					const existingContact = existingContacts.items[0];
+					const existingEmail = existingContact.info?.primaryEmail || 
+					                     existingContact.primaryInfo?.email || '';
+					
+					console.log(`[MANUAL-ENTRY] Contact already exists: ${existingContact._id}, email: ${existingEmail || 'none'}`);
+					
+					// If contact exists but has no email, update it with the email
+					if (!existingEmail && profileData.contactEmail) {
+						console.log(`[MANUAL-ENTRY] Updating existing contact with email: ${profileData.contactEmail}`);
+						try {
+							const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+							const revision = existingContact.revision || existingContact.info?.revision || 1;
+							await elevatedUpdateContact(existingContact._id, {
+								emails: {
+									items: [
+										{
+											email: profileData.contactEmail,
+											primary: true
+										}
+									]
+								}
+							}, revision);
+							console.log(`[MANUAL-ENTRY] ✅ Updated contact with email`);
+						} catch (updateError) {
+							console.warn(`[MANUAL-ENTRY] Could not update contact with email:`, updateError.message);
+						}
 					}
 				} else {
 					// Create new contact
+					// IMPORTANT: Use elevate() to grant required permissions for createContact
 					try {
-						await wixCrmBackend.contacts.createContact({
-							primaryInfo: {
-								email: profileData.contactEmail
-							},
+						const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+						// Use contactName if available, otherwise use organizationName
+						const contactDisplayName = profileData.contactName || profileData.organizationName || 'Market';
+						await elevatedCreateContact({
 							name: {
-								first: profileData.organizationName || 'Market',
+								first: contactDisplayName,
 								last: 'Participant'
 							},
-							subscriptionStatus: 'NOT_SET'
+							emails: {
+								items: [
+									{
+										email: profileData.contactEmail,
+										primary: true
+									}
+								]
+							}
 						}, {
 							allowDuplicates: true
 						});
 						console.log(`[MANUAL-ENTRY] Contact created successfully`);
 					} catch (createError) {
 						console.warn(`[MANUAL-ENTRY] createContact failed, trying appendOrCreateContact:`, createError.message);
-						await wixCrmBackend.contacts.appendOrCreateContact({
+						// Use contactName if available, otherwise use organizationName
+						const contactDisplayName = profileData.contactName || profileData.organizationName || 'Market';
+						const fallbackContact = await wixCrmBackend.contacts.appendOrCreateContact({
 							email: profileData.contactEmail,
 							name: {
-								first: profileData.organizationName || 'Market',
+								first: contactDisplayName,
 								last: 'Participant'
 							},
 							subscriptionStatus: 'NOT_SET'
 						});
 						console.log(`[MANUAL-ENTRY] Contact created via appendOrCreateContact`);
+						
+						// Verify and update email if needed
+						if (fallbackContact && (fallbackContact.contactId || fallbackContact._id)) {
+							const contactId = fallbackContact.contactId || fallbackContact._id;
+							try {
+								const verifyContact = await wixCrmBackend.contacts.getContact(contactId);
+								const verifyEmail = verifyContact.info?.primaryEmail || 
+								                   verifyContact.primaryInfo?.email || 
+								                   verifyContact.email || '';
+								
+								if (!verifyEmail || verifyEmail.toLowerCase() !== profileData.contactEmail.toLowerCase()) {
+									console.log(`[MANUAL-ENTRY] ⚠️ Contact email is missing or incorrect. Updating contact with correct email...`);
+									const elevatedUpdateContact = elevate(wixCrmBackend.contacts.updateContact);
+									const revision = verifyContact.revision || verifyContact.info?.revision || 1;
+									await elevatedUpdateContact(contactId, {
+										emails: {
+											items: [
+												{
+													email: profileData.contactEmail,
+													primary: true
+												}
+											]
+										}
+									}, revision);
+									console.log(`[MANUAL-ENTRY] ✅ Successfully updated contact with email: ${profileData.contactEmail}`);
+								}
+							} catch (updateError) {
+								console.warn(`[MANUAL-ENTRY] ⚠️ Warning: Failed to verify/update contact email:`, updateError.message);
+							}
+						}
 					}
 				}
 			} catch (contactError) {

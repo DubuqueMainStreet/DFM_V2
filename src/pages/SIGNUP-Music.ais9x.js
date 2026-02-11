@@ -331,6 +331,7 @@ async function handleSubmit() {
 		$w('#btnSubmit').disable();
 		
 		const organizationName = $w('#inputName').value?.trim();
+		const contactName = $w('#inputContactName').value?.trim() || null;
 		const contactEmail = $w('#inputEmail').value?.trim();
 		const contactPhone = $w('#inputPhone').value?.trim();
 		const musicianType = $w('#inputMusicianType').value?.trim();
@@ -369,6 +370,7 @@ async function handleSubmit() {
 			type: 'Musician',
 			title: organizationName,
 			organizationName: organizationName,
+			contactName: contactName, // Optional - actual contact person name
 			contactEmail: contactEmail,
 			contactPhone: contactPhone,
 			musicianType: musicianType,
@@ -399,6 +401,7 @@ async function handleSubmit() {
 
 function resetForm() {
 	$w('#inputName').value = '';
+	$w('#inputContactName').value = '';
 	$w('#inputEmail').value = '';
 	$w('#inputPhone').value = '';
 	$w('#inputMusicianType').value = '';
