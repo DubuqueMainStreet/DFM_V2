@@ -486,7 +486,10 @@ export async function testVendorsCollectionQuery() {
         return { 
             success: true, 
             message: `Test successful. Found ${results.totalCount} vendors in collection.`,
-            sampleItems: results.items.slice(0, 3)
+            totalCount: results.totalCount,
+            count: results.items.length,
+            sampleItems: results.items.slice(0, 3),
+            firstItem: results.items.length > 0 ? results.items[0] : null
         };
     } catch (error) {
         console.error(`${FUNCTION_NAME}: Test failed:`, error);

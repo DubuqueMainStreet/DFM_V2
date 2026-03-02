@@ -1,0 +1,13 @@
+diff --git a/node_modules/@wix/cli/build/chunk-LZKP5LN2.js b/node_modules/@wix/cli/build/chunk-LZKP5LN2.js
+index 8f5289d..c92cfbf 100644
+--- a/node_modules/@wix/cli/build/chunk-LZKP5LN2.js
++++ b/node_modules/@wix/cli/build/chunk-LZKP5LN2.js
+@@ -2062,7 +2062,7 @@ var require_follow_redirects = __commonJS({
+     function wrap(protocols) {
+       var exports2 = {
+         maxRedirects: 21,
+-        maxBodyLength: 10 * 1024 * 1024
++        maxBodyLength: 100 * 1024 * 1024
+       };
+       var nativeProtocols = {};
+       Object.keys(protocols).forEach(function(scheme) {

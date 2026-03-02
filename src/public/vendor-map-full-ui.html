@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dubuque Farmers' Market Interactive Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org">
+    <!-- Poppins from Google Fonts (local files removed to stay under Wix CLI sync limit) -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <style>
+        /* ==================== BRAND FONTS (Farmers Market) ==================== */
+        /* Primary H1 */
+        @font-face {
+            font-family: 'TAY Milkbar';
+            src: url('fonts/TAYMilkbar.otf') format('opentype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        /* Supporting headers */
+        @font-face {
+            font-family: 'TAY Dreamboat';
+            src: url('fonts/TAYDreamboat.otf') format('opentype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'TAY Dreamboat Thin';
+            src: url('fonts/TAYDreamboat-Thin.otf') format('opentype');
+            font-weight: 300;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Outdoors Inks';
+            src: url('fonts/OutdoorsInks-Regular.otf') format('opentype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Outdoors Inks';
+            src: url('fonts/OutdoorsInks-WildMedium.otf') format('opentype');
+            font-weight: 600;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Outdoors Inks';
+            src: url('fonts/OutdoorsInks-Rough.otf') format('opentype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        /* Poppins: loaded via Google Fonts link above (no local files) */
+
+        /* ==================== DFM BRAND DESIGN SYSTEM ==================== */
+        :root {
+            /* DFM Brand (from logo) */
+            --dfm-gold: #EBAE1E;
+            --dfm-gold-light: #FDCB22;
+            --dfm-green: #3EB449;
+            --dfm-teal: #1E5C4E;
+            --dfm-muted: #759287;
+            --dfm-black: #1a1a1a;
+            --dfm-white: #ffffff;
+
+            /* Semantic mappings */
+            --color-primary: var(--dfm-green);
+            --color-accent: var(--dfm-gold);
+            --color-text: var(--dfm-teal);
+            --color-text-muted: var(--dfm-muted);
+
+            /* Legacy aliases (for gradual migration) */
+            --forest: var(--dfm-teal);
+            --sage: var(--dfm-green);
+            --moss: #7a9b6d;
+            --mint: #c8dcc0;
+            --leaf: var(--dfm-green);
+            --cream: #faf8f5;
+            --sand: #e8e4dc;
+            --clay: var(--dfm-muted);
+            --terracotta: #9c6644;
+            --soil: #5c4a3d;
+            --gold: var(--dfm-gold);
+            --rust: #bf5f3f;
+            --berry: #8b3a62;
+            --white: var(--dfm-white);
+            --charcoal: var(--dfm-black);
+            --stone: var(--dfm-muted);
+            --mist: #f0f0ed;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(30, 92, 78, 0.08);
+            --shadow-md: 0 4px 12px rgba(30, 92, 78, 0.12);
+            --shadow-lg: 0 8px 24px rgba(30, 92, 78, 0.16);
+            --shadow-glow: 0 0 20px rgba(62, 180, 73, 0.25);
+
+            /* Typography — Milkbar (H1), Dreamboat / Outdoors Inks (supporting), Poppins (copy) */
+            --font-h1: 'TAY Milkbar', Georgia, serif;
+            --font-display: 'TAY Dreamboat', 'TAY Milkbar', Georgia, serif;
+            --font-display-thin: 'TAY Dreamboat Thin', 'TAY Milkbar', Georgia, serif;
+            --font-display-ink: 'Outdoors Inks', 'TAY Dreamboat', Georgia, serif;
+            --font-body: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+
+            /* Borders */
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-pill: 50px;
+        }
+
+        /* ==================== RESET & BASE ==================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: var(--font-body);
+            background: var(--cream);
+            color: var(--charcoal);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent;
+            contain: layout style paint;
+        }
+
+        /* ==================== LAYOUT ==================== */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ==================== HEADER / CONTROLS ==================== */
+        .controls-panel {
+            background: var(--white);
+            border-bottom: 1px solid var(--sand);
+            box-shadow: var(--shadow-md);
+            z-index: 1000;
+            padding: var(--space-sm) var(--space-md);
+            flex-shrink: 0;
+        }
+
+        .controls-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-sm);
+        }
+
+        .brand-logo {
+            height: 36px;
+            width: auto;
+            object-fit: contain;
+            display: none; /* Hide on mobile to save space */
+        }
+
+        .brand-logo-link {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        @media (min-width: 640px) {
+            .brand-logo {
+                display: block;
+                height: 44px;
+            }
+        }
+
+        /* Date Selector */
+        .date-selector {
+            position: relative;
+            flex: 0 0 auto;
+        }
+
+        .date-select {
+            appearance: none;
+            background: var(--forest);
+            color: var(--white);
+            border: none;
+            padding: var(--space-sm) var(--space-lg) var(--space-sm) var(--space-md);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 160px;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .date-select:hover {
+            background: var(--sage);
+            box-shadow: var(--shadow-md);
+        }
+
+        .date-select:focus {
+            outline: none;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .date-selector::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--white);
+            font-size: 0.7rem;
+            pointer-events: none;
+        }
+
+        /* Search Bar */
+        .search-container {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: var(--space-sm) var(--space-md) var(--space-sm) 40px;
+            border: 2.5px solid var(--clay);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            background: var(--mist);
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--sage);
+            background: var(--white);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .search-input::placeholder {
+            color: var(--stone);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--stone);
+            font-size: 0.9rem;
+        }
+
+        .search-clear {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--stone);
+            color: var(--white);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 0.85rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .search-container.has-value .search-clear {
+            opacity: 1;
+        }
+
+        /* ==================== FILTER BUTTONS ==================== */
+        .filters-scroll {
+            position: relative;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            margin: 0 calc(-1 * var(--space-md));
+            padding: var(--space-xs) var(--space-md);
+            scroll-snap-type: x mandatory;
+        }
+
+        .filters-scroll::before,
+        .filters-scroll::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 32px;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .filters-scroll::before {
+            left: 0;
+            background: linear-gradient(to left, transparent, var(--white));
+        }
+
+        .filters-scroll::after {
+            right: 0;
+            background: linear-gradient(to right, transparent, var(--white));
+        }
+
+        .filters-scroll.scrolled-left::before {
+            opacity: 1;
+        }
+
+        .filters-scroll.scrolled-right::after {
+            opacity: 1;
+        }
+
+        .filters-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filters-grid {
+            display: flex;
+            gap: var(--space-sm);
+            width: max-content;
+        }
+
+        .filter-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            min-height: 44px;
+            background: var(--white);
+            border: 2px solid var(--clay);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-body);
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--charcoal);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            -webkit-user-select: none;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+        }
+
+        .filter-btn:hover {
+            background: var(--mist);
+            border-color: var(--sage);
+            transform: translateY(-1px);
+        }
+
+        .filter-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .filter-btn.active {
+            background: var(--forest);
+            border-color: var(--forest);
+            color: var(--white);
+            box-shadow: var(--shadow-md);
+        }
+
+        .filter-btn i {
+            font-size: 0.9rem;
+        }
+
+        /* Category-specific colors for active state */
+        .filter-btn[data-category="food"].active { background: var(--terracotta); border-color: var(--terracotta); }
+        .filter-btn[data-category="produce"].active { background: var(--leaf); border-color: var(--leaf); }
+        .filter-btn[data-category="artisan"].active { background: var(--berry); border-color: var(--berry); }
+        .filter-btn[data-category="poi"].active { background: var(--sage); border-color: var(--sage); }
+        .filter-btn[data-category="utility"].active { background: var(--clay); border-color: var(--clay); }
+
+        /* Clear All Button */
+        .clear-all-btn {
+            background: transparent;
+            border: 2px dashed var(--stone);
+            color: var(--stone);
+            padding: 8px 16px;
+        }
+
+        .clear-all-btn:hover {
+            background: var(--mist);
+            border-style: solid;
+            border-color: var(--rust);
+            color: var(--rust);
+        }
+
+        /* ==================== MAP CONTAINER ==================== */
+        .map-wrapper {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            background: var(--cream);
+            z-index: 1;
+            contain: layout style paint;
+        }
+
+        /* ==================== LOADING OVERLAY ==================== */
+        .map-loader {
+            position: absolute;
+            inset: 0;
+            background: rgba(250, 248, 245, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            transition: opacity 0.3s ease;
+        }
+
+        .map-loader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--sand);
+            border-top-color: var(--dfm-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: var(--space-md);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            font-weight: 500;
+            color: var(--charcoal);
+        }
+
+        /* ==================== INFO MESSAGE ==================== */
+        .map-message {
+            position: absolute;
+            top: var(--space-md);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dfm-teal);
+            color: var(--dfm-white);
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius-pill);
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            z-index: 1001;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .map-message.visible {
+            opacity: 1;
+        }
+
+        .map-message .msg-clear-filters {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 2px 10px;
+            background: rgba(255,255,255,0.25);
+            color: inherit;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .map-message .msg-clear-filters:hover {
+            background: rgba(255,255,255,0.35);
+        }
+
+        /* ==================== MAP CONTROL BUTTONS ==================== */
+        .fit-market-btn,
+        .locate-btn {
+            position: absolute;
+            bottom: var(--space-lg);
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--white);
+            border: none;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: all 0.2s ease;
+        }
+
+        .fit-market-btn {
+            right: calc(var(--space-md) + 58px);
+        }
+
+        .fit-market-btn:hover {
+            background: var(--mist);
+            transform: scale(1.05);
+        }
+
+        .fit-market-btn i {
+            font-size: 1.15rem;
+            color: var(--charcoal);
+        }
+
+        .locate-btn {
+            right: var(--space-md);
+        }
+
+        .locate-btn:hover {
+            background: var(--mist);
+            transform: scale(1.05);
+        }
+
+        .locate-btn:active {
+            transform: scale(0.95);
+        }
+
+        .locate-btn i {
+            font-size: 1.2rem;
+            color: var(--charcoal);
+        }
+
+        .locate-btn.locating i {
+            color: var(--sage);
+            animation: pulse 1.5s infinite;
+        }
+
+        .locate-btn.active {
+            background: var(--forest);
+        }
+
+        .locate-btn.active i {
+            color: var(--white);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ==================== VENDOR COUNT BADGE ==================== */
+        .vendor-count {
+            position: absolute;
+            bottom: var(--space-lg);
+            left: var(--space-md);
+            background: var(--white);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--sand);
+            box-shadow: var(--shadow-md);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            z-index: 1000;
+        }
+
+        .vendor-count span {
+            color: var(--dfm-green);
+        }
+
+        .test-data-badge {
+            position: absolute;
+            top: var(--space-md);
+            right: var(--space-md);
+            background: var(--dfm-gold);
+            color: var(--dfm-black);
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: 0.7rem;
+            font-weight: 600;
+            z-index: 1000;
+            display: none;
+        }
+
+        .test-data-badge.visible {
+            display: block;
+        }
+
+        /* ==================== SKELETON LOADING ==================== */
+        .skeleton {
+            background: linear-gradient(
+                90deg,
+                var(--sand) 25%,
+                var(--mist) 50%,
+                var(--sand) 75%
+            );
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: var(--radius-sm);
+        }
+
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-btn {
+            width: 100px;
+            height: 36px;
+            border-radius: var(--radius-pill);
+        }
+
+        /* ==================== LEAFLET OVERRIDES ==================== */
+        .leaflet-control-zoom {
+            border: none !important;
+            box-shadow: var(--shadow-md) !important;
+            border-radius: var(--radius-md) !important;
+            overflow: hidden;
+        }
+
+        .leaflet-control-zoom a {
+            background: var(--white) !important;
+            color: var(--charcoal) !important;
+            border: none !important;
+            width: 44px !important;
+            height: 44px !important;
+            line-height: 44px !important;
+            font-size: 1.2rem !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: var(--mist) !important;
+        }
+
+        /* Custom Popup Styling */
+        .leaflet-popup-content-wrapper {
+            background: var(--white);
+            border-radius: var(--radius-md);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .leaflet-popup-content {
+            margin: 0;
+            min-width: 280px;
+            max-width: 340px;
+            line-height: 1.5;
+        }
+
+        .leaflet-popup-tip {
+            background: var(--white);
+            box-shadow: none;
+        }
+
+        .leaflet-popup-close-button {
+            color: rgba(255,255,255,0.85) !important;
+            font-size: 22px !important;
+            width: 30px !important;
+            height: 30px !important;
+            line-height: 30px !important;
+            padding: 0 !important;
+            right: 8px !important;
+            top: 8px !important;
+            z-index: 10;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.15) !important;
+            transition: background 0.15s ease;
+        }
+
+        .leaflet-popup-close-button:hover {
+            background: rgba(0,0,0,0.25) !important;
+        }
+
+        .popup-header {
+            background: var(--forest);
+            color: var(--white);
+            padding: 14px 16px 12px;
+        }
+
+        .popup-title {
+            font-family: var(--font-body);
+            font-size: 1.05rem;
+            font-weight: 600;
+            line-height: 1.3;
+            letter-spacing: 0.01em;
+            margin-bottom: 4px;
+            padding-right: 24px;
+        }
+
+        .popup-subtitle {
+            font-family: var(--font-body);
+            font-size: 0.8rem;
+            font-weight: 400;
+            opacity: 1;
+            letter-spacing: 0.01em;
+        }
+
+        .popup-body {
+            padding: 12px 16px;
+            font-family: var(--font-body);
+        }
+
+        .popup-body:empty {
+            display: none;
+        }
+
+        .popup-description {
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: var(--charcoal);
+            line-height: 1.6;
+            margin-bottom: var(--space-sm);
+        }
+
+        .popup-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .popup-tag {
+            font-family: var(--font-body);
+            background: var(--mist);
+            color: var(--charcoal);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            border-left: 3px solid var(--tag-accent, var(--stone));
+        }
+
+        .popup-actions {
+            display: flex;
+            gap: var(--space-sm);
+            padding: 12px 16px 14px;
+            border-top: 1px solid var(--sand);
+        }
+
+        .popup-btn {
+            flex: 1;
+            padding: 10px 14px;
+            min-height: 44px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-body);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .popup-btn-primary,
+        .popup-btn-primary:link,
+        .popup-btn-primary:visited,
+        .popup-btn-primary:hover,
+        .popup-btn-primary:focus {
+            background: var(--forest);
+            color: var(--white) !important;
+            border: none;
+            font-weight: 700;
+        }
+
+        .popup-btn-primary:hover,
+        .popup-btn-primary:focus {
+            background: var(--sage);
+        }
+
+        .popup-btn-secondary {
+            background: var(--mist);
+            color: var(--charcoal);
+            border: 1px solid var(--sand);
+            border-left: 3px solid var(--stone);
+        }
+
+        .popup-btn-secondary:hover {
+            background: var(--sand);
+        }
+
+        .popup-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            margin-top: var(--space-sm);
+            padding-top: var(--space-sm);
+            border-top: 1px solid var(--sand);
+        }
+
+        .popup-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            font-family: var(--font-body);
+            font-size: 0.8rem;
+            color: var(--forest);
+            background: transparent;
+            border: 1px solid var(--sand);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+        }
+
+        .popup-nav-btn:hover {
+            background: var(--mist);
+        }
+
+        .popup-nav-count {
+            font-family: var(--font-body);
+            font-size: 0.8rem;
+            color: var(--charcoal-muted);
+        }
+
+        .filter-btn:focus-visible,
+        .date-select:focus-visible,
+        .search-input:focus-visible,
+        .popup-btn:focus-visible,
+        .locate-btn:focus-visible,
+        .fit-market-btn:focus-visible,
+        .popup-nav-btn:focus-visible,
+        .search-clear:focus-visible {
+            outline: 3px solid var(--dfm-gold);
+            outline-offset: 2px;
+        }
+
+        .active-filter-chip {
+            display: none;
+            position: absolute;
+            top: var(--space-sm);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--forest);
+            color: var(--white);
+            padding: 6px 14px 6px 12px;
+            border-radius: var(--radius-pill);
+            font-family: var(--font-body);
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 1001;
+            box-shadow: var(--shadow-md);
+            gap: 8px;
+            align-items: center;
+            max-width: 90%;
+            white-space: nowrap;
+        }
+
+        .active-filter-chip.visible {
+            display: inline-flex;
+        }
+
+        .active-filter-chip button {
+            background: rgba(255,255,255,0.25);
+            border: none;
+            color: inherit;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 4px;
+            flex-shrink: 0;
+        }
+
+        .legend-btn {
+            position: absolute;
+            bottom: calc(var(--space-lg) + 100px);
+            left: var(--space-md);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--white);
+            border: none;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-size: 1.1rem;
+            color: var(--charcoal);
+        }
+
+        .legend-overlay {
+            display: none;
+            position: absolute;
+            bottom: calc(var(--space-lg) + 150px);
+            left: var(--space-md);
+            background: var(--white);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            padding: 14px 16px;
+            z-index: 1001;
+            min-width: 180px;
+            font-family: var(--font-body);
+        }
+
+        .legend-overlay.visible {
+            display: block;
+        }
+
+        .legend-overlay h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--charcoal);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 0;
+            font-size: 0.8rem;
+            color: var(--charcoal);
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid var(--white);
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.12);
+            flex-shrink: 0;
+        }
+
+        /* ==================== MARKER STYLES ==================== */
+        /* Reset Leaflet divIcon wrapper — eliminate default background/border */
+        .leaflet-marker-icon.vendor-marker,
+        .leaflet-marker-icon.empty-stall-marker {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .vendor-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vendor-marker .marker-pin {
+            border-radius: 50%;
+            border: 2.5px solid var(--white);
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            will-change: transform;
+        }
+
+        .vendor-marker .marker-pin:hover {
+            transform: scale(1.12);
+        }
+
+        .vendor-marker .marker-pin i {
+            color: var(--white);
+        }
+
+        .vendor-marker.highlighted .marker-pin {
+            transform: scale(1.2);
+            box-shadow: 0 0 0 4px rgba(62, 180, 73, 0.3), 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .vendor-marker.dimmed .marker-pin {
+            opacity: 0.35;
+        }
+
+        .empty-stall-marker .marker-pin {
+            opacity: 0.7;
+        }
+
+        /* User Location */
+        .user-location-marker {
+            width: 16px;
+            height: 16px;
+            background: #2196F3;
+            border: 3px solid var(--white);
+            border-radius: 50%;
+            box-shadow: var(--shadow-md);
+        }
+
+        .user-accuracy-circle {
+            background: rgba(33, 150, 243, 0.15);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 480px) {
+            .controls-panel {
+                padding: var(--space-xs) var(--space-sm);
+            }
+
+            .controls-header {
+                gap: var(--space-sm);
+            }
+
+            .date-select {
+                min-width: 130px;
+                font-size: 0.85rem;
+                padding: 6px var(--space-lg) 6px var(--space-sm);
+            }
+
+            .search-input {
+                font-size: 0.85rem;
+                padding: 6px var(--space-md) 6px 36px;
+            }
+
+            .filter-btn {
+                padding: 10px 14px;
+                min-height: 44px;
+                font-size: 0.75rem;
+            }
+
+            .filters-grid {
+                gap: 6px;
+            }
+
+            .vendor-count {
+                bottom: var(--space-md);
+                left: var(--space-sm);
+                font-size: 0.85rem;
+            }
+
+            .fit-market-btn,
+            .locate-btn {
+                width: 46px;
+                height: 46px;
+                bottom: var(--space-md);
+            }
+
+            .fit-market-btn {
+                right: calc(var(--space-sm) + 52px);
+            }
+
+            .locate-btn {
+                right: var(--space-sm);
+            }
+
+            .leaflet-popup-content {
+                min-width: 260px;
+                max-width: 300px;
+            }
+
+            .popup-title {
+                font-size: 0.95rem;
+            }
+
+            .popup-btn {
+                font-size: 0.8rem;
+                padding: 10px 10px;
+                min-height: 44px;
+            }
+
+            .legend-btn {
+                bottom: calc(var(--space-md) + 96px);
+                left: var(--space-sm);
+                width: 40px;
+                height: 40px;
+            }
+
+            .legend-overlay {
+                bottom: calc(var(--space-md) + 140px);
+                left: var(--space-sm);
+                max-height: 50vh;
+                overflow-y: auto;
+            }
+
+            .map-message {
+                top: var(--space-lg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <div class="controls-header">
+                <a href="/" class="brand-logo-link" aria-label="Dubuque Farmers' Market home">
+                    <img src="https://static.wixstatic.com/media/f27fe6_5f9fa55638b04d90a32b4397229fdae2~mv2.png" alt="Dubuque Farmers' Market" class="brand-logo">
+                </a>
+                
+                <div class="date-selector">
+                    <select id="date-select" class="date-select" aria-label="Select market date">
+                        <option value="">Loading dates...</option>
+                    </select>
+                </div>
+
+                <div class="search-container" id="search-container">
+                    <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+                    <input type="text" class="search-input" id="search-input" placeholder="Search vendors..." aria-label="Search vendors by name or product" enterkeyhint="search">
+                    <button class="search-clear" id="search-clear" aria-label="Clear search"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                </div>
+            </div>
+
+            <div class="filters-scroll">
+                <div class="filters-grid" id="filters-grid">
+                    <!-- Vendor Type Filters -->
+                    <button class="filter-btn" data-type="vendorType" data-value="On-site Prepared Food Vendor" data-category="food">
+                        <i class="fa-solid fa-utensils"></i> Ready to Eat
+                    </button>
+                    <button class="filter-btn" data-type="vendorType" data-value="Grower/Producer/Processor" data-category="produce">
+                        <i class="fa-solid fa-carrot"></i> Farm Fresh
+                    </button>
+                    <button class="filter-btn" data-type="keyword" data-value="bakery bread cookie pie cake sweet pastry" data-category="food">
+                        <i class="fa-solid fa-cake-candles"></i> Baked Goods
+                    </button>
+                    <button class="filter-btn" data-type="keyword" data-value="coffee espresso latte tea chai" data-category="food">
+                        <i class="fa-solid fa-mug-saucer"></i> Coffee & Tea
+                    </button>
+                    <button class="filter-btn" data-type="keyword" data-value="snap ebt dufb double up food bucks" data-category="utility">
+                        <i class="fa-solid fa-credit-card"></i> SNAP/EBT
+                    </button>
+                    
+                    <!-- POI Filters -->
+                    <button class="filter-btn" data-type="poiType" data-value="Information" data-category="poi">
+                        <i class="fa-solid fa-circle-info"></i> Info
+                    </button>
+                    <button class="filter-btn" data-type="poiType" data-value="Restroom" data-category="poi">
+                        <i class="fa-solid fa-restroom"></i> Restrooms
+                    </button>
+                    <button class="filter-btn" data-type="poiType" data-value="SeatingArea" data-category="poi">
+                        <i class="fa-solid fa-chair"></i> Seating
+                    </button>
+                    <button class="filter-btn" data-type="poiType" data-value="PublicParkingArea" data-category="utility">
+                        <i class="fa-solid fa-square-parking"></i> Parking
+                    </button>
+                    <button class="filter-btn" data-type="poiType" data-value="Market Tokens" data-category="utility">
+                        <i class="fa-solid fa-coins"></i> Tokens
+                    </button>
+                    
+                    <!-- Clear All -->
+                    <button class="filter-btn clear-all-btn" id="clear-all-btn">
+                        <i class="fa-solid fa-rotate-left"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="map-wrapper">
+            <div id="map" role="application" aria-label="Dubuque Farmers Market interactive map"></div>
+            
+            <!-- Loading Overlay -->
+            <div class="map-loader" id="map-loader">
+                <div class="loader-spinner"></div>
+                <span class="loader-text">Loading market map...</span>
+            </div>
+
+            <!-- Info Message -->
+            <div class="map-message" id="map-message"></div>
+
+            <!-- Active Filter Chip -->
+            <div class="active-filter-chip" id="active-filter-chip">
+                <span id="active-filter-label"></span>
+                <button type="button" id="active-filter-clear" aria-label="Clear active filter"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </div>
+
+            <!-- Vendor Count -->
+            <div class="vendor-count" id="vendor-count">
+                <span id="vendor-count-num">0</span> vendors today
+            </div>
+
+            <!-- Legend -->
+            <button class="legend-btn" id="legend-btn" title="Map legend" aria-label="Show map legend">
+                <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+            </button>
+            <div class="legend-overlay" id="legend-overlay" role="complementary" aria-label="Map legend">
+                <h4>Map Legend</h4>
+                <div class="legend-item"><div class="legend-dot" style="background:#3EB449"></div> Farm Fresh / Produce</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#EBAE1E"></div> Ready-to-Eat Food</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#1E5C4E"></div> Crafters / Artisans</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#7a9b6d"></div> Occasional Vendors</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#759287"></div> Points of Interest</div>
+                <div class="legend-item" style="margin-top:8px;font-weight:600">Icon categories (auto-matched)</div>
+                <div class="legend-item"><i class="fa-solid fa-carrot" aria-hidden="true"></i> Produce / Farm Goods</div>
+                <div class="legend-item"><i class="fa-solid fa-bread-slice" aria-hidden="true"></i> Bakery / Pantry</div>
+                <div class="legend-item"><i class="fa-solid fa-utensils" aria-hidden="true"></i> Prepared Food</div>
+                <div class="legend-item"><i class="fa-solid fa-gem" aria-hidden="true"></i> Artisan Crafts</div>
+            </div>
+
+            <!-- Map controls: Fit market + Locate -->
+            <button class="fit-market-btn" id="fit-market-btn" title="Fit map to market" aria-label="Fit map to market area" style="display: none;">
+                <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+            </button>
+            <button class="locate-btn" id="locate-btn" title="Find my location" aria-label="Find my location on map">
+                <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
+            </button>
+
+            <!-- Test Data Badge (shown when using mock data) -->
+            <div class="test-data-badge" id="test-data-badge" aria-hidden="true">Test Data</div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURATION ====================
+        const VENDOR_TYPE_COLORS = {
+            "Grower/Producer/Processor": "#3EB449",
+            "On-site Prepared Food Vendor": "#EBAE1E",
+            "Crafter/Artisan": "#1E5C4E",
+            "Occasional Vendor": "#7a9b6d",
+            "Default": "#759287"
+        };
+
+        const VENDOR_TYPE_FALLBACK_ICONS = {
+            "Grower/Producer/Processor": "fa-leaf",
+            "On-site Prepared Food Vendor": "fa-utensils",
+            "Crafter/Artisan": "fa-paintbrush",
+            "Occasional Vendor": "fa-store"
+        };
+
+        const VENDOR_ICON_RULES = [
+            // Produce and growing
+            { keywords: ["flower", "bouquet", "floral", "arrangement"], faClass: "fa-spa", priority: 60 },
+            { keywords: ["lavender", "wildflower", "sunflower"], faClass: "fa-spa", priority: 58 },
+            { keywords: ["mushroom", "fungi", "morel", "shiitake", "oyster mushroom"], faClass: "fa-cloud-meatball", priority: 56 },
+            { keywords: ["microgreen", "microgreens", "sprout", "sprouts"], faClass: "fa-seedling", priority: 55 },
+            { keywords: ["herb", "herbs", "basil", "cilantro", "mint", "rosemary", "thyme"], faClass: "fa-seedling", priority: 54 },
+            { keywords: ["garden", "plant", "nursery", "seedling", "greens"], faClass: "fa-seedling", priority: 48 },
+            { keywords: ["vegetable", "produce", "carrot", "beet", "turnip", "radish"], faClass: "fa-carrot", priority: 45 },
+            { keywords: ["lettuce", "kale", "spinach", "tomato", "pepper", "squash", "zucchini"], faClass: "fa-carrot", priority: 44 },
+            { keywords: ["corn", "potato", "onion", "garlic", "cucumber", "asparagus", "pumpkin", "gourd"], faClass: "fa-carrot", priority: 43 },
+            { keywords: ["fruit", "fruits", "berry", "berries", "apple", "peach", "plum", "melon"], faClass: "fa-apple-whole", priority: 44 },
+            { keywords: ["strawberry", "blueberry", "raspberry", "blackberry", "grape", "cherry", "pear", "watermelon"], faClass: "fa-apple-whole", priority: 45 },
+            { keywords: ["orchard", "citrus"], faClass: "fa-apple-whole", priority: 44 },
+
+            // Proteins and dairy
+            { keywords: ["egg", "eggs", "breakfast"], faClass: "fa-egg", priority: 57 },
+            { keywords: ["beef", "steak", "cow", "cattle", "bison", "buffalo"], faClass: "fa-cow", priority: 52 },
+            { keywords: ["pork", "bacon", "ham", "sausage", "brat", "brats"], faClass: "fa-bacon", priority: 52 },
+            { keywords: ["chicken", "poultry", "turkey", "duck"], faClass: "fa-drumstick-bite", priority: 52 },
+            { keywords: ["fish", "seafood", "shrimp", "trout", "salmon", "catfish"], faClass: "fa-fish-fins", priority: 52 },
+            { keywords: ["lamb", "goat"], faClass: "fa-drumstick-bite", priority: 47 },
+            { keywords: ["cheese", "dairy", "milk", "butter", "yogurt", "cream", "curd"], faClass: "fa-cheese", priority: 52 },
+            { keywords: ["meat", "meats", "jerky", "snack stick", "snack sticks"], faClass: "fa-drumstick-bite", priority: 40 },
+            { keywords: ["charcuterie"], faClass: "fa-bacon", priority: 48 },
+            { keywords: ["protein"], faClass: "fa-drumstick-bite", priority: 35 },
+
+            // Baked goods and sweets
+            { keywords: ["donut", "doughnut"], faClass: "fa-stroopwafel", priority: 58 },
+            { keywords: ["pastry", "croissant", "danish", "scone"], faClass: "fa-stroopwafel", priority: 56 },
+            { keywords: ["pie", "pies", "cobbler"], faClass: "fa-chart-pie", priority: 57 },
+            { keywords: ["cookie", "cookies", "biscuit", "biscuits"], faClass: "fa-cookie-bite", priority: 57 },
+            { keywords: ["cake", "cupcake", "cupcakes"], faClass: "fa-cake-candles", priority: 56 },
+            { keywords: ["bread", "roll", "rolls", "baguette", "sourdough", "loaf", "bagel"], faClass: "fa-bread-slice", priority: 53 },
+            { keywords: ["bakery", "baked goods", "pastries"], faClass: "fa-cake-candles", priority: 46 },
+            { keywords: ["sweet", "confection", "candy", "chocolate", "fudge", "caramel", "truffle"], faClass: "fa-cake-candles", priority: 45 },
+            { keywords: ["brownie", "brownies"], faClass: "fa-cookie-bite", priority: 54 },
+            { keywords: ["dessert", "desserts"], faClass: "fa-cake-candles", priority: 44 },
+
+            // Beverages
+            { keywords: ["coffee", "espresso", "latte", "cappuccino", "americano"], faClass: "fa-mug-saucer", priority: 57 },
+            { keywords: ["tea", "chai", "herbal tea", "matcha"], faClass: "fa-leaf", priority: 53 },
+            { keywords: ["kombucha", "fermented drink"], faClass: "fa-wine-bottle", priority: 53 },
+            { keywords: ["cider", "wine", "mead", "spirits"], faClass: "fa-wine-bottle", priority: 52 },
+            { keywords: ["lemonade", "juice", "smoothie"], faClass: "fa-glass-water", priority: 49 },
+            { keywords: ["drink", "drinks", "beverage", "beverages"], faClass: "fa-glass-water", priority: 44 },
+            { keywords: ["soda", "sparkling"], faClass: "fa-glass-water", priority: 45 },
+            { keywords: ["mocktail"], faClass: "fa-glass-water", priority: 48 },
+
+            // Pantry and preserved goods
+            { keywords: ["honey", "bee", "bees", "apiary", "beeswax"], faClass: "fa-jar", priority: 58 },
+            { keywords: ["jam", "jelly", "preserve", "preserves", "marmalade"], faClass: "fa-jar-wheat", priority: 57 },
+            { keywords: ["sauce", "salsa", "hot sauce", "bbq", "barbecue"], faClass: "fa-bottle-droplet", priority: 54 },
+            { keywords: ["condiment", "dressing", "vinegar", "marinade"], faClass: "fa-bottle-droplet", priority: 50 },
+            { keywords: ["syrup", "maple"], faClass: "fa-bottle-droplet", priority: 51 },
+            { keywords: ["pickle", "pickles", "sauerkraut", "kimchi"], faClass: "fa-jar", priority: 50 },
+            { keywords: ["spice", "spices", "seasoning", "seasonings", "rub"], faClass: "fa-mortar-pestle", priority: 52 },
+            { keywords: ["tincture", "extract"], faClass: "fa-mortar-pestle", priority: 49 },
+            { keywords: ["pasta", "noodle", "noodles"], faClass: "fa-wheat-awn", priority: 50 },
+            { keywords: ["grain", "grains", "flour", "oat", "oats", "granola", "cereal"], faClass: "fa-wheat-awn", priority: 47 },
+            { keywords: ["nut", "nuts", "almond", "pecan", "walnut", "peanut"], faClass: "fa-seedling", priority: 45 },
+            { keywords: ["oil", "olive oil"], faClass: "fa-bottle-droplet", priority: 45 },
+            { keywords: ["popcorn", "kettle corn"], faClass: "fa-bowl-food", priority: 53 },
+            { keywords: ["mustard"], faClass: "fa-bottle-droplet", priority: 46 },
+
+            // Prepared food
+            { keywords: ["pizza"], faClass: "fa-pizza-slice", priority: 62 },
+            { keywords: ["taco", "tacos", "burrito", "burritos", "tamale", "tamales", "enchilada", "empanada"], faClass: "fa-pepper-hot", priority: 58 },
+            { keywords: ["burger", "burgers", "sandwich", "sandwiches", "wrap", "wraps"], faClass: "fa-burger", priority: 58 },
+            { keywords: ["ice cream", "icecream", "gelato", "frozen custard", "popsicle"], faClass: "fa-ice-cream", priority: 58 },
+            { keywords: ["hot dog", "hotdog", "hotdogs", "corn dog"], faClass: "fa-hotdog", priority: 57 },
+            { keywords: ["shaved ice", "snow cone"], faClass: "fa-snowflake", priority: 53 },
+            { keywords: ["food truck"], faClass: "fa-truck", priority: 53 },
+            { keywords: ["bbq plate", "grill", "smoked"], faClass: "fa-utensils", priority: 50 },
+            { keywords: ["breakfast burrito", "breakfast sandwich"], faClass: "fa-utensils", priority: 54 },
+            { keywords: ["prepared food", "ready to eat", "kitchen", "catering"], faClass: "fa-utensils", priority: 38 },
+            { keywords: ["soup", "stew", "chili"], faClass: "fa-utensils", priority: 50 },
+            { keywords: ["meal", "lunch"], faClass: "fa-utensils", priority: 40 },
+
+            // Crafts and artisan goods
+            { keywords: ["photo", "photography", "portrait"], faClass: "fa-camera", priority: 56 },
+            { keywords: ["soap", "bath bomb", "lotion", "skincare", "body care"], faClass: "fa-soap", priority: 57 },
+            { keywords: ["candle", "candles", "wax melt", "incense", "aromatherapy", "essential oil"], faClass: "fa-fire", priority: 56 },
+            { keywords: ["jewelry", "earring", "earrings", "necklace", "bracelet", "ring", "accessory"], faClass: "fa-gem", priority: 57 },
+            { keywords: ["pottery", "ceramic", "clay", "stoneware"], faClass: "fa-mug-hot", priority: 56 },
+            { keywords: ["wood", "woodwork", "carving", "turning", "cutting board"], faClass: "fa-tree", priority: 52 },
+            { keywords: ["leather", "wallet", "belt", "purse"], faClass: "fa-briefcase", priority: 52 },
+            { keywords: ["bag", "bags", "tote"], faClass: "fa-briefcase", priority: 48 },
+            { keywords: ["knit", "knitted", "crochet", "yarn", "fiber"], faClass: "fa-shirt", priority: 51 },
+            { keywords: ["sew", "sewn", "quilt", "fabric", "textile", "clothing", "apparel"], faClass: "fa-shirt", priority: 49 },
+            { keywords: ["art", "painting", "paintings", "print", "prints", "illustration", "watercolor", "drawing"], faClass: "fa-palette", priority: 49 },
+            { keywords: ["glass", "stained glass", "fused glass"], faClass: "fa-wine-glass", priority: 52 },
+            { keywords: ["metal", "blacksmith", "forge", "iron", "steel"], faClass: "fa-hammer", priority: 52 },
+            { keywords: ["book", "journal", "stationery", "calligraphy", "card", "cards"], faClass: "fa-book", priority: 48 },
+            { keywords: ["toy", "toys", "game", "games", "puzzle", "children"], faClass: "fa-puzzle-piece", priority: 48 },
+            { keywords: ["sign", "decor", "home decor", "decoration"], faClass: "fa-couch", priority: 46 },
+            { keywords: ["basket", "wicker", "woven"], faClass: "fa-basket-shopping", priority: 48 },
+            { keywords: ["craft", "artisan", "handmade"], faClass: "fa-paintbrush", priority: 40 },
+
+            // Pet products
+            { keywords: ["dog", "dogs", "pet", "pet treat", "pet treats"], faClass: "fa-dog", priority: 56 },
+            { keywords: ["cat", "cats", "catnip"], faClass: "fa-cat", priority: 56 },
+            { keywords: ["animal treat"], faClass: "fa-dog", priority: 50 },
+
+            // Health and wellness
+            { keywords: ["herbal", "tincture", "salve", "balm", "remedy", "wellness", "supplement"], faClass: "fa-mortar-pestle", priority: 52 },
+            { keywords: ["self care", "natural care"], faClass: "fa-spa", priority: 48 },
+            { keywords: ["well-being"], faClass: "fa-spa", priority: 45 },
+            { keywords: ["botanical"], faClass: "fa-spa", priority: 46 },
+
+            // Farm identity
+            { keywords: ["farm", "ranch", "homestead", "acres", "grower", "growers", "csa"], faClass: "fa-tractor", priority: 34 },
+            { keywords: ["producer", "processor"], faClass: "fa-tractor", priority: 33 },
+            { keywords: ["barn"], faClass: "fa-tractor", priority: 33 }
+        ];
+
+        const VENDOR_ICON_CONFIG = {
+            defaultVendor: { faClass: "fa-store" }
+        };
+
+        const PRECOMPILED_VENDOR_ICON_RULES = VENDOR_ICON_RULES.map((rule) => ({
+            ...rule,
+            compiledKeywords: rule.keywords.map((keyword) => {
+                const kw = String(keyword || "").trim().toLowerCase();
+                if (!kw) return { keyword: kw, phrase: false, regex: null };
+                if (kw.includes(" ")) return { keyword: kw, phrase: true, regex: null };
+                return {
+                    keyword: kw,
+                    phrase: false,
+                    regex: new RegExp(`(^|[^a-z0-9])${escapeRegExp(kw)}([^a-z0-9]|$)`)
+                };
+            })
+        }));
+
+        const ICON_DEBUG_ENABLED = (
+            (new URLSearchParams(window.location.search)).get("debugIcons") === "1" ||
+            localStorage.getItem("dfm_icon_debug") === "1"
+        );
+
+        function prefersReducedMotion() {
+            return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        }
+
+        const POI_CONFIG = {
+            "Information": { color: "#3EB449", icon: "fa-circle-info" },
+            "Restroom": { color: "#1E5C4E", icon: "fa-restroom" },
+            "SeatingArea": { color: "#3EB449", icon: "fa-chair" },
+            "PublicParkingArea": { color: "#EBAE1E", icon: "fa-square-parking" },
+            "VendorParkingArea": { color: "#759287", icon: "fa-square-parking" },
+            "Market Tokens": { color: "#EBAE1E", icon: "fa-coins" },
+            "Special Event": { color: "#8b3a62", icon: "fa-star" },
+            "Market Merchandise": { color: "#3EB449", icon: "fa-bag-shopping" },
+            "Default": { color: "#759287", icon: "fa-location-dot" }
+        };
+
+        // ==================== STATE ====================
+        let map;
+        let vendorsOnDate = [], allStallLayouts = [], allPois = [], allMarketDates = [];
+        let stallIdToFeatureMap = new Map();
+        let vendorLayerGroup, poiLayerGroup, stallLayerGroup;
+        let vendorMarkerRefs = {}, poiMarkerRefs = {};
+        let selectedDate = "", currentFilter = null, searchTerm = "";
+        let initialZoomDone = false;
+        let geoWatchId = null, userLocationMarker = null, userAccuracyCircle = null;
+        let focusedMarker = null;
+        let lastMapBounds = null;
+        let vendorPopupOrder = [];
+        const iconDebugLogCache = new Set();
+
+        // DOM References
+        let mapLoader, mapMessage, dateSelect, searchInput, searchContainer, vendorCountEl;
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get DOM references
+            mapLoader = document.getElementById('map-loader');
+            mapMessage = document.getElementById('map-message');
+            dateSelect = document.getElementById('date-select');
+            searchInput = document.getElementById('search-input');
+            searchContainer = document.getElementById('search-container');
+            vendorCountEl = document.getElementById('vendor-count-num');
+
+            initMap();
+            setupEventListeners();
+            sendReadyMessage();
+        });
+
+        function initMap() {
+
+            // Restore last view or use default
+            let center = [42.5000, -90.6644];
+            let zoom = 17;
+            
+            try {
+                const saved = localStorage.getItem('dfm_map_view');
+                if (saved) {
+                    const view = JSON.parse(saved);
+                    center = [view.lat, view.lng];
+                    zoom = view.zoom;
+                }
+            } catch (e) {}
+
+            map = L.map('map', {
+                preferCanvas: true,
+                zoomControl: false
+            }).setView(center, zoom);
+
+            L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap, © CartoDB',
+                maxZoom: 21,
+                minZoom: 15
+            }).addTo(map);
+
+            // Layer groups
+            stallLayerGroup = L.layerGroup().addTo(map);
+            poiLayerGroup = L.layerGroup().addTo(map);
+            vendorLayerGroup = L.layerGroup().addTo(map);
+
+            // Save view on move (throttled to reduce I/O)
+            let saveViewTimeout;
+            map.on('moveend zoomend', () => {
+                clearTimeout(saveViewTimeout);
+                saveViewTimeout = setTimeout(() => {
+                    try {
+                        const c = map.getCenter();
+                        localStorage.setItem('dfm_map_view', JSON.stringify({
+                            lat: c.lat, lng: c.lng, zoom: map.getZoom()
+                        }));
+                    } catch (e) {}
+                }, 500);
+            });
+
+            // Do not run updateMarkerStyles on zoomend: it causes a second full setIcon pass and
+            // another flyTo after filter-driven fly, producing jitter. Marker highlight/dim does not depend on zoom.
+            // map.on('zoomend', updateMarkerStyles);
+
+            map.on('popupopen', (e) => {
+                const el = e.popup.getElement();
+                const header = el && el.querySelector('.popup-header');
+                const closeBtn = el && el.querySelector('.leaflet-popup-close-button');
+                if (header && closeBtn) {
+                    const bgColor = header.getAttribute('data-header-color') || header.style.backgroundColor || header.style.background || '';
+                    const closeColor = getContrastTextColor(bgColor);
+                    closeBtn.style.setProperty('color', closeColor, 'important');
+                }
+                const nav = el && el.querySelector('.popup-nav');
+                if (!nav) return;
+                const source = e.popup.getSource();
+                const idx = vendorPopupOrder.findIndex(entry => entry.marker === source);
+                if (idx < 0) return;
+                let navHtml = '';
+                if (idx > 0) navHtml += '<button type="button" class="popup-nav-btn popup-prev" aria-label="Previous vendor"><i class="fa-solid fa-chevron-left"></i> Previous</button>';
+                navHtml += '<span class="popup-nav-count">' + (idx + 1) + ' of ' + vendorPopupOrder.length + '</span>';
+                if (idx < vendorPopupOrder.length - 1) navHtml += '<button type="button" class="popup-nav-btn popup-next" aria-label="Next vendor">Next <i class="fa-solid fa-chevron-right"></i></button>';
+                nav.innerHTML = navHtml;
+                nav.querySelector('.popup-prev')?.addEventListener('click', () => {
+                    map.closePopup();
+                    vendorPopupOrder[idx - 1].marker.openPopup();
+                });
+                nav.querySelector('.popup-next')?.addEventListener('click', () => {
+                    map.closePopup();
+                    vendorPopupOrder[idx + 1].marker.openPopup();
+                });
+            });
+
+            try {
+                if (!localStorage.getItem('dfm_map_hint_shown')) {
+                    setTimeout(() => {
+                        showMessage('Tap any pin for vendor details. Swipe filters to explore.');
+                        localStorage.setItem('dfm_map_hint_shown', '1');
+                        setTimeout(hideMessage, 5000);
+                    }, 1500);
+                }
+            } catch (e) {}
+
+            hideLoader();
+        }
+
+        function setupEventListeners() {
+            const legendBtn = document.getElementById('legend-btn');
+            const legendOverlay = document.getElementById('legend-overlay');
+            const activeFilterClear = document.getElementById('active-filter-clear');
+
+            // Date selector
+            dateSelect.addEventListener('change', () => {
+                if (dateSelect.value) {
+                    selectedDate = dateSelect.value;
+                    requestDataForDate(dateSelect.value);
+                }
+            });
+
+            // Search
+            let searchTimeout;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchTerm = searchInput.value.trim().toLowerCase();
+                    currentFilter = null;
+                    clearFilterButtons();
+                    updateSearchContainerState();
+                    updateMarkerStyles();
+                    updateActiveFilterChip();
+                    if (searchTerm.length > 2) {
+                        searchInput.blur();
+                    }
+                }, 300);
+            });
+
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchInput.blur();
+                }
+            });
+
+            document.getElementById('search-clear').addEventListener('click', () => {
+                searchInput.value = '';
+                searchTerm = '';
+                updateSearchContainerState();
+                updateMarkerStyles();
+                updateActiveFilterChip();
+            });
+
+            // Filter buttons
+            document.querySelectorAll('.filter-btn:not(.clear-all-btn)').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.dataset.type;
+                    const value = btn.dataset.value;
+
+                    if (btn.classList.contains('active')) {
+                        // Toggle off
+                        btn.classList.remove('active');
+                        currentFilter = null;
+                    } else {
+                        // Toggle on
+                        clearFilterButtons();
+                        btn.classList.add('active');
+                        currentFilter = { type, value };
+                        searchInput.value = '';
+                        searchTerm = '';
+                        updateSearchContainerState();
+                    }
+                    updateMarkerStyles();
+                    updateActiveFilterChip();
+                });
+            });
+
+            const filtersScroll = document.querySelector('.filters-scroll');
+            if (filtersScroll) {
+                const refreshFilterScrollState = () => updateFilterScrollState(filtersScroll);
+                filtersScroll.addEventListener('scroll', refreshFilterScrollState, { passive: true });
+                window.addEventListener('resize', refreshFilterScrollState);
+                requestAnimationFrame(refreshFilterScrollState);
+            }
+
+            // Clear all
+            document.getElementById('clear-all-btn').addEventListener('click', () => {
+                clearFilters();
+            });
+
+            if (activeFilterClear) {
+                activeFilterClear.addEventListener('click', clearFilters);
+            }
+
+            // Escape closes popup (keyboard UX)
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                if (map && map._popup && map._popup.isOpen()) {
+                    map.closePopup();
+                    e.preventDefault();
+                }
+            });
+
+            // No-results message: "Clear filters" button
+            mapMessage.addEventListener('click', (e) => {
+                if (e.target.classList.contains('msg-clear-filters')) clearFilters();
+            });
+
+            if (legendBtn && legendOverlay) {
+                legendBtn.addEventListener('click', () => {
+                    legendOverlay.classList.toggle('visible');
+                });
+                map.on('click', () => {
+                    legendOverlay.classList.remove('visible');
+                });
+            }
+
+            // Locate button
+            document.getElementById('locate-btn').addEventListener('click', toggleGeolocation);
+
+            // Fit market button
+            document.getElementById('fit-market-btn').addEventListener('click', () => {
+                if (lastMapBounds) {
+                    const duration = prefersReducedMotion() ? 0 : 0.35;
+                    map.fitBounds(lastMapBounds, duration ? { animate: true, duration } : {});
+                }
+            });
+        }
+
+        function sendReadyMessage() {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: "iframeReady" }, "*");
+            }
+        }
+
+        // ==================== MESSAGE HANDLING ====================
+        window.addEventListener("message", (event) => {
+            if (!event.data || !event.data.type) return;
+
+            const { type, payload } = event.data;
+
+            switch (type) {
+                case "mapLoading":
+                    showLoader();
+                    break;
+                case "setMarketDates":
+                    populateDateDropdown(payload.dates);
+                    break;
+                case "loadMapData":
+                    showLoader();
+                    allStallLayouts = payload.allStallLayouts || [];
+                    allPois = payload.allPois || [];
+                    vendorsOnDate = payload.vendorsOnDate || [];
+                    selectedDate = payload.currentDate || "";
+                    const testBadge = document.getElementById('test-data-badge');
+                    if (testBadge) {
+                        testBadge.classList.toggle('visible', !!payload.isTestData);
+                        testBadge.setAttribute('aria-hidden', !payload.isTestData);
+                    }
+                    renderMap();
+                    hideLoader();
+                    break;
+                case "mapDataError":
+                    hideLoader();
+                    showMessage(payload?.message || "Unable to load map data. Please try again.");
+                    setTimeout(hideMessage, 5000);
+                    break;
+                case "locationResult":
+                    applyLocationFromParent(payload);
+                    break;
+                case "locationError":
+                    onLocationErrorFromParent(payload);
+                    break;
+            }
+        });
+
+        function requestDataForDate(dateStr) {
+            showLoader();
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ 
+                    type: "requestDateData", 
+                    payload: { date: dateStr } 
+                }, "*");
+            }
+        }
+
+        // ==================== DATE DROPDOWN ====================
+        function populateDateDropdown(dates) {
+            allMarketDates = dates || [];
+            dateSelect.innerHTML = '';
+
+            if (allMarketDates.length === 0) {
+                dateSelect.innerHTML = '<option value="">No dates available</option>';
+                return;
+            }
+
+            allMarketDates.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.value;
+                opt.textContent = d.label;
+                dateSelect.appendChild(opt);
+            });
+
+            // Select first date if none selected
+            if (!selectedDate && allMarketDates.length > 0) {
+                selectedDate = allMarketDates[0].value;
+                dateSelect.value = selectedDate;
+            }
+
+        }
+
+        // ==================== RENDERING ====================
+        function renderMap() {
+
+            // Clear layers and focus state
+            focusedMarker = null;
+            lastMapBounds = null;
+            const fitBtnEl = document.getElementById('fit-market-btn');
+            if (fitBtnEl) fitBtnEl.style.display = 'none';
+
+            stallLayerGroup.clearLayers();
+            poiLayerGroup.clearLayers();
+            vendorLayerGroup.clearLayers();
+            vendorMarkerRefs = {};
+            vendorPopupOrder = [];
+            poiMarkerRefs = {};
+            stallIdToFeatureMap.clear();
+
+            const bounds = [];
+            const stallsWithVendors = new Set();
+
+            // Collect stall IDs with vendors
+            vendorsOnDate.forEach(v => {
+                (v.StallList || []).forEach(id => stallsWithVendors.add(id.trim().toUpperCase()));
+            });
+
+            // Render stalls
+            (allStallLayouts || []).forEach(stall => {
+                try {
+                    const key = (stall.title || "").trim().toUpperCase();
+                    if (!key || !stall.geoJsonFeature) return;
+
+                    const feature = JSON.parse(stall.geoJsonFeature);
+                    stallIdToFeatureMap.set(key, feature);
+
+                    // For Point geometry: only render an empty-stall marker (no L.geoJSON default pin).
+                    // For Polygon geometry: render the outline shape.
+                    if (feature.geometry?.type === "Polygon") {
+                        L.geoJSON(feature, {
+                            style: { fillColor: "#d4c4a0", weight: 1, opacity: 0.3, color: '#b8a88a', fillOpacity: 0.1 },
+                            interactive: false
+                        }).addTo(stallLayerGroup);
+                    }
+
+                    // Empty stall marker (only for stalls without a vendor)
+                    if (!stallsWithVendors.has(key) && feature.geometry?.coordinates) {
+                        const coords = feature.geometry.type === "Point"
+                            ? feature.geometry.coordinates
+                            : feature.geometry.coordinates[0]?.[0];
+                        if (!coords) return;
+                        const latlng = [coords[1], coords[0]];
+                        const marker = L.marker(latlng, {
+                            icon: createEmptyStallIcon(key),
+                            zIndexOffset: 0
+                        });
+                        marker.bindPopup(`<div class="popup-header"><div class="popup-title">Stall ${key}</div><div class="popup-subtitle">Available</div></div>`);
+                        marker.addTo(stallLayerGroup);
+                        bounds.push(latlng);
+                    }
+                } catch (e) {
+                    console.error("Error rendering stall:", e);
+                }
+            });
+
+            // Render POIs — use L.marker for Points (avoid L.geoJSON default blue pins)
+            (allPois || []).forEach(poi => {
+                try {
+                    const feature = JSON.parse(poi.geoJsonFeature);
+                    const props = { ...feature.properties, poiType: poi.poiType, title: poi.title, description: poi.description };
+
+                    if (feature.geometry?.type === "Point") {
+                        const latlng = [feature.geometry.coordinates[1], feature.geometry.coordinates[0]];
+                        const marker = L.marker(latlng, { icon: createPoiIcon(props) });
+                        marker.bindPopup(buildPoiPopup(props));
+                        marker.on('popupopen', () => {
+                            focusedMarker = marker;
+                            updateMarkerStyles();
+                        });
+                        marker.on('popupclose', () => {
+                            focusedMarker = null;
+                            updateMarkerStyles();
+                        });
+                        marker.addTo(poiLayerGroup);
+                        poiMarkerRefs[poi.title] = { marker, props };
+                        bounds.push(latlng);
+                    } else if (feature.geometry?.type === "Polygon") {
+                        const layer = L.geoJSON(feature, {
+                            style: { fillColor: getPOIColor(poi.poiType), weight: 2, opacity: 0.6, fillOpacity: 0.2 }
+                        });
+                        layer.bindPopup(buildPoiPopup(props));
+                        layer.addTo(poiLayerGroup);
+                    }
+                } catch (e) {
+                    console.error("Error rendering POI:", e);
+                }
+            });
+
+            // Render vendors
+            vendorsOnDate.forEach(vendor => {
+                if (!vendor.StallList?.length) return;
+
+                const stallBlocks = groupContiguousStalls(vendor.StallList);
+                stallBlocks.forEach(block => {
+                    const features = block.map(id => stallIdToFeatureMap.get(id.trim().toUpperCase())).filter(f => f?.geometry);
+                    if (!features.length) return;
+
+                    let latlng;
+                    if (features.length > 1) {
+                        const coords = features.map(f => {
+                            const c = f.geometry.type === "Point" ? f.geometry.coordinates : f.geometry.coordinates[0]?.[0];
+                            return c ? [c[1], c[0]] : null;
+                        }).filter(Boolean);
+                        latlng = coords.length ? L.latLngBounds(coords).getCenter() : null;
+                    } else {
+                        const c = features[0].geometry.type === "Point" ? features[0].geometry.coordinates : features[0].geometry.coordinates[0]?.[0];
+                        latlng = c ? [c[1], c[0]] : null;
+                    }
+                    if (!latlng) return;
+
+                    const marker = L.marker(latlng, {
+                        icon: createVendorIcon(vendor),
+                        zIndexOffset: 100
+                    });
+                    marker.bindPopup(buildVendorPopup(vendor, block), {
+                        autoPan: true,
+                        autoPanPadding: window.matchMedia('(max-width: 480px)').matches ? [40, 60] : [40, 40],
+                        autoPanSpeed: 12
+                    });
+                    marker.on('popupopen', () => {
+                        focusedMarker = marker;
+                        updateMarkerStyles();
+                        const targetZoom = Math.max(map.getZoom(), 18);
+                        const targetLatLng = Array.isArray(latlng) ? L.latLng(latlng[0], latlng[1]) : latlng;
+                        const needsMove = map.getZoom() < targetZoom || !map.getBounds().pad(-0.2).contains(targetLatLng);
+                        if (!needsMove) return;
+
+                        if (prefersReducedMotion()) {
+                            if (map.getZoom() < targetZoom) {
+                                map.setView(latlng, targetZoom, { animate: false });
+                            } else {
+                                map.panTo(latlng, { animate: false });
+                            }
+                            return;
+                        }
+
+                        if (map.getZoom() < targetZoom) {
+                            map.setView(latlng, targetZoom, { animate: true, duration: 0.35 });
+                        } else {
+                            map.panTo(latlng, { animate: true, duration: 0.3 });
+                        }
+                    });
+                    marker.on('popupclose', () => {
+                        focusedMarker = null;
+                        updateMarkerStyles();
+                    });
+                    marker.addTo(vendorLayerGroup);
+                    vendorMarkerRefs[vendor.title] = { marker, data: vendor, stallBlock: block };
+                    vendorPopupOrder.push({ marker, vendor, block });
+                    bounds.push(Array.isArray(latlng) ? latlng : [latlng.lat, latlng.lng]);
+                });
+            });
+
+            // Store bounds for "Fit market" button
+            if (bounds.length > 0) {
+                lastMapBounds = L.latLngBounds(bounds).pad(0.1);
+                if (fitBtnEl) fitBtnEl.style.display = 'flex';
+            }
+
+            // Fit bounds on first load
+            if (!initialZoomDone && bounds.length > 0) {
+                map.fitBounds(lastMapBounds);
+                initialZoomDone = true;
+            }
+
+            // Update vendor count
+            vendorCountEl.textContent = vendorsOnDate.length;
+
+            // Show message if no vendors
+            if (vendorsOnDate.length === 0 && selectedDate) {
+                showMessage("No vendors scheduled for this date");
+            } else {
+                hideMessage();
+            }
+        }
+
+        // ==================== ICON CREATION ====================
+        function createVendorIcon(vendor, highlighted = false, dimmed = false) {
+            const bg = VENDOR_TYPE_COLORS[vendor.vendorType] || VENDOR_TYPE_COLORS.Default;
+            const fa = determineVendorIcon(vendor);
+            const size = 36;
+            const extraClass = highlighted ? ' highlighted' : (dimmed ? ' dimmed' : '');
+
+            return L.divIcon({
+                className: 'vendor-marker' + extraClass,
+                html: `<div class="marker-pin" style="width:${size}px;height:${size}px;background:${bg}"><i class="fa-solid ${fa}" style="font-size:14px"></i></div>`,
+                iconSize: [44, 44],
+                iconAnchor: [22, 22],
+                popupAnchor: [0, -22]
+            });
+        }
+
+        function createEmptyStallIcon(stallId) {
+            const size = 24;
+            return L.divIcon({
+                className: 'vendor-marker empty-stall-marker',
+                html: `<div class="marker-pin" style="width:${size}px;height:${size}px;background:#9a9a9a;font-size:9px;color:#fff;font-weight:600">${stallId}</div>`,
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2],
+                popupAnchor: [0, -(size / 2) - 4]
+            });
+        }
+
+        function createPoiIcon(props, highlighted = false, dimmed = false) {
+            const config = POI_CONFIG[props.poiType] || POI_CONFIG.Default;
+            const size = 30;
+            const extraClass = highlighted ? ' highlighted' : (dimmed ? ' dimmed' : '');
+
+            return L.divIcon({
+                className: 'vendor-marker' + extraClass,
+                html: `<div class="marker-pin" style="width:${size}px;height:${size}px;background:${config.color}"><i class="fa-solid ${config.icon}" style="font-size:12px"></i></div>`,
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2],
+                popupAnchor: [0, -(size / 2) - 4]
+            });
+        }
+
+        function escapeRegExp(text) {
+            return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        }
+
+        function containsKeyword(haystack, keywordObj) {
+            const kw = keywordObj.keyword;
+            if (!kw) return false;
+
+            if (keywordObj.phrase) {
+                return haystack.includes(kw);
+            }
+
+            return keywordObj.regex ? keywordObj.regex.test(haystack) : false;
+        }
+
+        function determineVendorIcon(vendor) {
+            const text = [
+                vendor.title || "",
+                vendor.description || "",
+                vendor.arraystring || ""
+            ].join(" ").toLowerCase();
+
+            let bestIcon = null;
+            let bestScore = 0;
+            let bestRule = null;
+            let bestMatchedKeywords = [];
+
+            for (const rule of PRECOMPILED_VENDOR_ICON_RULES) {
+                const matchedKeywords = [];
+                for (const keywordObj of rule.compiledKeywords) {
+                    if (containsKeyword(text, keywordObj)) matchedKeywords.push(keywordObj.keyword);
+                }
+
+                const matchCount = matchedKeywords.length;
+                if (matchCount > 0) {
+                    const score = rule.priority + (matchCount * 5);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestIcon = rule.faClass;
+                        bestRule = rule;
+                        bestMatchedKeywords = matchedKeywords;
+                    }
+                }
+            }
+
+            const selectedIcon = bestIcon
+                || VENDOR_TYPE_FALLBACK_ICONS[vendor.vendorType]
+                || VENDOR_ICON_CONFIG.defaultVendor.faClass;
+
+            if (ICON_DEBUG_ENABLED) {
+                const vendorKey = `${vendor._id || vendor.title || "unknown"}|${selectedIcon}`;
+                if (!iconDebugLogCache.has(vendorKey)) {
+                    iconDebugLogCache.add(vendorKey);
+                    const reason = bestRule
+                        ? {
+                            mode: "keyword-rule",
+                            priority: bestRule.priority,
+                            matchedKeywords: bestMatchedKeywords,
+                            score: bestScore
+                        }
+                        : {
+                            mode: VENDOR_TYPE_FALLBACK_ICONS[vendor.vendorType] ? "vendorType-fallback" : "default-fallback",
+                            vendorType: vendor.vendorType || null
+                        };
+
+                    console.info("[DFM Icon Debug]", {
+                        vendor: vendor.title || "(untitled vendor)",
+                        vendorId: vendor._id || null,
+                        selectedIcon,
+                        reason,
+                        sourceText: {
+                            title: vendor.title || "",
+                            description: vendor.description || "",
+                            tags: vendor.arraystring || ""
+                        }
+                    });
+                }
+            }
+
+            if (!bestIcon) {
+                return selectedIcon;
+            }
+
+            return bestIcon;
+        }
+
+        function getPOIColor(poiType) {
+            return (POI_CONFIG[poiType] || POI_CONFIG.Default).color;
+        }
+
+        function getContrastTextColor(colorValue) {
+            const rgb = parseColorToRgb(colorValue);
+            if (!rgb) return '#ffffff';
+            const r = rgb.r / 255;
+            const g = rgb.g / 255;
+            const b = rgb.b / 255;
+            const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            return luminance > 0.45 ? '#1a1a1a' : '#ffffff';
+        }
+
+        function parseColorToRgb(colorValue) {
+            if (!colorValue) return null;
+            const value = colorValue.trim();
+            if (value.startsWith('#')) {
+                return hexToRgb(value);
+            }
+            if (value.startsWith('rgb')) {
+                const match = value.match(/rgba?\(([^)]+)\)/i);
+                if (!match) return null;
+                const parts = match[1].split(',').map(part => parseFloat(part.trim()));
+                if (parts.length < 3) return null;
+                return { r: parts[0], g: parts[1], b: parts[2] };
+            }
+            return null;
+        }
+
+        function hexToRgb(hexValue) {
+            const hex = hexValue.replace('#', '');
+            if (hex.length === 3) {
+                return {
+                    r: parseInt(hex[0] + hex[0], 16),
+                    g: parseInt(hex[1] + hex[1], 16),
+                    b: parseInt(hex[2] + hex[2], 16)
+                };
+            }
+            if (hex.length === 6) {
+                return {
+                    r: parseInt(hex.slice(0, 2), 16),
+                    g: parseInt(hex.slice(2, 4), 16),
+                    b: parseInt(hex.slice(4, 6), 16)
+                };
+            }
+            return null;
+        }
+
+        // ==================== POPUPS ====================
+        function buildVendorPopup(vendor, stalls) {
+            const color = VENDOR_TYPE_COLORS[vendor.vendorType] || '#3EB449';
+            const textColor = getContrastTextColor(color);
+            let html = `<div class="popup-header" data-header-color="${color}" style="background:${color};color:${textColor}">
+                <div class="popup-title">${vendor.title}</div>
+                <div class="popup-subtitle">${vendor.vendorType || 'Vendor'} • Stalls: ${stalls.join(', ')}</div>
+            </div>`;
+
+            html += '<div class="popup-body">';
+            if (vendor.description) {
+                html += `<p class="popup-description">${vendor.description}</p>`;
+            }
+            if (vendor.arraystring) {
+                html += `<div class="popup-tags" style="--tag-accent:${color}">`;
+                vendor.arraystring.split(/[,;]/).slice(0, 5).forEach(tag => {
+                    if (tag.trim()) html += `<span class="popup-tag">${tag.trim()}</span>`;
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+
+            html += '<div class="popup-actions">';
+            if (vendor.url) {
+                const url = vendor.url.startsWith('http') ? vendor.url : 'https://' + vendor.url;
+                html += `<a href="${url}" target="_blank" class="popup-btn popup-btn-secondary"><i class="fa-solid fa-globe"></i> Website</a>`;
+            }
+            html += `<a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(vendor.title + ' Dubuque Farmers Market')}" target="_blank" class="popup-btn popup-btn-primary"><i class="fa-solid fa-location-arrow"></i> Directions</a>`;
+            html += '</div>';
+            html += '<div class="popup-nav" role="navigation" aria-label="Browse vendors"></div>';
+
+            return html;
+        }
+
+        function buildPoiPopup(props) {
+            const config = POI_CONFIG[props.poiType] || POI_CONFIG.Default;
+            const textColor = getContrastTextColor(config.color);
+            return `<div class="popup-header" data-header-color="${config.color}" style="background:${config.color};color:${textColor}">
+                <div class="popup-title">${props.title || 'Point of Interest'}</div>
+                <div class="popup-subtitle">${props.poiType || ''}</div>
+            </div>
+            <div class="popup-body">
+                <p class="popup-description">${props.description || ''}</p>
+            </div>`;
+        }
+
+        // ==================== FILTERING ====================
+        function itemMatchesFilter(item, type) {
+            if (!currentFilter && !searchTerm) return true;
+
+            if (searchTerm) {
+                const text = type === 'vendor' 
+                    ? [item.title, item.description, item.vendorType, item.arraystring].join(' ').toLowerCase()
+                    : [item.title, item.description, item.poiType].join(' ').toLowerCase();
+                return text.includes(searchTerm);
+            }
+
+            if (currentFilter) {
+                if (type === 'vendor') {
+                    if (currentFilter.type === 'vendorType') return item.vendorType === currentFilter.value;
+                    if (currentFilter.type === 'keyword') {
+                        const text = [item.title, item.description, item.arraystring].join(' ').toLowerCase();
+                        return currentFilter.value.split(' ').some(kw => text.includes(kw));
+                    }
+                }
+                if (type === 'poi') {
+                    if (currentFilter.type === 'poiType') {
+                        return (item.poiType || '').toLowerCase().includes(currentFilter.value.toLowerCase());
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        let _markerStyleRAF = null;
+        function updateMarkerStyles() {
+            if (_markerStyleRAF) cancelAnimationFrame(_markerStyleRAF);
+            _markerStyleRAF = requestAnimationFrame(_applyMarkerStyles);
+        }
+
+        function _applyMarkerStyles() {
+            _markerStyleRAF = null;
+            const hasFilter = currentFilter || searchTerm;
+            const hasFocus = !!focusedMarker;
+
+            Object.values(vendorMarkerRefs).forEach(ref => {
+                const matches = itemMatchesFilter(ref.data, 'vendor');
+                const highlighted = (hasFilter && matches) || (hasFocus && ref.marker === focusedMarker);
+                const dimmed = (hasFilter && !matches) || (hasFocus && ref.marker !== focusedMarker);
+                ref.marker.setIcon(createVendorIcon(ref.data, highlighted, dimmed));
+                ref.marker.setZIndexOffset(dimmed ? 0 : (highlighted ? 200 : 100));
+            });
+
+            Object.values(poiMarkerRefs).forEach(ref => {
+                if (!ref.marker.setIcon) return;
+                const matches = itemMatchesFilter(ref.props, 'poi');
+                const highlighted = (hasFilter && matches) || (hasFocus && ref.marker === focusedMarker);
+                const dimmed = (hasFilter && !matches) || (hasFocus && ref.marker !== focusedMarker);
+                ref.marker.setIcon(createPoiIcon(ref.props, highlighted, dimmed));
+            });
+
+            // Fly to matching results when filtering; show "no results" when nothing matches.
+            if (hasFilter && !hasFocus) {
+                const matchingLatLngs = [];
+                for (const ref of Object.values(vendorMarkerRefs)) {
+                    if (itemMatchesFilter(ref.data, 'vendor') && ref.marker.getLatLng) {
+                        matchingLatLngs.push(ref.marker.getLatLng());
+                    }
+                }
+                for (const ref of Object.values(poiMarkerRefs)) {
+                    if (ref.marker.getLatLng && itemMatchesFilter(ref.props, 'poi')) {
+                        matchingLatLngs.push(ref.marker.getLatLng());
+                    }
+                }
+
+                if (matchingLatLngs.length > 0) {
+                    hideMessage();
+
+                    const matchBounds = L.latLngBounds(matchingLatLngs);
+                    const allVisible = map.getBounds().contains(matchBounds);
+                    if (!allVisible) {
+                        const maxZoom = Math.min(map.getZoom() + 1, 18);
+                        const fitOptions = {
+                            padding: [32, 32],
+                            maxZoom
+                        };
+                        const flyDuration = prefersReducedMotion() ? 0 : 0.4;
+                        if (flyDuration === 0) {
+                            map.fitBounds(matchBounds, fitOptions);
+                        } else {
+                            requestAnimationFrame(() => {
+                                map.flyToBounds(matchBounds, { ...fitOptions, duration: flyDuration });
+                            });
+                        }
+                    }
+                } else {
+                    showNoResultsMessage();
+                }
+            } else if (!hasFilter) {
+                hideMessage();
+            }
+        }
+
+        function clearFilters() {
+            currentFilter = null;
+            searchTerm = '';
+            searchInput.value = '';
+            clearFilterButtons();
+            updateSearchContainerState();
+            hideMessage();
+            updateMarkerStyles();
+            updateActiveFilterChip();
+        }
+
+        function clearFilterButtons() {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        }
+
+        function updateFilterScrollState(scroller) {
+            if (!scroller) return;
+            const maxScrollLeft = scroller.scrollWidth - scroller.clientWidth;
+            scroller.classList.toggle('scrolled-left', scroller.scrollLeft > 8);
+            scroller.classList.toggle('scrolled-right', (maxScrollLeft - scroller.scrollLeft) > 8);
+        }
+
+        function updateSearchContainerState() {
+            if (searchInput.value) {
+                searchContainer.classList.add('has-value');
+            } else {
+                searchContainer.classList.remove('has-value');
+            }
+        }
+
+        function updateActiveFilterChip() {
+            const chip = document.getElementById('active-filter-chip');
+            const label = document.getElementById('active-filter-label');
+            if (!chip || !label) return;
+
+            if (currentFilter) {
+                const activeBtn = document.querySelector('.filter-btn.active');
+                const text = activeBtn ? activeBtn.textContent.trim().replace(/\s+/g, ' ') : 'Filtered';
+                label.textContent = text;
+                chip.classList.add('visible');
+            } else if (searchTerm) {
+                label.textContent = 'Search: "' + searchTerm + '"';
+                chip.classList.add('visible');
+            } else {
+                chip.classList.remove('visible');
+            }
+        }
+
+        // ==================== UTILITIES ====================
+        function groupContiguousStalls(list) {
+            if (!list || !list.length) return [];
+            const sorted = [...list].sort((a, b) => {
+                const matchA = a.match(/([A-Z]*)(\d+)/i);
+                const matchB = b.match(/([A-Z]*)(\d+)/i);
+                if (matchA && matchB) {
+                    if (matchA[1] !== matchB[1]) return matchA[1].localeCompare(matchB[1]);
+                    return parseInt(matchA[2]) - parseInt(matchB[2]);
+                }
+                return a.localeCompare(b);
+            });
+
+            const groups = [[sorted[0]]];
+            for (let i = 1; i < sorted.length; i++) {
+                const prev = sorted[i - 1].match(/([A-Z]*)(\d+)/i);
+                const curr = sorted[i].match(/([A-Z]*)(\d+)/i);
+                if (prev && curr && prev[1] === curr[1] && parseInt(curr[2]) - parseInt(prev[2]) === 1) {
+                    groups[groups.length - 1].push(sorted[i]);
+                } else {
+                    groups.push([sorted[i]]);
+                }
+            }
+            return groups;
+        }
+
+        function showLoader() {
+            mapLoader.classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            mapLoader.classList.add('hidden');
+        }
+
+        function showMessage(text) {
+            mapMessage.textContent = text;
+            mapMessage.classList.add('visible');
+        }
+
+        function showNoResultsMessage() {
+            mapMessage.innerHTML = 'No vendors or places match. <button type="button" class="msg-clear-filters">Clear filters</button>';
+            mapMessage.classList.add('visible');
+        }
+
+        function hideMessage() {
+            mapMessage.textContent = '';
+            mapMessage.classList.remove('visible');
+        }
+
+        // ==================== GEOLOCATION ====================
+        // When embedded in Wix, the iframe cannot use navigator.geolocation (Permissions Policy).
+        // The parent page requests location and sends the result via postMessage.
+        let locationRequestTimeoutId = null;
+        // Cap accuracy circle so it stays useful at market scale (a few blocks). Device may report 100m+.
+        const MAX_ACCURACY_RADIUS_M = 45;
+
+        function clampAccuracyRadius(meters) {
+            const m = typeof meters === 'number' && meters > 0 ? meters : 50;
+            return Math.min(m, MAX_ACCURACY_RADIUS_M);
+        }
+
+        function applyLocationFromParent(payload) {
+            const btn = document.getElementById('locate-btn');
+            if (!btn || !payload || typeof payload.latitude !== 'number' || typeof payload.longitude !== 'number') return;
+            if (locationRequestTimeoutId) {
+                clearTimeout(locationRequestTimeoutId);
+                locationRequestTimeoutId = null;
+            }
+            btn.classList.remove('locating');
+            btn.classList.add('active');
+            const latlng = [payload.latitude, payload.longitude];
+            const accuracy = clampAccuracyRadius(payload.accuracy);
+
+            if (!userLocationMarker) {
+                userLocationMarker = L.marker(latlng, {
+                    icon: L.divIcon({
+                        className: 'user-location-marker',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    }),
+                    zIndexOffset: 1000
+                }).addTo(map).bindPopup("You are here");
+                userAccuracyCircle = L.circle(latlng, {
+                    radius: accuracy,
+                    className: 'user-accuracy-circle',
+                    interactive: false
+                }).addTo(map);
+                map.flyTo(latlng, Math.max(map.getZoom(), 17));
+            } else {
+                userLocationMarker.setLatLng(latlng).setOpacity(1);
+                userAccuracyCircle.setLatLng(latlng).setRadius(accuracy);
+            }
+        }
+
+        function onLocationErrorFromParent(payload) {
+            const btn = document.getElementById('locate-btn');
+            if (locationRequestTimeoutId) {
+                clearTimeout(locationRequestTimeoutId);
+                locationRequestTimeoutId = null;
+            }
+            if (btn) btn.classList.remove('locating', 'active');
+            showMessage(payload && payload.message ? payload.message : "Could not get location");
+            setTimeout(hideMessage, 3000);
+        }
+
+        function toggleGeolocation() {
+            const btn = document.getElementById('locate-btn');
+
+            if (geoWatchId) {
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+                btn.classList.remove('locating', 'active');
+                if (userLocationMarker) userLocationMarker.setOpacity(0.5);
+                return;
+            }
+
+            // When embedded (e.g. in Wix), parent requests location; iframe cannot use geolocation.
+            if (window.parent && window.parent !== window) {
+                if (userLocationMarker && btn.classList.contains('active')) {
+                    btn.classList.remove('active');
+                    userLocationMarker.setOpacity(0.5);
+                    return;
+                }
+                window.parent.postMessage({ type: "requestLocation" }, "*");
+                btn.classList.add('locating');
+                locationRequestTimeoutId = setTimeout(() => {
+                    locationRequestTimeoutId = null;
+                    btn.classList.remove('locating');
+                    showMessage("Could not get location");
+                    setTimeout(hideMessage, 3000);
+                }, 15000);
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                showMessage("Geolocation not supported");
+                return;
+            }
+
+            btn.classList.add('locating');
+
+            geoWatchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    btn.classList.remove('locating');
+                    btn.classList.add('active');
+                    const { latitude, longitude, accuracy } = pos.coords;
+                    const latlng = [latitude, longitude];
+                    const radius = clampAccuracyRadius(accuracy);
+
+                    if (!userLocationMarker) {
+                        userLocationMarker = L.marker(latlng, {
+                            icon: L.divIcon({
+                                className: 'user-location-marker',
+                                iconSize: [16, 16],
+                                iconAnchor: [8, 8]
+                            }),
+                            zIndexOffset: 1000
+                        }).addTo(map).bindPopup("You are here");
+
+                        userAccuracyCircle = L.circle(latlng, {
+                            radius: radius,
+                            className: 'user-accuracy-circle',
+                            interactive: false
+                        }).addTo(map);
+
+                        map.flyTo(latlng, Math.max(map.getZoom(), 17));
+                    } else {
+                        userLocationMarker.setLatLng(latlng).setOpacity(1);
+                        userAccuracyCircle.setLatLng(latlng).setRadius(radius);
+                    }
+                },
+                (err) => {
+                    console.warn("Geolocation error:", err);
+                    btn.classList.remove('locating', 'active');
+                    showMessage("Could not get location");
+                    setTimeout(hideMessage, 3000);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+    </script>
+</body>
+</html>

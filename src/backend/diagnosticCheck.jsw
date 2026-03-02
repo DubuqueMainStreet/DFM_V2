@@ -400,7 +400,7 @@ export async function checkDateAvailability(dateId) {
 			return status === 'approved';
 		});
 		
-		console.log(`Found ${approved.items.length} APPROVED assignments for this date`);
+		console.log(`Found ${approved.length} APPROVED assignments for this date`);
 		
 		// Breakdown by type
 		const breakdown = {
