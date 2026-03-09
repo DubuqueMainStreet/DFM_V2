@@ -327,13 +327,16 @@ function setupRepeaterItem($item, itemData) {
 async function updateAssignmentStatus(assignmentId, newStatus) {
 	console.log(`[STATUS-UPDATE] updateAssignmentStatus called: assignmentId=${assignmentId}, newStatus=${newStatus}`);
 	try {
-		// Update the status in the database
-		console.log(`[STATUS-UPDATE] Updating database...`);
-		await wixData.update('WeeklyAssignments', {
-			_id: assignmentId,
-			applicationStatus: newStatus
-		});
-		console.log(`[STATUS-UPDATE] Database updated successfully`);
+		// IMPORTANT: Fetch the FULL record first, then update only the status field.
+		// wixData.update() replaces the entire record — any missing fields get cleared!
+		console.log(`[STATUS-UPDATE] Fetching full record before update...`);
+		const existingRecord = await wixData.get('WeeklyAssignments', assignmentId);
+		if (!existingRecord) {
+			throw new Error(`Assignment ${assignmentId} not found`);
+		}
+		existingRecord.applicationStatus = newStatus;
+		await wixData.update('WeeklyAssignments', existingRecord);
+		console.log(`[STATUS-UPDATE] Database updated successfully. assignedMapId preserved: ${existingRecord.assignedMapId}`);
 		
 		// Send email notification if status is Approved or Rejected
 		if (newStatus === 'Approved' || newStatus === 'Rejected') {
@@ -380,10 +383,12 @@ async function updateAssignmentStatus(assignmentId, newStatus) {
 
 async function updateAssignmentLocation(assignmentId, locationId) {
 	try {
-		await wixData.update('WeeklyAssignments', {
-			_id: assignmentId,
-			assignedMapId: locationId === 'Unassigned' ? null : locationId
-		});
+		const existingRecord = await wixData.get('WeeklyAssignments', assignmentId);
+		if (!existingRecord) {
+			throw new Error(`Assignment ${assignmentId} not found`);
+		}
+		existingRecord.assignedMapId = locationId === 'Unassigned' ? null : locationId;
+		await wixData.update('WeeklyAssignments', existingRecord);
 		
 		// Reload current view
 		await loadAssignments(currentType);

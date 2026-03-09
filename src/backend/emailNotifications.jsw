@@ -67,6 +67,14 @@ export async function sendStatusNotificationEmail(assignmentId, newStatus) {
 		if (!assignment) {
 			throw new Error('Assignment not found');
 		}
+
+		console.log('[EMAIL-BACKEND] Assignment loaded:', {
+			_id: assignment._id,
+			applicationStatus: assignment.applicationStatus,
+			assignedMapId: assignment.assignedMapId,
+			profileRef: assignment.profileRef,
+			dateRef: assignment.dateRef
+		});
 		
 		// Check if assignment status is already set to the target status
 		// If it's already Approved/Rejected, this might be a duplicate call
@@ -1257,6 +1265,28 @@ function getSiteUrl() {
 }
 
 /**
+ * Map location code (assignedMapId) to display name for emails.
+ * Must match display names used in Specialty Requests / admin UI.
+ * @param {string|null|undefined} locationCode - assignedMapId from WeeklyAssignments
+ * @returns {string} Human-readable location name or empty string
+ */
+function getLocationDisplayNameForEmail(locationCode) {
+	if (!locationCode || typeof locationCode !== 'string') return '';
+	const t = locationCode.toString().trim();
+	const locationMap = {
+		'Location A': '13th Street',
+		'Location B': 'Food Court',
+		'Location C': '10th & Iowa St',
+		'13th Street': '13th Street',
+		'Food Court': 'Food Court',
+		'10th & Iowa St': '10th & Iowa St',
+		'Default': 'Default',
+		'Unassigned': 'Unassigned'
+	};
+	return locationMap[t] || t;
+}
+
+/**
  * Prepare email variables for Wix Triggered Email template
  * All values must be strings for Wix Triggered Emails
  * @param {Object} profile - The SpecialtyProfiles record
@@ -1269,6 +1299,7 @@ function prepareEmailVariables(profile, dateRef, assignment, status) {
 	console.log('[EMAIL-BACKEND] Preparing variables from:', {
 		profile: { organizationName: profile.organizationName, type: profile.type },
 		dateRef: { date: dateRef.date, title: dateRef.title },
+		assignment: { assignedMapId: assignment.assignedMapId },
 		status: status
 	});
 	
@@ -1289,13 +1320,20 @@ function prepareEmailVariables(profile, dateRef, assignment, status) {
 	// Get the site URL
 	const currentSiteUrl = getSiteUrl();
 	
+	// Assigned location for musicians (Approved only) - display name for email body
+	let assignedLocationDisplay = '';
+	if (status === 'Approved' && profileType === 'Musician' && assignment.assignedMapId) {
+		assignedLocationDisplay = getLocationDisplayNameForEmail(assignment.assignedMapId);
+	}
+	
 	// Prepare variables object - variable names must match EXACTLY what's in the Wix template
 	const variables = {
 		applicantName: String(applicantName || ''),
 		profileType: String(profileType || ''),
 		marketDateFull: String(marketDateFull || ''),
 		status: String(status || ''),
-		SITE_URL: String(currentSiteUrl || '')
+		SITE_URL: String(currentSiteUrl || ''),
+		assignedLocation: String(assignedLocationDisplay || '')
 	};
 	
 	console.log('[EMAIL-BACKEND] Prepared variables:', variables);
