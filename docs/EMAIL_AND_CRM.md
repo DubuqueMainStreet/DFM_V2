@@ -77,6 +77,7 @@ Admin clicks Approve/Reject
 | 6 | Check all email field locations | Wix API stores email in different places by version |
 | 7 | All template variables must be strings | Non-strings cause silent failures |
 | 8 | Email errors must not block status updates | Wrap in try/catch, log but don't throw |
+| 9 | **Use "+ Add Variable" in template editor** | Typing `${var}` or `{{var}}` as plain text is not replaced; variable name must match code exactly (e.g. `assignedLocation`) |
 
 ### Subscription Status
 
@@ -89,6 +90,12 @@ Admin clicks Approve/Reject
 
 ### Email Deduplication
 In-memory cache prevents duplicate sends within a 5-minute window per assignment+status combination.
+
+### How the assigned location gets into the approval email
+
+1. **On Approve** — When an admin clicks Approve (Schedule Management or Specialty Requests), the code sets `assignedMapId = profile.preferredLocation` on the assignment so no separate "assign location" step is needed.
+2. **When sending** — `emailNotifications.jsw` builds variables from the assignment and profile; location is normalized (string/array/object) and mapped to display names (e.g. "Location A" → "13th Street").
+3. **In the template** — The template must include a variable added via **+ Add Variable** with name **`assignedLocation`**. Plain text like `${assignedLocation}` is not replaced.
 
 ---
 
@@ -105,11 +112,41 @@ In-memory cache prevents duplicate sends within a 5-minute window per assignment
 | `marketDateFull` | "Saturday, May 2, 2026" | |
 | `status` | "Approved" | |
 | `SITE_URL` | "https://dubuquefarmersmarket.com" | |
-| `assignedLocation` | "13th Street" or "Food Court" | **Musicians only.** When admin clicks Approve, the musician's requested location (`preferredLocation`) is auto-assigned to `assignedMapId`, so the email shows it without an extra admin step. In the Wix template use **${assignedLocation}** (e.g. "Assigned Location: ${assignedLocation}"). When empty it will show as "Assigned Location: " unless the editor supports conditionals. |
+| `assignedLocation` | "13th Street" or "Food Court" | **Musicians only.** Auto-filled when admin approves (from musician's preferred location). **You must add this via "+ Add Variable" in the template editor** — see [Triggered Email Template Editor](#triggered-email-template-editor) below. |
 
 **Rejection Template** — Same variables, different copy.
 
 3. Copy Template IDs from the URL or settings and update code if different from current IDs.
+
+---
+
+## Triggered Email Template Editor
+
+**Critical:** Variables only work when added through the Wix template editor. Typing `${variableName}` or `{{variableName}}` as plain text in the email body will **not** be replaced.
+
+### Adding a variable (e.g. assigned location)
+
+1. Open the template: **Wix Dashboard → Marketing → Email Marketing → Triggered Emails** (or **Developer Tools → Triggered Emails**), then open the Approval email.
+2. Click the **text element** where the value should appear (e.g. the line that should show the location).
+3. Use **+ Add Variable** (or the variable control in the editor). Do **not** type the placeholder as raw text.
+4. In the **Variable name** field, enter the name **exactly** as in the table above. For location use: **`assignedLocation`** (camelCase, no spaces).
+5. Optionally set a **Fallback value** (e.g. `(Location TBA)`) for when the value is empty.
+6. **Save** and **Publish** the template so the change takes effect.
+
+### Variable names sent from code
+
+The backend sends the location under several keys for compatibility; the template variable name must match one of these **exactly** (case-sensitive):
+
+| Use in template | Sent from code |
+|-----------------|----------------|
+| `assignedLocation` | ✅ (recommended) |
+| `assigned_location` | ✅ |
+| `location` | ✅ |
+| `preferredLocation` | ✅ |
+| `assignedlocation` | ✅ |
+| `AssignedLocation` | ✅ |
+
+If the variable shows blank, the template variable name likely doesn’t match (e.g. "Assigned Location" with a space, or wrong casing). Edit the variable in the template and set its name to **`assignedLocation`**.
 
 ### Template ID Configuration
 
@@ -146,6 +183,7 @@ CRM contact creation prefers `contactName`, falls back to `organizationName`. Ad
 | No email received | Check spam, verify email address, check Wix email logs |
 | "Contact email mismatch" | Contact reconciliation bug — ensure `allowDuplicates: true` |
 | Emails going to admin | Using `appendOrCreateContact` instead of `createContact` |
+| **Variable blank in email (e.g. location)** | In template editor: use **+ Add Variable**, set Variable name to **`assignedLocation`** (exact spelling/casing). Re-publish template. See [Triggered Email Template Editor](#triggered-email-template-editor). |
 
 ### Debugging Steps
 1. Check browser console for `[EMAIL-BACKEND]` logs
