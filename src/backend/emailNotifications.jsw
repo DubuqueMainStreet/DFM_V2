@@ -1367,7 +1367,11 @@ function prepareEmailVariables(profile, dateRef, assignment, status) {
 		// Backward-compat aliases in case the Wix template variable was created
 		// with a different casing/name.
 		assignedlocation: String(assignedLocationDisplay || ''),
-		location: String(assignedLocationDisplay || '')
+		assigned_location: String(assignedLocationDisplay || ''),
+		AssignedLocation: String(assignedLocationDisplay || ''),
+		location: String(assignedLocationDisplay || ''),
+		preferredLocation: String(assignedLocationDisplay || ''),
+		preferred_location: String(assignedLocationDisplay || '')
 	};
 	
 	console.log('[EMAIL-BACKEND] Prepared variables:', variables);
