@@ -102,16 +102,15 @@ export async function getDateAvailability() {
 				};
 			}
 			
-			// Count by type
-			const type = profile.type;
-			if (type === 'Musician') {
-				availability[dateId].musicians++;
-				// Track by location - only count if assignedMapId is set (confirmed location assignment)
-				// assignedMapId is set when admin assigns location in admin dashboard
-				const location = assignment.assignedMapId;
-				if (location && availability[dateId].musiciansByLocation[location] !== undefined) {
-					availability[dateId].musiciansByLocation[location]++;
-				}
+		// Count by type
+		const type = profile.type;
+		if (type === 'Musician') {
+			availability[dateId].musicians++;
+			// Track by location: prefer admin-assigned location, fall back to musician's preferred location
+			const location = assignment.assignedMapId || profile.preferredLocation;
+			if (location && availability[dateId].musiciansByLocation[location] !== undefined) {
+				availability[dateId].musiciansByLocation[location]++;
+			}
 			} else if (type === 'NonProfit') {
 				availability[dateId].nonProfits++;
 				console.log(`✅ Counted NonProfit for dateId: ${dateId}, count: ${availability[dateId].nonProfits}`);
