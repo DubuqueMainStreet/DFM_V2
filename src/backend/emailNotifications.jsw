@@ -1270,9 +1270,25 @@ function getSiteUrl() {
  * @param {string|null|undefined} locationCode - assignedMapId from WeeklyAssignments
  * @returns {string} Human-readable location name or empty string
  */
+function normalizeLocationCode(locationCode) {
+	// Handle Text field values ("Location A"), Tag field arrays (["Location A"]),
+	// and value/label objects from dropdown-like payloads.
+	if (typeof locationCode === 'string') return locationCode.trim();
+	if (Array.isArray(locationCode)) {
+		const first = locationCode.find(v => typeof v === 'string' && v.trim());
+		return first ? first.trim() : '';
+	}
+	if (locationCode && typeof locationCode === 'object') {
+		const value = typeof locationCode.value === 'string' ? locationCode.value : '';
+		const label = typeof locationCode.label === 'string' ? locationCode.label : '';
+		return (value || label).trim();
+	}
+	return '';
+}
+
 function getLocationDisplayNameForEmail(locationCode) {
-	if (!locationCode || typeof locationCode !== 'string') return '';
-	const t = locationCode.toString().trim();
+	const t = normalizeLocationCode(locationCode);
+	if (!t) return '';
 	const locationMap = {
 		'Location A': '13th Street',
 		'Location B': 'Food Court',
@@ -1281,9 +1297,12 @@ function getLocationDisplayNameForEmail(locationCode) {
 		'Food Court': 'Food Court',
 		'10th & Iowa St': '10th & Iowa St',
 		'Default': 'Default',
-		'Unassigned': 'Unassigned'
+		'Unassigned': 'Unassigned',
+		'location a': '13th Street',
+		'location b': 'Food Court',
+		'location c': '10th & Iowa St'
 	};
-	return locationMap[t] || t;
+	return locationMap[t] || locationMap[t.toLowerCase()] || t;
 }
 
 /**
@@ -1320,17 +1339,19 @@ function prepareEmailVariables(profile, dateRef, assignment, status) {
 	// Get the site URL
 	const currentSiteUrl = getSiteUrl();
 	
-	// Assigned location for musicians (Approved only) - display name for email body
-	// Prefer admin-assigned location; fall back to musician's preferred location from profile
+	// Assigned location for approved musicians.
+	// Prefer admin-assigned location; fall back to musician's preferred location from profile.
+	// Normalization handles string/array/object input shapes.
 	let assignedLocationDisplay = '';
-	if (status === 'Approved' && profileType === 'Musician') {
+	const isApproved = String(status || '').trim().toLowerCase() === 'approved';
+	const isMusician = String(profileType || '').trim().toLowerCase() === 'musician';
+	if (isApproved && isMusician) {
 		const locationRaw = assignment.assignedMapId || profile.preferredLocation || '';
-		if (locationRaw) {
-			assignedLocationDisplay = getLocationDisplayNameForEmail(locationRaw);
-		}
+		assignedLocationDisplay = getLocationDisplayNameForEmail(locationRaw);
 		console.log('[EMAIL-BACKEND] Location resolution:', {
 			assignedMapId: assignment.assignedMapId,
 			preferredLocation: profile.preferredLocation,
+			locationRaw: locationRaw,
 			resolved: assignedLocationDisplay
 		});
 	}
@@ -1342,7 +1363,11 @@ function prepareEmailVariables(profile, dateRef, assignment, status) {
 		marketDateFull: String(marketDateFull || ''),
 		status: String(status || ''),
 		SITE_URL: String(currentSiteUrl || ''),
-		assignedLocation: String(assignedLocationDisplay || '')
+		assignedLocation: String(assignedLocationDisplay || ''),
+		// Backward-compat aliases in case the Wix template variable was created
+		// with a different casing/name.
+		assignedlocation: String(assignedLocationDisplay || ''),
+		location: String(assignedLocationDisplay || '')
 	};
 	
 	console.log('[EMAIL-BACKEND] Prepared variables:', variables);

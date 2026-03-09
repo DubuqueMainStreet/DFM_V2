@@ -1588,9 +1588,14 @@ async function updateAssignmentStatus(assignmentId, newStatus) {
 		// and the admin doesn't need to take an extra step
 		if (normalizedStatus === 'Approved' && existingRecord.profileRef) {
 			const profile = await wixData.get('SpecialtyProfiles', existingRecord.profileRef);
-			if (profile && profile.type === 'Musician' && profile.preferredLocation) {
-				existingRecord.assignedMapId = profile.preferredLocation;
-				console.log(`[UPDATE-STATUS] Auto-assigned location to musician's preferred: ${profile.preferredLocation}`);
+			const profileType = String(profile?.type || '').trim().toLowerCase();
+			const preferredLocationRaw = profile?.preferredLocation;
+			const preferredLocation = Array.isArray(preferredLocationRaw)
+				? (preferredLocationRaw[0] || '')
+				: (typeof preferredLocationRaw === 'string' ? preferredLocationRaw : '');
+			if (profile && profileType === 'musician' && preferredLocation) {
+				existingRecord.assignedMapId = preferredLocation.toString().trim();
+				console.log(`[UPDATE-STATUS] Auto-assigned location to musician's preferred: ${existingRecord.assignedMapId}`);
 			}
 		}
 		
