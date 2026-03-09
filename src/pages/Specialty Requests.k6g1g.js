@@ -1583,6 +1583,16 @@ async function updateAssignmentStatus(assignmentId, newStatus) {
 		
 		// Update only the status field on the complete record
 		existingRecord.applicationStatus = normalizedStatus;
+
+		// When approving a musician: auto-assign their requested location so the email shows it
+		// and the admin doesn't need to take an extra step
+		if (normalizedStatus === 'Approved' && existingRecord.profileRef) {
+			const profile = await wixData.get('SpecialtyProfiles', existingRecord.profileRef);
+			if (profile && profile.type === 'Musician' && profile.preferredLocation) {
+				existingRecord.assignedMapId = profile.preferredLocation;
+				console.log(`[UPDATE-STATUS] Auto-assigned location to musician's preferred: ${profile.preferredLocation}`);
+			}
+		}
 		
 		const result = await wixData.update('WeeklyAssignments', existingRecord);
 		

@@ -335,8 +335,19 @@ async function updateAssignmentStatus(assignmentId, newStatus) {
 			throw new Error(`Assignment ${assignmentId} not found`);
 		}
 		existingRecord.applicationStatus = newStatus;
+
+		// When approving a musician: auto-assign their requested location so the email shows it
+		// and the admin doesn't need to take an extra step
+		if (newStatus === 'Approved' && existingRecord.profileRef) {
+			const profile = await wixData.get('SpecialtyProfiles', existingRecord.profileRef);
+			if (profile && profile.type === 'Musician' && profile.preferredLocation) {
+				existingRecord.assignedMapId = profile.preferredLocation;
+				console.log(`[STATUS-UPDATE] Auto-assigned location to musician's preferred: ${profile.preferredLocation}`);
+			}
+		}
+
 		await wixData.update('WeeklyAssignments', existingRecord);
-		console.log(`[STATUS-UPDATE] Database updated successfully. assignedMapId preserved: ${existingRecord.assignedMapId}`);
+		console.log(`[STATUS-UPDATE] Database updated successfully. assignedMapId: ${existingRecord.assignedMapId}`);
 		
 		// Send email notification if status is Approved or Rejected
 		if (newStatus === 'Approved' || newStatus === 'Rejected') {

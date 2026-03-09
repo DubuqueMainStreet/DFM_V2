@@ -3,16 +3,68 @@ description: Strict constraints for Wix Studio (Velo) development.
 globs: **/*.js, **/*.jsw, **/*.web.js
 alwaysApply: false
 ---
-# 🟠 MODULE A: WIX STUDIO & VELO SPECIALIST
+# WIX STUDIO & VELO CONSTRAINTS
 
-## 🚧 THE IRON CLAD CONSTRAINTS (NON-NEGOTIABLE)
-1. **NO DOM ACCESS:** You CANNOT use `window`, `document`, `localstorage`, or `alert()`. These do not exist in the Velo sandbox.
-   - *Correction:* Use `$w('#id')` for elements, `wix-storage` for local data.
-2. **VISUAL IMMUTABILITY:** You CANNOT create HTML elements via code.
-   - *Protocol:* Instruct User: "Please drag a Container to the stage and ID it `#myContainer`."
-3. **SELECTOR STRICTNESS:** Never assume an element exists. Verify IDs match the user's Editor IDs.
+## Iron-Clad Rules (Non-Negotiable)
 
-## 🛠️ CODING PATTERNS
-- **Frontend:** Always wrap initialization in `$w.onReady(function () {... });`.
-- **Backend:** Variables in `.jsw` files DO NOT persist (Serverless). Use `wix-data` or `wix-storage`.
-- **Security:** Use `options = { suppressAuth: true }` ONLY if strictly required.
+1. **NO DOM ACCESS.** `window`, `document`, `localStorage`, `alert()` do not exist in the Velo sandbox.
+   - Use `$w('#id')` for elements, `wix-storage` for local data.
+2. **NO HTML CREATION VIA CODE.** You cannot create visual elements programmatically.
+   - Instruct user: "Please drag a Container to the stage and ID it `#myContainer`."
+3. **SELECTOR STRICTNESS.** Never assume an element exists. Verify IDs match the user's Editor IDs.
+
+## Required Patterns
+
+### Frontend
+- Always wrap initialization in `$w.onReady(function () { ... });`
+- Use `$w('#elementId')` for all element access
+
+### Backend (.jsw / .web.js)
+- Variables DO NOT persist between calls (serverless). Use `wix-data` or `wix-storage` for state.
+- Use `options = { suppressAuth: true }` ONLY if strictly required.
+
+### Wix Data Queries
+- **ALWAYS add `.limit(1000)`** to any query expecting a full dataset. The Wix default limit is 50 — omitting it silently truncates results.
+- **ALWAYS fetch the full record with `.get()` before calling `wixData.update()`** to prevent overwriting fields not included in the update object.
+
+```javascript
+// CORRECT
+const results = await wixData.query("SpecialtyProfiles").limit(1000).find();
+// WRONG — only returns first 50 items
+const results = await wixData.query("SpecialtyProfiles").find();
+```
+
+### CRM Operations
+- **ALWAYS use `elevate()`** from `wix-auth` for CRM operations. Without it, `createContact()` returns FORBIDDEN.
+- Use `createContact()` with `allowDuplicates: true` as primary method. Do NOT use `appendOrCreateContact()` as primary — it may reconcile with the admin's contact.
+- Always verify email matches before sending triggered emails.
+
+```javascript
+import { elevate } from 'wix-auth';
+import wixCrmBackend from 'wix-crm-backend';
+const elevatedCreateContact = elevate(wixCrmBackend.contacts.createContact);
+```
+
+### Reference Fields
+- Referenced collections MUST have a `title` field populated, or references display "Untitled" in the CMS.
+
+## Collection Names (camelCase)
+
+```
+SpecialtyProfiles    WeeklyAssignments    MarketDates2026
+Vendors              StallLayouts         POIs
+MarketAttendance
+```
+
+Do NOT use underscore variants (`Specialty_Profiles`, `Market_Dates_2026`).
+
+## Deployment (See Global Rule)
+Per the global constitution: after any Velo/Wix code changes, commit to git and publish the Wix site. Ensure `wix dev` is running so local code syncs to the Editor before publishing. Use `wix deploy` or the Wix REST API (`site-publisher/v1/site/publish`) with the site ID from `wix.config.json`.
+
+## API Documentation (Context7)
+
+When unsure about any Wix Velo API (wix-data, wix-crm-backend, wix-auth, triggered emails) or Leaflet.js:
+1. Call `resolve-library-id` with the library name to get the Context7 ID
+2. Call `query-docs` with the resolved ID and your specific question
+
+This returns up-to-date docs and code examples. Max 3 calls per question. Always prefer Context7 over guessing API signatures.

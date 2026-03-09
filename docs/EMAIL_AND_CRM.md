@@ -47,6 +47,7 @@ await triggeredEmails.emailContact(templateId, contactId, {
 ### Email Sending Flow
 ```
 Admin clicks Approve/Reject
+  → For musicians: auto-set assignedMapId = profile.preferredLocation (no extra admin step)
   → wixData.update() on WeeklyAssignment
   → sendStatusNotificationEmail(assignmentId, newStatus)
     → Fetch assignment + profile + date data
@@ -104,7 +105,7 @@ In-memory cache prevents duplicate sends within a 5-minute window per assignment
 | `marketDateFull` | "Saturday, May 2, 2026" | |
 | `status` | "Approved" | |
 | `SITE_URL` | "https://dubuquefarmersmarket.com" | |
-| `assignedLocation` | "13th Street" or "Food Court" | **Musicians only.** Admin-assigned spot (from `assignedMapId`). Empty string for non-musicians or if not yet assigned. In the Wix template use **${assignedLocation}** (e.g. "Assigned Location: ${assignedLocation}"). When empty it will show as "Assigned Location: " unless the editor supports conditionals. |
+| `assignedLocation` | "13th Street" or "Food Court" | **Musicians only.** When admin clicks Approve, the musician's requested location (`preferredLocation`) is auto-assigned to `assignedMapId`, so the email shows it without an extra admin step. In the Wix template use **${assignedLocation}** (e.g. "Assigned Location: ${assignedLocation}"). When empty it will show as "Assigned Location: " unless the editor supports conditionals. |
 
 **Rejection Template** — Same variables, different copy.
 
