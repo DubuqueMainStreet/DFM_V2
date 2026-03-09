@@ -1321,9 +1321,18 @@ function prepareEmailVariables(profile, dateRef, assignment, status) {
 	const currentSiteUrl = getSiteUrl();
 	
 	// Assigned location for musicians (Approved only) - display name for email body
+	// Prefer admin-assigned location; fall back to musician's preferred location from profile
 	let assignedLocationDisplay = '';
-	if (status === 'Approved' && profileType === 'Musician' && assignment.assignedMapId) {
-		assignedLocationDisplay = getLocationDisplayNameForEmail(assignment.assignedMapId);
+	if (status === 'Approved' && profileType === 'Musician') {
+		const locationRaw = assignment.assignedMapId || profile.preferredLocation || '';
+		if (locationRaw) {
+			assignedLocationDisplay = getLocationDisplayNameForEmail(locationRaw);
+		}
+		console.log('[EMAIL-BACKEND] Location resolution:', {
+			assignedMapId: assignment.assignedMapId,
+			preferredLocation: profile.preferredLocation,
+			resolved: assignedLocationDisplay
+		});
 	}
 	
 	// Prepare variables object - variable names must match EXACTLY what's in the Wix template
