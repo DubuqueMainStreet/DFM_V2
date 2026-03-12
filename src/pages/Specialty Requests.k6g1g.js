@@ -254,6 +254,7 @@ async function initializeDashboard() {
 		// Load filter options
 		await populateDateFilter();
 		await populateStatusFilter();
+		await populateLocationFilter();
 		
 		// Load default view (Musicians) - will use 'Pending' filter by default
 		await loadAssignments('Musician');
@@ -282,6 +283,11 @@ function setupClearFiltersButton() {
 			const searchInput = $w('#searchName');
 			if (searchInput && searchInput.value !== undefined) {
 				searchInput.value = '';
+			}
+			
+			const filterLocation = $w('#filterLocation');
+			if (filterLocation && filterLocation.value !== undefined) {
+				filterLocation.value = 'all';
 			}
 			
 			// Reload with cleared filters
@@ -696,6 +702,36 @@ async function populateStatusFilter() {
 	}
 }
 
+async function populateLocationFilter() {
+	try {
+		const locationOptions = [
+			{ value: 'all', label: 'All Locations' },
+			{ value: 'Unassigned', label: 'Unassigned' },
+			{ value: 'Default', label: 'Default' },
+			{ value: 'Location A', label: '13th Street' },
+			{ value: 'Location B', label: 'Food Court' },
+			{ value: 'Location C', label: '10th & Iowa St' }
+		];
+		
+		const filterLocation = $w('#filterLocation');
+		if (filterLocation) {
+			if (filterLocation.options) {
+				filterLocation.options = locationOptions;
+			}
+			if (filterLocation.value !== undefined) {
+				filterLocation.value = 'all';
+			}
+			if (typeof filterLocation.onChange === 'function') {
+				filterLocation.onChange(() => {
+					loadAssignments(currentType);
+				});
+			}
+		}
+	} catch (error) {
+		console.error('Error populating location filter:', error);
+	}
+}
+
 async function loadAssignments(type) {
 	try {
 		showLoading(true, 'Loading requests...');
@@ -703,6 +739,7 @@ async function loadAssignments(type) {
 		// Get selected filters
 		const selectedDateId = $w('#filterDate')?.value || 'all';
 		const selectedStatus = $w('#filterStatus')?.value || 'Pending'; // Default to 'Pending'
+		const selectedLocation = $w('#filterLocation')?.value || 'all';
 		const searchQuery = ($w('#searchName')?.value || '').toLowerCase().trim();
 		
 		// Build query
@@ -769,6 +806,14 @@ async function loadAssignments(type) {
 				}
 			}
 			
+			// Filter by assigned location (assignedMapId) if not "all"
+			if (selectedLocation !== 'all') {
+				const assignedLoc = (assignment.assignedMapId || 'Unassigned').toString().trim();
+				if (assignedLoc !== selectedLocation) {
+					continue;
+				}
+			}
+			
 			// Prepare item data for search filtering
 			const itemData = prepareRepeaterItem(assignment);
 			
@@ -796,7 +841,7 @@ async function loadAssignments(type) {
 		console.log(`  - Filtered out by search: ${searchFiltered}`);
 		console.log(`  - Missing/broken profileRef: ${missingProfileRef}`);
 		console.log(`  - Final count displayed: ${repeaterData.length}`);
-		console.log(`  - Filters: status="${selectedStatus}", date="${selectedDateId}", search="${searchQuery}"`);
+		console.log(`  - Filters: status="${selectedStatus}", date="${selectedDateId}", location="${selectedLocation}", search="${searchQuery}"`);
 		
 		if (brokenRefs.length > 0) {
 			console.warn(`⚠️ WARNING: ${brokenRefs.length} assignments have broken profileRef references!`);
@@ -818,11 +863,14 @@ async function loadAssignments(type) {
 		currentAssignments = repeaterData;
 		
 		// Update results count display
-		updateResultsCount(repeaterData.length, typeMatched, selectedStatus, searchQuery);
+		updateResultsCount(repeaterData.length, typeMatched, selectedStatus, searchQuery, selectedLocation);
+		
+		// Update quick stats bar (Pending | Approved | Rejected counts for current view)
+		updateQuickStats(repeaterData);
 		
 		// Show empty state message in loading indicator if no results
 		if (repeaterData.length === 0) {
-			const emptyMessage = getEmptyStateMessage(selectedStatus, searchQuery);
+			const emptyMessage = getEmptyStateMessage(selectedStatus, searchQuery, selectedLocation);
 			showLoading(true, emptyMessage);
 		} else {
 			// Hide loading indicator if we have results
@@ -849,33 +897,65 @@ async function loadAssignments(type) {
 	}
 }
 
-function getEmptyStateMessage(selectedStatus, searchQuery) {
+function getEmptyStateMessage(selectedStatus, searchQuery, selectedLocation) {
+	const locationSuffix = selectedLocation && selectedLocation !== 'all' ? ` at ${getLocationDisplayName(selectedLocation)}` : '';
 	if (searchQuery) {
 		return `No requests found matching "${searchQuery}". Try clearing your search or adjusting filters.`;
 	} else if (selectedStatus === 'Pending') {
-		return 'No pending requests. Great job staying on top of things!';
+		return locationSuffix ? `No pending requests${locationSuffix}.` : 'No pending requests. Great job staying on top of things!';
 	} else if (selectedStatus === 'Approved') {
-		return 'No approved requests found. Try selecting a different status or date.';
+		return `No approved requests found${locationSuffix}. Try selecting a different status or date.`;
 	} else if (selectedStatus === 'Rejected') {
-		return 'No rejected requests found.';
+		return `No rejected requests found${locationSuffix}.`;
 	} else {
 		return 'No requests found matching your filters. Try adjusting your filters or checking other tabs.';
 	}
 }
 
-function updateResultsCount(displayedCount, totalForType, selectedStatus, searchQuery) {
+function updateQuickStats(repeaterData) {
+	const counts = { Pending: 0, Approved: 0, Rejected: 0 };
+	(repeaterData || []).forEach(item => {
+		const s = (item.status || 'Pending').toString().trim();
+		if (counts[s] !== undefined) counts[s]++;
+		else counts.Pending++;
+	});
+	const parts = [`Pending: ${counts.Pending}`, `Approved: ${counts.Approved}`, `Rejected: ${counts.Rejected}`];
+	const statsText = parts.join('  |  ');
+	const statsBar = $w('#statsBar');
+	if (statsBar && statsBar.text !== undefined) {
+		statsBar.text = statsText;
+		if (typeof statsBar.show === 'function') statsBar.show();
+	}
+	// Optional: update individual stat elements if present
+	['statTotal', 'statPending', 'statApproved', 'statRejected'].forEach(id => {
+		const el = $w(`#${id}`);
+		if (!el || el.text === undefined) return;
+		if (id === 'statTotal') el.text = (counts.Pending + counts.Approved + counts.Rejected).toString();
+		else if (id === 'statPending') el.text = counts.Pending.toString();
+		else if (id === 'statApproved') el.text = counts.Approved.toString();
+		else if (id === 'statRejected') el.text = counts.Rejected.toString();
+		if (typeof el.show === 'function') el.show();
+	});
+}
+
+function updateResultsCount(displayedCount, totalForType, selectedStatus, searchQuery, selectedLocation) {
 	const resultsCountElement = $w('#resultsCount');
 	if (!resultsCountElement) return;
+	
+	selectedLocation = selectedLocation || $w('#filterLocation')?.value || 'all';
 	
 	let message = '';
 	if (displayedCount === 0) {
 		message = 'No requests found';
 	} else if (searchQuery) {
 		message = `Showing ${displayedCount} request${displayedCount !== 1 ? 's' : ''} matching "${searchQuery}"`;
-	} else if (selectedStatus === 'all') {
+	} else if (selectedStatus === 'all' && selectedLocation === 'all') {
 		message = `Showing ${displayedCount} request${displayedCount !== 1 ? 's' : ''}`;
 	} else {
-		message = `Showing ${displayedCount} ${selectedStatus.toLowerCase()} request${displayedCount !== 1 ? 's' : ''}`;
+		const parts = [];
+		if (selectedStatus !== 'all') parts.push(selectedStatus.toLowerCase());
+		if (selectedLocation !== 'all') parts.push(getLocationDisplayName(selectedLocation));
+		message = `Showing ${displayedCount} request${displayedCount !== 1 ? 's' : ''}${parts.length ? ` (${parts.join(' • ')})` : ''}`;
 	}
 	
 	if (resultsCountElement.text !== undefined) {
@@ -886,18 +966,25 @@ function updateResultsCount(displayedCount, totalForType, selectedStatus, search
 	}
 	
 	// Update filter summary display
-	updateFilterSummary(selectedStatus, searchQuery);
+	updateFilterSummary(selectedStatus, searchQuery, selectedLocation);
 }
 
-function updateFilterSummary(selectedStatus, searchQuery) {
+function updateFilterSummary(selectedStatus, searchQuery, selectedLocation) {
 	const filterSummaryElement = $w('#filterSummary');
 	if (!filterSummaryElement) return;
+	
+	selectedLocation = selectedLocation || $w('#filterLocation')?.value || 'all';
 	
 	const filters = [];
 	
 	// Add status filter
 	if (selectedStatus && selectedStatus !== 'all') {
 		filters.push(selectedStatus);
+	}
+	
+	// Add location filter
+	if (selectedLocation && selectedLocation !== 'all') {
+		filters.push(getLocationDisplayName(selectedLocation));
 	}
 	
 	// Add search filter
