@@ -705,9 +705,8 @@ async function populateStatusFilter() {
 async function populateLocationFilter() {
 	try {
 		const locationOptions = [
-			{ value: 'all', label: 'All Locations' },
-			{ value: 'Unassigned', label: 'Unassigned' },
-			{ value: 'Default', label: 'Default' },
+			{ value: 'all', label: 'All Requested Locations' },
+			{ value: 'Unassigned', label: 'No requested location' },
 			{ value: 'Location A', label: '13th Street' },
 			{ value: 'Location B', label: 'Food Court' },
 			{ value: 'Location C', label: '10th & Iowa St' }
@@ -806,10 +805,10 @@ async function loadAssignments(type) {
 				}
 			}
 			
-			// Filter by assigned location (assignedMapId) if not "all"
+			// Filter by requested location (preferredLocation) if not "all"
 			if (selectedLocation !== 'all') {
-				const assignedLoc = (assignment.assignedMapId || 'Unassigned').toString().trim();
-				if (assignedLoc !== selectedLocation) {
+				const requestedLoc = normalizeLocationCode(assignment.profileRef?.preferredLocation);
+				if (requestedLoc !== selectedLocation) {
 					continue;
 				}
 			}
@@ -841,7 +840,7 @@ async function loadAssignments(type) {
 		console.log(`  - Filtered out by search: ${searchFiltered}`);
 		console.log(`  - Missing/broken profileRef: ${missingProfileRef}`);
 		console.log(`  - Final count displayed: ${repeaterData.length}`);
-		console.log(`  - Filters: status="${selectedStatus}", date="${selectedDateId}", location="${selectedLocation}", search="${searchQuery}"`);
+		console.log(`  - Filters: status="${selectedStatus}", date="${selectedDateId}", requestedLocation="${selectedLocation}", search="${searchQuery}"`);
 		
 		if (brokenRefs.length > 0) {
 			console.warn(`⚠️ WARNING: ${brokenRefs.length} assignments have broken profileRef references!`);
@@ -898,7 +897,7 @@ async function loadAssignments(type) {
 }
 
 function getEmptyStateMessage(selectedStatus, searchQuery, selectedLocation) {
-	const locationSuffix = selectedLocation && selectedLocation !== 'all' ? ` at ${getLocationDisplayName(selectedLocation)}` : '';
+	const locationSuffix = selectedLocation && selectedLocation !== 'all' ? ` for requested location ${getLocationDisplayName(selectedLocation)}` : '';
 	if (searchQuery) {
 		return `No requests found matching "${searchQuery}". Try clearing your search or adjusting filters.`;
 	} else if (selectedStatus === 'Pending') {
@@ -954,7 +953,7 @@ function updateResultsCount(displayedCount, totalForType, selectedStatus, search
 	} else {
 		const parts = [];
 		if (selectedStatus !== 'all') parts.push(selectedStatus.toLowerCase());
-		if (selectedLocation !== 'all') parts.push(getLocationDisplayName(selectedLocation));
+		if (selectedLocation !== 'all') parts.push(`requested: ${getLocationDisplayName(selectedLocation)}`);
 		message = `Showing ${displayedCount} request${displayedCount !== 1 ? 's' : ''}${parts.length ? ` (${parts.join(' • ')})` : ''}`;
 	}
 	
@@ -982,9 +981,9 @@ function updateFilterSummary(selectedStatus, searchQuery, selectedLocation) {
 		filters.push(selectedStatus);
 	}
 	
-	// Add location filter
+	// Add requested-location filter
 	if (selectedLocation && selectedLocation !== 'all') {
-		filters.push(getLocationDisplayName(selectedLocation));
+		filters.push(`Requested: ${getLocationDisplayName(selectedLocation)}`);
 	}
 	
 	// Add search filter
@@ -1053,6 +1052,7 @@ function getLocationDisplayName(locationCode) {
 		'Location A': '13th Street',
 		'Location B': 'Food Court',
 		'Location C': '10th & Iowa St',
+		'Default': 'Default',
 		'13th Street': '13th Street',
 		'Food Court': 'Food Court',
 		'10th & Iowa St': '10th & Iowa St',
@@ -1061,6 +1061,25 @@ function getLocationDisplayName(locationCode) {
 	
 	// Return mapped name if exists, otherwise return the original value
 	return locationMap[locationCode] || locationCode;
+}
+
+function normalizeLocationCode(rawLocation) {
+	const locationValue = Array.isArray(rawLocation) ? (rawLocation[0] || '') : (rawLocation || '');
+	const normalized = locationValue.toString().trim();
+	if (!normalized) return 'Unassigned';
+	
+	const toCodeMap = {
+		'13th Street': 'Location A',
+		'Food Court': 'Location B',
+		'10th & Iowa St': 'Location C',
+		'Location A': 'Location A',
+		'Location B': 'Location B',
+		'Location C': 'Location C',
+		'Default': 'Default',
+		'Unassigned': 'Unassigned'
+	};
+	
+	return toCodeMap[normalized] || normalized;
 }
 
 function prepareRepeaterItem(assignment) {
@@ -1080,9 +1099,10 @@ function prepareRepeaterItem(assignment) {
 	const dateValue = dateRef.date || new Date(0);
 	const formattedDate = formatDateForDisplay(dateValue, dateRef.title);
 	
-	// Get location: prefer admin-assigned location, fall back to user's preferred location
+	// Get location: prefer admin-assigned location, fall back to user's requested location
 	// For display, use the actual location name (not the code)
-	let locationCode = assignment.assignedMapId || profile.preferredLocation || 'Unassigned';
+	const requestedLocationCode = normalizeLocationCode(profile.preferredLocation);
+	let locationCode = assignment.assignedMapId || requestedLocationCode || 'Unassigned';
 	const locationDisplay = getLocationDisplayName(locationCode);
 	
 	// Build display name: show contactName if available, otherwise organizationName

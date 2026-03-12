@@ -32,7 +32,7 @@ Rejected (end of workflow)
 ### Filters
 - `#filterDate` — Dropdown, filter by market date (auto-populated)
 - `#filterStatus` — Dropdown, filter by status (Pending, Approved, Rejected, All)
-- `#filterLocation` — Dropdown, filter by assigned location (All Locations, Unassigned, Default, 13th Street, Food Court, 10th & Iowa St). Options are populated by code; add a **Dropdown** in the Wix Editor and set its ID to `filterLocation`.
+- `#filterLocation` — Dropdown, filter by **requested location** from the applicant (`preferredLocation`) (All Requested Locations, No requested location, 13th Street, Food Court, 10th & Iowa St). Options are populated by code; add a **Dropdown** in the Wix Editor and set its ID to `filterLocation`.
 
 ### Statistics (Optional)
 - `#statsBar` — **Quick stats** text: "Pending: 12  |  Approved: 5  |  Rejected: 3" for the current filtered view (recommended)
@@ -62,7 +62,7 @@ Rejected (end of workflow)
 
 ## Admin Workflow
 
-1. **Review** — Filter by type (tab), date, status, **location**, or search (name/org/contact)
+1. **Review** — Filter by type (tab), date, status, **requested location**, or search (name/org/contact)
 2. **Approve/Reject** — Click action buttons or use status dropdown
 3. **Assign Location** — Musicians only, via dropdown (Location A/B/C, Default, Unassigned)
 4. **Email Sent** — Automatically on approve/reject (see EMAIL_AND_CRM.md)
