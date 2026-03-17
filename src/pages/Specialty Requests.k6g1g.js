@@ -636,23 +636,35 @@ function updateActiveTab(activeType) {
 async function populateDateFilter() {
 	try {
 		const results = await wixData.query('MarketDates2026')
+			.limit(1000)
 			.find();
 		
+		// Parse dates in a timezone-safe way (Wix often returns UTC midnight, which can show as previous day locally)
 		const dateOptions = results.items
 			.map(item => {
-				const dateObj = new Date(item.date);
+				let dateObj;
+				if (typeof item.date === 'string') {
+					const dateStr = item.date.split('T')[0]; // YYYY-MM-DD
+					const [y, m, d] = dateStr.split('-').map(Number);
+					dateObj = new Date(y, m - 1, d, 12, 0, 0, 0);
+				} else {
+					dateObj = new Date(item.date);
+					dateObj.setHours(12, 0, 0, 0);
+				}
+				// Prefer CMS title when available (e.g. "May 2nd, 2026"); else format from date
 				const monthName = dateObj.toLocaleDateString('en-US', { month: 'long' });
 				const day = dateObj.getDate();
 				const year = dateObj.getFullYear();
 				const daySuffix = getDaySuffix(day);
+				const label = (item.title && item.title.trim()) ? item.title.trim() : `${monthName} ${day}${daySuffix}, ${year}`;
 				
 				return {
 					value: item._id,
-					label: `${monthName} ${day}${daySuffix}, ${year}`,
-					date: item.date
+					label: label,
+					date: dateObj
 				};
 			})
-			.sort((a, b) => new Date(a.date) - new Date(b.date));
+			.sort((a, b) => a.date - b.date);
 		
 		// Add "All Dates" option
 		dateOptions.unshift({ value: 'all', label: 'All Dates' });
