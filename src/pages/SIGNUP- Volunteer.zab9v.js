@@ -5,9 +5,16 @@ import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 // Track selected dates
 let selectedDateIds = [];
 
+// Repeater: register onItemReady only once (registering inside populateDateRepeater stacks listeners
+// and breaks clicks). See setupDateRepeaterOnce.
+let dateRepeaterReady = false;
+/** Latest availability status per MarketDates2026 id (click handler reads this so role changes stay correct). */
+const dateStatusById = new Map();
+
 $w.onReady(function () {
 	populateVolunteerRoleDropdown();
 	populateShiftPreferenceDropdown();
+	setupDateRepeaterOnce();
 	populateDateRepeater();
 	setupSubmitHandler();
 	
@@ -17,9 +24,76 @@ $w.onReady(function () {
 	});
 });
 
+/**
+ * Let clicks hit #itemContainer — Text/Checkbox children often steal events in the Wix runtime.
+ */
+function passThroughClicksToRepeaterChildren($item) {
+	['#itemLabel', '#itemEmoji', '#itemCheckbox'].forEach((sel) => {
+		try {
+			const el = $item(sel);
+			if (el && el.style) {
+				el.style.pointerEvents = 'none';
+			}
+		} catch (e) {
+			// Optional elements
+		}
+	});
+}
+
+function setupDateRepeaterOnce() {
+	if (dateRepeaterReady) return;
+	const repeater = $w('#dateRepeater');
+	if (!repeater || typeof repeater.onItemReady !== 'function') {
+		console.error('#dateRepeater not found or onItemReady unavailable');
+		return;
+	}
+	repeater.onItemReady(($item, itemData) => {
+		try {
+			$item('#itemLabel').text = itemData.label;
+			passThroughClicksToRepeaterChildren($item);
+
+			const container = $item('#itemContainer');
+			if (!container) {
+				console.error('❌ #itemContainer not found for', itemData.label);
+				return;
+			}
+
+			const dateId = itemData._id;
+			applyDateItemStyling(container, itemData, selectedDateIds);
+
+			// Re-bind each time items render (replaces prior handler in Velo for the same element).
+			container.onClick(() => {
+				const meta = dateStatusById.get(dateId);
+				const status = meta ? meta.status : itemData.status;
+				if (status === 'full') return;
+
+				const isSelected = selectedDateIds.includes(dateId);
+				if (isSelected) {
+					selectedDateIds = selectedDateIds.filter((id) => id !== dateId);
+				} else if (!selectedDateIds.includes(dateId)) {
+					selectedDateIds.push(dateId);
+				}
+
+				const forStyle = meta
+					? { ...itemData, status: meta.status, borderColor: meta.borderColor }
+					: itemData;
+				applyDateItemStyling(container, forStyle, selectedDateIds);
+				console.log('Selected dates:', selectedDateIds);
+			});
+		} catch (error) {
+			console.error('Error setting up date repeater item:', error, itemData);
+		}
+	});
+	dateRepeaterReady = true;
+}
+
 async function populateDateRepeater() {
 	try {
+		dateStatusById.clear();
+
 		const results = await wixData.query('MarketDates2026')
+			.ascending('date')
+			.limit(100)
 			.find();
 		
 		// Get availability data for all dates
@@ -126,63 +200,18 @@ async function populateDateRepeater() {
 			// Preserve selection state if date was previously selected
 			const wasSelected = selectedDateIds.includes(item._id);
 			
-			return {
+			const row = {
 				_id: item._id,
 				label: `${item.monthName} ${item.day}${daySuffix}`,
 				status: status,
 				borderColor: borderColor,
 				isSelected: wasSelected
 			};
+			dateStatusById.set(item._id, { status, borderColor });
+			return row;
 		});
 		
-		// Set up repeater
-		$w('#dateRepeater').onItemReady(($item, itemData, index) => {
-			try {
-				// Set label text
-				$item('#itemLabel').text = itemData.label;
-				
-				// Get container element
-				const container = $item('#itemContainer');
-				
-				if (!container) {
-					console.error('❌ Container element not found for item:', itemData.label);
-					return;
-				}
-				
-				// Apply styling function
-				applyDateItemStyling(container, itemData, selectedDateIds);
-				
-				// Make entire container clickable to toggle selection
-				$item('#itemContainer').onClick(() => {
-					// Prevent clicking on full dates
-					if (itemData.status === 'full') {
-						return;
-					}
-					
-					const container = $item('#itemContainer');
-					const isSelected = selectedDateIds.includes(itemData._id);
-					
-					if (isSelected) {
-						// Deselect: remove from array
-						selectedDateIds = selectedDateIds.filter(id => id !== itemData._id);
-					} else {
-						// Select: add to array
-						if (!selectedDateIds.includes(itemData._id)) {
-							selectedDateIds.push(itemData._id);
-						}
-					}
-					
-					// Reapply styling to reflect new selection state
-					applyDateItemStyling(container, itemData, selectedDateIds);
-					
-					console.log('Selected dates:', selectedDateIds);
-				});
-			} catch (error) {
-				console.error('Error styling repeater item:', error, itemData);
-			}
-		});
-		
-		// Populate repeater with data
+		// Populate repeater with data (onItemReady is registered once in setupDateRepeaterOnce)
 		$w('#dateRepeater').data = repeaterData;
 		
 		// Update styling for all items after data is set
@@ -330,6 +359,7 @@ function applyDateItemStyling(container, itemData, selectedDateIds) {
 	const isLimited = itemData.status === 'limited';
 	
 	try {
+		container.style.pointerEvents = 'auto';
 		// Ensure borderColor is in correct format
 		const borderColor = itemData.borderColor.startsWith('#') 
 			? itemData.borderColor 
