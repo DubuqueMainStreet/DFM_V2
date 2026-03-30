@@ -1,0 +1,40 @@
+---
+description: After Velo/Wix code changes — commit, sync context, and publish without asking the user.
+alwaysApply: true
+---
+
+# Wix / Velo: Commit, Sync, and Publish (Mandatory)
+
+When you finish **site-affecting** work (changes under `src/pages/`, `src/backend/`, `src/public/` used by the site, or `wix.config.json`), you MUST complete the loop in the **same session**. Do **not** hand off “please commit and publish” to the user unless a command fails or the user asked for a draft only.
+
+## 1. Commit
+
+- `git add` the files you changed (and `wix.config.json` if `uiVersion` changed in the Editor).
+- `git commit -m "..."` with a clear, conventional message.
+- Do not mix unrelated bulk doc deletions unless the user asked to commit the whole tree.
+
+## 2. Sync (context)
+
+- **Local CLI + Editor:** Disk is the source of truth for `wix publish --source local`. If the user uses `wix dev` / Local Editor, they may save UI in the Editor — ensure `wix.config.json` matches the saved UI version when relevant.
+- There is no separate `wix sync` publish step; publishing from **local** deploys what is committed on disk.
+
+## 3. Publish
+
+From the **repo root**:
+
+```bash
+npx wix publish --source local -y
+```
+
+Report success (live URL) or the exact error if login/network/build fails.
+
+## Exceptions
+
+- Documentation-only edits the user did not ask to commit.
+- Explicit **“do not deploy”** / **“draft only”** in the request.
+- Read-only investigation with no file edits.
+
+## Related
+
+- `docs/PUBLISHING.md` if present for project-specific notes.
+- Query limits and data patterns: `.cursor/rules/wix-velo.mdc.txt`.

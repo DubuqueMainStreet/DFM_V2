@@ -58,11 +58,8 @@ MarketAttendance
 
 Do NOT use underscore variants (`Specialty_Profiles`, `Market_Dates_2026`).
 
-## Deployment (See Global Rule)
-After any Velo/Wix code changes:
-1. Commit: `git add <files>; git commit -m "Description; ui version N"` (bump uiVersion in wix.config.json when relevant).
-2. Publish (non-interactive): `npx wix publish --source local -y` from repo root.
-Full steps, one-liners, and when to run: see **docs/PUBLISHING.md**. Optional: run `npx wix dev` first so local code syncs to the Editor before publishing.
+## Deployment (mandatory)
+After any Velo/Wix code changes: **commit** then **`npx wix publish --source local -y`**. Same session; do not defer to the user. See **`.cursor/rules/wix-deploy-after-changes.mdc.txt`** and **docs/PUBLISHING.md**. Optional: `npx wix dev` while editing so the Local Editor stays aligned with disk.
 
 ## API Documentation (Context7)
 

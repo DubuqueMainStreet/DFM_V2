@@ -1,5 +1,30 @@
 import wixData from 'wix-data';
 
+/** Map stored codes (assignedMapId / preferredLocation) to on-site names — keep in sync with Specialty Requests / emails. */
+function formatMusicianLocationForDisplay(raw) {
+	if (raw == null || raw === '') return 'Unassigned';
+	const s = String(raw).trim();
+	const exact = {
+		'Location A': '13th Street',
+		'Location B': 'Food Court',
+		'Location C': '10th & Iowa St',
+		'13th Street': '13th Street',
+		'Food Court': 'Food Court',
+		'10th & Iowa St': '10th & Iowa St',
+		Default: 'Default'
+	};
+	if (exact[s]) return exact[s];
+	const lower = s.toLowerCase();
+	const byLower = {
+		'location a': '13th Street',
+		'location b': 'Food Court',
+		'location c': '10th & Iowa St',
+		'default': 'Default'
+	};
+	if (byLower[lower]) return byLower[lower];
+	return s;
+}
+
 // Global state
 let marketDates = [];
 let coverageData = [];
@@ -540,7 +565,7 @@ function populateDetails(container, itemData) {
 	if (assignments.musicians.approved.length > 0) {
 		textContent += 'APPROVED:\n';
 		assignments.musicians.approved.forEach(m => {
-			const location = m.location || 'Unassigned';
+			const location = formatMusicianLocationForDisplay(m.location);
 			textContent += `  • ${m.name} - ${location}`;
 			if (m.genre) textContent += ` (${m.genre})`;
 			textContent += '\n';

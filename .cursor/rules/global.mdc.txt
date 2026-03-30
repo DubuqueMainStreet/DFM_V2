@@ -32,9 +32,12 @@ When the user uses "Vibe" language, translate it technically before acting:
 - "Build a dashboard" -> Ask: "Who is the user? What is the #1 metric?"
 
 ## DEPLOYMENT (MANDATORY)
-When you prepare code changes, you MUST:
-1. **Commit** — Run `git add` and `git commit` with a clear message describing the change.
-2. **Publish** — If changes affect the Wix site (Velo code, pages, etc.), run `wix deploy` or publish via the Wix API after ensuring `wix dev` has synced. Do not leave changes uncommitted or unpublished.
+Velo / Wix site code: after edits, **commit** → **publish from local** in the same session. Do not ask the user to verify deploy as a routine step.
+
+1. **Commit** — `git add` changed files; `git commit -m "..."`.
+2. **Publish** — `npx wix publish --source local -y` from repo root (ships committed local code).
+
+Full checklist (sync context, exceptions): **`.cursor/rules/wix-deploy-after-changes.mdc.txt`**.
 
 ## CONTEXT HYGIENE
 - **Memory Anchor:** Read `.cursor/PROJECT_STATE.md.txt` at the start of every session.

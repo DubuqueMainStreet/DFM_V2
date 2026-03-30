@@ -12,7 +12,10 @@ yarn-error.log*
 # IDE
 .vscode/
 .idea/
-.cursor/
+# Track shared Cursor rules; ignore other .cursor noise (caches, local state)
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 *.swp
 *.swo
 *~
