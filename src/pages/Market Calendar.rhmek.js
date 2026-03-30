@@ -89,10 +89,75 @@ function updateActiveMonthTab(activeMonth) {
 	});
 }
 
+function emptyAssignmentBuckets() {
+	return {
+		musicians: { approved: [], pending: [] },
+		nonProfits: { approved: [], pending: [] },
+		volunteers: { approved: [], pending: [] }
+	};
+}
+
+function mergeAssignmentBuckets(a, b) {
+	return {
+		musicians: {
+			approved: [...(a.musicians.approved || []), ...(b.musicians.approved || [])],
+			pending: [...(a.musicians.pending || []), ...(b.musicians.pending || [])]
+		},
+		nonProfits: {
+			approved: [...(a.nonProfits.approved || []), ...(b.nonProfits.approved || [])],
+			pending: [...(a.nonProfits.pending || []), ...(b.nonProfits.pending || [])]
+		},
+		volunteers: {
+			approved: [...(a.volunteers.approved || []), ...(b.volunteers.approved || [])],
+			pending: [...(a.volunteers.pending || []), ...(b.volunteers.pending || [])]
+		}
+	};
+}
+
+/** Local calendar day key — aligns all MarketDates2026 rows that share the same Saturday. */
+function toLocalDateKey(d) {
+	const x = new Date(d);
+	return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Resolve MarketDates2026 id from WeeklyAssignments.dateRef (see availabilityStatus.jsw).
+ * When include() fails or returns a raw reference, dateRef may be a string id; objects use _id or id.
+ */
+function resolveDateRefId(dateRef) {
+	if (dateRef == null) return null;
+	if (typeof dateRef === 'string') return dateRef;
+	if (typeof dateRef === 'object') {
+		const id = dateRef._id != null ? dateRef._id : dateRef.id;
+		return id != null ? String(id) : null;
+	}
+	return null;
+}
+
+/**
+ * Load all WeeklyAssignments with references. Wix default page size is 50 — without limit/paging,
+ * coverage counts miss most records once total assignments exceed 50 (same pattern as Specialty Requests).
+ */
+async function fetchAllWeeklyAssignments() {
+	const allItems = [];
+	let results = await wixData.query('WeeklyAssignments')
+		.include('profileRef')
+		.include('dateRef')
+		.limit(1000)
+		.find();
+	allItems.push(...results.items);
+	while (results.hasNext()) {
+		results = await results.next();
+		allItems.push(...results.items);
+	}
+	return allItems;
+}
+
 async function loadMarketDates() {
 	try {
 		const results = await wixData.query('MarketDates2026')
 			.ascending('date')
+			.limit(100)
 			.find();
 		
 		marketDates = results.items.map(item => ({
@@ -110,19 +175,16 @@ async function loadMarketDates() {
 
 async function calculateCoverage() {
 	try {
-		// Load all assignments with references
-		const assignments = await wixData.query('WeeklyAssignments')
-			.include('profileRef')
-			.include('dateRef')
-			.find();
+		const assignmentItems = await fetchAllWeeklyAssignments();
 		
 		// Group assignments by date
 		const assignmentsByDate = {};
 		
-		for (const assignment of assignments.items) {
-			if (!assignment.dateRef || !assignment.profileRef) continue;
+		for (const assignment of assignmentItems) {
+			const dateId = resolveDateRefId(assignment.dateRef);
+			if (!dateId || !assignment.profileRef) continue;
+			if (typeof assignment.profileRef !== 'object') continue;
 			
-			const dateId = assignment.dateRef._id;
 			if (!assignmentsByDate[dateId]) {
 				assignmentsByDate[dateId] = {
 					musicians: { approved: [], pending: [] },
@@ -132,7 +194,9 @@ async function calculateCoverage() {
 			}
 			
 			const status = (assignment.applicationStatus || 'Pending').toString().trim();
+			const statusLower = status.toLowerCase();
 			const profile = assignment.profileRef;
+			const profileType = String(profile.type || '').trim().toLowerCase();
 			const assignmentData = {
 				_id: assignment._id,
 				name: profile.organizationName || 'Unknown',
@@ -141,41 +205,47 @@ async function calculateCoverage() {
 				profileId: profile._id
 			};
 			
-			// Add type-specific data
-			if (profile.type === 'Musician') {
+			// Add type-specific data (case-insensitive type + status — matches Specialty Requests filtering)
+			if (profileType === 'musician') {
 				assignmentData.musicianType = profile.musicianType;
 				assignmentData.genre = profile.genre;
-				if (status === 'Approved') {
+				if (statusLower === 'approved') {
 					assignmentsByDate[dateId].musicians.approved.push(assignmentData);
-				} else if (status === 'Pending') {
+				} else if (statusLower === 'pending') {
 					assignmentsByDate[dateId].musicians.pending.push(assignmentData);
 				}
-			} else if (profile.type === 'NonProfit') {
+			} else if (profileType === 'nonprofit') {
 				assignmentData.nonProfitType = profile.nonProfitType;
-				if (status === 'Approved') {
+				if (statusLower === 'approved') {
 					assignmentsByDate[dateId].nonProfits.approved.push(assignmentData);
-				} else if (status === 'Pending') {
+				} else if (statusLower === 'pending') {
 					assignmentsByDate[dateId].nonProfits.pending.push(assignmentData);
 				}
-			} else if (profile.type === 'Volunteer') {
+			} else if (profileType === 'volunteer') {
 				assignmentData.role = profile.volunteerRole;
 				assignmentData.shift = profile.shiftPreference;
-				if (status === 'Approved') {
+				if (statusLower === 'approved') {
 					assignmentsByDate[dateId].volunteers.approved.push(assignmentData);
-				} else if (status === 'Pending') {
+				} else if (statusLower === 'pending') {
 					assignmentsByDate[dateId].volunteers.pending.push(assignmentData);
 				}
 			}
 		}
 		
-		// Calculate coverage for each date
+		// Merge buckets for all MarketDates2026 rows that share the same calendar day (duplicate date
+		// rows in CMS used to split WeeklyAssignments across different _ids).
 		coverageData = marketDates.map(date => {
-			const dateAssignments = assignmentsByDate[date._id] || {
-				musicians: { approved: [], pending: [] },
-				nonProfits: { approved: [], pending: [] },
-				volunteers: { approved: [], pending: [] }
-			};
-			
+			const dayKey = toLocalDateKey(date.date);
+			const idsForSameDay = marketDates
+				.filter(md => toLocalDateKey(md.date) === dayKey)
+				.map(md => String(md._id));
+
+			let dateAssignments = emptyAssignmentBuckets();
+			idsForSameDay.forEach(id => {
+				const bucket = assignmentsByDate[id] || emptyAssignmentBuckets();
+				dateAssignments = mergeAssignmentBuckets(dateAssignments, bucket);
+			});
+
 			return {
 				dateId: date._id,
 				date: date.date,
@@ -384,7 +454,8 @@ function setupCalendarItem($item, itemData) {
 	// Musicians coverage
 	if ($item('#itemMusicians')) {
 		const m = itemData.musicians;
-		const text = `🎵 Musicians: ${m.approved}/${m.goal} approved`;
+		// m.approved = headcount; m.goal = location slots (not "musicians denominator")
+		const text = `🎵 Musicians: ${m.approved} approved · ${m.goal} location slots`;
 		const pendingText = m.pending > 0 ? ` (${m.pending} pending)` : '';
 		$item('#itemMusicians').text = text + pendingText;
 	}
