@@ -1836,7 +1836,7 @@
                             icon: createEmptyStallIcon(key),
                             zIndexOffset: 0
                         });
-                        marker.bindPopup(`<div class="popup-header"><div class="popup-title">Stall ${key}</div><div class="popup-subtitle">Available</div></div>`);
+                        marker.bindPopup(`<div class="popup-header"><div class="popup-title">Stall ${escapeHtml(key)}</div><div class="popup-subtitle">Available</div></div>`);
                         marker.addTo(stallLayerGroup);
                         bounds.push(latlng);
                     }
@@ -1983,7 +1983,7 @@
             const size = 24;
             return L.divIcon({
                 className: 'vendor-marker empty-stall-marker',
-                html: `<div class="marker-pin" style="width:${size}px;height:${size}px;background:#9a9a9a;font-size:9px;color:#fff;font-weight:600">${stallId}</div>`,
+                html: `<div class="marker-pin" style="width:${size}px;height:${size}px;background:#9a9a9a;font-size:9px;color:#fff;font-weight:600">${escapeHtml(stallId)}</div>`,
                 iconSize: [size, size],
                 iconAnchor: [size / 2, size / 2],
                 popupAnchor: [0, -(size / 2) - 4]
@@ -2140,22 +2140,46 @@
         }
 
         // ==================== POPUPS ====================
+        // Escape every dynamic string that goes into a popup template literal.
+        // Vendor and POI fields originate from CMS rows authored in Wix; even
+        // though those are admin-only today, treating them as untrusted is the
+        // defensive default. Returns '' for null/undefined to keep templates tidy.
+        const HTML_ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' };
+        function escapeHtml(value) {
+            if (value === null || value === undefined) return '';
+            return String(value).replace(/[&<>"'/]/g, ch => HTML_ESCAPE_MAP[ch]);
+        }
+        // Attribute-safe URL check: only allow http(s):// and mailto: / tel:
+        // schemes. Returns an escaped href or '#'.
+        function safeHref(raw) {
+            if (!raw) return '#';
+            const str = String(raw).trim();
+            const normalized = /^https?:\/\//i.test(str) ? str
+                : (/^(mailto:|tel:)/i.test(str) ? str : 'https://' + str);
+            if (!/^(https?:\/\/|mailto:|tel:)/i.test(normalized)) return '#';
+            return escapeHtml(normalized);
+        }
+
         function buildVendorPopup(vendor, stalls) {
             const color = VENDOR_TYPE_COLORS[vendor.vendorType] || '#3EB449';
             const textColor = getContrastTextColor(color);
+            const title = escapeHtml(vendor.title);
+            const vendorType = escapeHtml(vendor.vendorType || 'Vendor');
+            const stallsLabel = stalls.map(escapeHtml).join(', ');
             let html = `<div class="popup-header" data-header-color="${color}" style="background:${color};color:${textColor}">
-                <div class="popup-title">${vendor.title}</div>
-                <div class="popup-subtitle">${vendor.vendorType || 'Vendor'} • Stalls: ${stalls.join(', ')}</div>
+                <div class="popup-title">${title}</div>
+                <div class="popup-subtitle">${vendorType} • Stalls: ${stallsLabel}</div>
             </div>`;
 
             html += '<div class="popup-body">';
             if (vendor.description) {
-                html += `<p class="popup-description">${vendor.description}</p>`;
+                html += `<p class="popup-description">${escapeHtml(vendor.description)}</p>`;
             }
             if (vendor.arraystring) {
                 html += `<div class="popup-tags" style="--tag-accent:${color}">`;
                 vendor.arraystring.split(/[,;]/).slice(0, 5).forEach(tag => {
-                    if (tag.trim()) html += `<span class="popup-tag">${tag.trim()}</span>`;
+                    const trimmed = tag.trim();
+                    if (trimmed) html += `<span class="popup-tag">${escapeHtml(trimmed)}</span>`;
                 });
                 html += '</div>';
             }
@@ -2163,10 +2187,10 @@
 
             html += '<div class="popup-actions">';
             if (vendor.url) {
-                const url = vendor.url.startsWith('http') ? vendor.url : 'https://' + vendor.url;
-                html += `<a href="${url}" target="_blank" class="popup-btn popup-btn-secondary"><i class="fa-solid fa-globe"></i> Website</a>`;
+                html += `<a href="${safeHref(vendor.url)}" target="_blank" rel="noopener noreferrer" class="popup-btn popup-btn-secondary"><i class="fa-solid fa-globe"></i> Website</a>`;
             }
-            html += `<a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(vendor.title + ' Dubuque Farmers Market')}" target="_blank" class="popup-btn popup-btn-primary"><i class="fa-solid fa-location-arrow"></i> Directions</a>`;
+            const directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent((vendor.title || '') + ' Dubuque Farmers Market')}`;
+            html += `<a href="${escapeHtml(directionsHref)}" target="_blank" rel="noopener noreferrer" class="popup-btn popup-btn-primary"><i class="fa-solid fa-location-arrow"></i> Directions</a>`;
             html += '</div>';
             html += '<div class="popup-nav" role="navigation" aria-label="Browse vendors"></div>';
 
@@ -2176,12 +2200,15 @@
         function buildPoiPopup(props) {
             const config = POI_CONFIG[props.poiType] || POI_CONFIG.Default;
             const textColor = getContrastTextColor(config.color);
+            const title = escapeHtml(props.title || 'Point of Interest');
+            const poiType = escapeHtml(props.poiType || '');
+            const description = escapeHtml(props.description || '');
             return `<div class="popup-header" data-header-color="${config.color}" style="background:${config.color};color:${textColor}">
-                <div class="popup-title">${props.title || 'Point of Interest'}</div>
-                <div class="popup-subtitle">${props.poiType || ''}</div>
+                <div class="popup-title">${title}</div>
+                <div class="popup-subtitle">${poiType}</div>
             </div>
             <div class="popup-body">
-                <p class="popup-description">${props.description || ''}</p>
+                <p class="popup-description">${description}</p>
             </div>`;
         }
 
