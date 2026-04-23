@@ -66,12 +66,27 @@ function updateActiveTab(activeType) {
 	}
 }
 
+// Paginate a query all the way through. Wix default page size is 50; at
+// 2026 season scale (~27 dates × ~50 vendors = 1,350+ assignments) a
+// single .find() silently truncates.
+async function fetchAllItems(queryBuilder, { pageSize = 1000, maxPages = 20 } = {}) {
+	const items = [];
+	let page = await queryBuilder.limit(pageSize).find();
+	items.push(...(page.items || []));
+	let pages = 1;
+	while (page.hasNext && page.hasNext() && pages < maxPages) {
+		page = await page.next();
+		items.push(...(page.items || []));
+		pages++;
+	}
+	return items;
+}
+
 async function populateDateFilter() {
 	try {
-		const results = await wixData.query('MarketDates2026')
-			.find();
+		const items = await fetchAllItems(wixData.query('MarketDates2026'));
 		
-		const dateOptions = results.items
+		const dateOptions = items
 			.map(item => {
 				const dateObj = new Date(item.date);
 				const monthName = dateObj.toLocaleDateString('en-US', { month: 'long' });
@@ -118,7 +133,8 @@ async function loadAssignments(type) {
 			query = query.eq('dateRef', selectedDateId);
 		}
 		
-		const results = await query.find();
+		const items = await fetchAllItems(query);
+		const results = { items };
 		
 		// Filter by profile type and prepare data for repeater
 		const repeaterData = [];
