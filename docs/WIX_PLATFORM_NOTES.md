@@ -107,6 +107,54 @@ npx wix publish --source local -y
 
 ---
 
+## Backend permissions (`src/backend/permissions.json`)
+
+The file whitelists which callers may invoke each web method. Without an
+entry, a call is rejected. The repo ships a **deny-by-default** config:
+everything is `siteOwner`-only unless explicitly opened up.
+
+### Public (anonymous + siteMember + siteOwner)
+
+Only the endpoints the public signup forms need:
+
+- `formSubmissions.jsw`
+  - `submitSpecialtyProfile` — musician / volunteer / NFP signup submits
+- `availabilityStatus.jsw`
+  - `getDateAvailability` — availability indicators in signup forms
+  - `getDateStatus` — per-date role status
+
+### Owner-only (admin dashboards, imports, diagnostics)
+
+- `formSubmissions.jsw` → `manualEntrySpecialtyProfile`
+- `emailNotifications.jsw` → `*` (status emails, contact creation)
+- `emailDiagnostic.jsw` → `*` (email audit, backfill)
+- `diagnosticCheck.jsw` → `*` (data integrity checks)
+- `importData.jsw` → `*` (vendor/stall/POI imports)
+- `fixSaturdayDates.jsw` → `*`
+- `populateDateTitles.web.js` → `*`
+- `formUtils.web.js` → `*` (currently backend-only)
+
+Plus a wildcard `*` / `*` fallback that denies anonymous/member invoke on
+anything not explicitly listed — so newly-added web modules default to
+safe.
+
+### When adding a new backend export
+
+1. Add the file/function to `permissions.json` with the correct access level.
+2. Bump the UI version, commit, then `npx wix publish --source local -y`.
+3. Do **not** rely on the wildcard to make new functions public.
+
+### HTTP functions
+
+Wix HTTP functions in `http-functions.js` (paths like `/_functions/*`)
+are NOT governed by `permissions.json`. Each HTTP function must
+authenticate its own caller. Today:
+- `post_sendMissingApprovalEmailsBackend` — requires `x-admin-token`
+  header matching `ADMIN_BACKFILL_TOKEN` in Secrets Manager
+  (see `docs/EMAIL_AND_CRM.md`).
+
+---
+
 ## MCP Plugins
 
 ### Context7 (Primary — use for Wix API questions)
