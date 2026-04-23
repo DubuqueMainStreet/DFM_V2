@@ -33,23 +33,37 @@ Showing: Musicians | May 2nd | Pending (12 results)  [Clear All]
 
 ## Interactive Map
 
-### High Priority
-- [ ] Keyboard + screen reader support (ARIA roles, focus trap)
-- [ ] Vendor list/sidebar view toggle
-- [ ] Distinguish tap vs scroll on mobile
+### C8 — Post-launch polish (tracked from 2026 repo audit plan)
 
-### Medium Priority
-- [ ] Share/copy link to specific vendor
-- [ ] Offline cache for market day (low signal areas)
+#### Accessibility (High Priority)
+- [ ] Add `role="application"` + `aria-roledescription="map"` on the Leaflet container
+- [ ] Keyboard nav: Tab through vendor markers in reading order; Enter/Space opens popup; Esc closes
+- [ ] Focus trap inside popup while open; return focus to marker on close
+- [ ] Screen reader-friendly vendor list sidebar (toggle-able, announces via `aria-live="polite"`)
+- [ ] Pass an axe-core / WAVE scan with zero critical violations
+- [ ] Ensure popup colors meet WCAG AA contrast (some vendor-type colors are borderline)
+
+#### Marker Clustering (Medium Priority)
+- [ ] Integrate `leaflet.markercluster` for zoom levels < 17
+- [ ] Cluster only vendors (leave POIs always visible)
+- [ ] Disable clustering on initial fit-to-market view
+
+#### Shareable URL State (Medium Priority)
+- [ ] Reflect selected date, filter, and open vendor in the iframe URL as query params
+- [ ] Parent reads params on load and postMessages the initial state to the iframe
+- [ ] "Share this vendor" button in popup copies a deep link
+
+#### Mobile / UX
+- [ ] Distinguish tap vs scroll on mobile (handle `touchmove` threshold before opening popups)
+- [ ] Stall numbers on vendor markers at high zoom
 - [ ] Print-friendly view
-- [ ] Stall numbers on markers at high zoom
+- [ ] Offline cache for market day (low-signal areas — Service Worker)
 
-### Lower Priority
-- [ ] Clustering at low zoom
+#### Lower Priority
 - [ ] Light/dark theme toggle
 - [ ] Multi-date comparison ("New this week")
-- [ ] Favorites/starred vendors
-- [ ] Full accessibility audit (axe/WAVE)
+- [ ] Favorites / starred vendors
+- [ ] Vendor list/sidebar view toggle (complements the a11y sidebar above)
 
 ---
 
