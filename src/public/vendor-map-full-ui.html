@@ -1729,6 +1729,36 @@
         }
 
         // ==================== RENDERING ====================
+        // Convert a GeoJSON feature (Point or Polygon) to a [lat, lng] anchor
+        // used for Leaflet markers. For Polygons, computes the centroid of the
+        // outer ring instead of picking the first vertex.
+        function featureToLatLng(feature) {
+            if (!feature || !feature.geometry) return null;
+            const g = feature.geometry;
+            if (g.type === 'Point' && Array.isArray(g.coordinates)) {
+                const [lng, lat] = g.coordinates;
+                return (typeof lat === 'number' && typeof lng === 'number') ? [lat, lng] : null;
+            }
+            if (g.type === 'Polygon' && Array.isArray(g.coordinates) && Array.isArray(g.coordinates[0])) {
+                const ring = g.coordinates[0];
+                if (ring.length === 0) return null;
+                // Drop closing vertex if present (GeoJSON polygons close on themselves).
+                const pts = (ring[0] && ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1])
+                    ? ring.slice(0, -1)
+                    : ring;
+                let sumLat = 0, sumLng = 0, n = 0;
+                for (const p of pts) {
+                    if (p && typeof p[0] === 'number' && typeof p[1] === 'number') {
+                        sumLng += p[0];
+                        sumLat += p[1];
+                        n++;
+                    }
+                }
+                return n > 0 ? [sumLat / n, sumLng / n] : null;
+            }
+            return null;
+        }
+
         function renderMap() {
 
             // Clear layers and focus state
@@ -1773,11 +1803,8 @@
 
                     // Empty stall marker (only for stalls without a vendor)
                     if (!stallsWithVendors.has(key) && feature.geometry?.coordinates) {
-                        const coords = feature.geometry.type === "Point"
-                            ? feature.geometry.coordinates
-                            : feature.geometry.coordinates[0]?.[0];
-                        if (!coords) return;
-                        const latlng = [coords[1], coords[0]];
+                        const latlng = featureToLatLng(feature);
+                        if (!latlng) return;
                         const marker = L.marker(latlng, {
                             icon: createEmptyStallIcon(key),
                             zIndexOffset: 0
@@ -1798,7 +1825,8 @@
                     const props = { ...feature.properties, poiType: poi.poiType, title: poi.title, description: poi.description };
 
                     if (feature.geometry?.type === "Point") {
-                        const latlng = [feature.geometry.coordinates[1], feature.geometry.coordinates[0]];
+                        const latlng = featureToLatLng(feature);
+                        if (!latlng) return;
                         const marker = L.marker(latlng, { icon: createPoiIcon(props) });
                         marker.bindPopup(buildPoiPopup(props));
                         marker.on('popupopen', () => {
@@ -1835,14 +1863,10 @@
 
                     let latlng;
                     if (features.length > 1) {
-                        const coords = features.map(f => {
-                            const c = f.geometry.type === "Point" ? f.geometry.coordinates : f.geometry.coordinates[0]?.[0];
-                            return c ? [c[1], c[0]] : null;
-                        }).filter(Boolean);
+                        const coords = features.map(f => featureToLatLng(f)).filter(Boolean);
                         latlng = coords.length ? L.latLngBounds(coords).getCenter() : null;
                     } else {
-                        const c = features[0].geometry.type === "Point" ? features[0].geometry.coordinates : features[0].geometry.coordinates[0]?.[0];
-                        latlng = c ? [c[1], c[0]] : null;
+                        latlng = featureToLatLng(features[0]);
                     }
                     if (!latlng) return;
 
