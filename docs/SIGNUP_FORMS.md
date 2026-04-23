@@ -149,9 +149,22 @@ Admin dashboard displays: `"Contact Name (Organization Name)"` when both are pre
 
 ---
 
-## Known Issue
+## Repeater handler registration
 
-**NFP form (`SIGNUP- NFP.owt61.js`):** The `onItemReady` handler is re-registered inside `populateDateRepeater()` on each call, which may cause duplicate event handlers. The musician form avoids this with a `repeaterSetupComplete` flag — the NFP form should adopt the same pattern.
+All three signup forms register `onItemReady` **exactly once** at page
+load, then populate the repeater with `data = ...` on every refresh.
+Re-registering inside the data-refresh path stacks duplicate click
+handlers (selecting a date fires N times). The shared pattern:
+
+- A module-level `repeaterSetupComplete` flag.
+- A `setupRepeaterHandlers()` function that early-returns if already set up.
+- A `registeredHandlers` Set keyed by `itemData._id` so per-item `onClick`
+  handlers register only once per unique row.
+
+Implementations:
+- `src/pages/SIGNUP-Music.ais9x.js` — original reference implementation.
+- `src/pages/SIGNUP- Volunteer.zab9v.js` — uses `dateRepeaterReady` + `setupDateRepeaterOnce()`.
+- `src/pages/SIGNUP- NFP.owt61.js` — ported to this pattern (2026-04-23).
 
 ## Testing Checklist
 

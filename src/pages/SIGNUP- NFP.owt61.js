@@ -5,11 +5,70 @@ import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 // Track selected dates
 let selectedDateIds = [];
 
+// Repeater: register onItemReady only once to avoid stacking duplicate
+// handlers every time populateDateRepeater re-runs (same pattern used in
+// SIGNUP-Music and SIGNUP- Volunteer).
+let repeaterSetupComplete = false;
+const registeredHandlers = new Set();
+
 $w.onReady(function () {
 	populateNonProfitTypeDropdown();
+	setupRepeaterHandlers();
 	populateDateRepeater();
 	setupSubmitHandler();
 });
+
+// Set up repeater handlers once (not every time data is updated).
+function setupRepeaterHandlers() {
+	if (repeaterSetupComplete) return;
+	const repeater = $w('#dateRepeater');
+	if (!repeater || typeof repeater.onItemReady !== 'function') {
+		console.error('#dateRepeater not found or onItemReady unavailable');
+		return;
+	}
+
+	repeater.onItemReady(($item, itemData, index) => {
+		try {
+			$item('#itemLabel').text = itemData.label;
+
+			const container = $item('#itemContainer');
+			if (!container) {
+				console.error('Container element not found for item:', itemData.label);
+				return;
+			}
+
+			// Prevent beige default flash before styling is applied.
+			if (container.style) {
+				container.style.backgroundColor = '#FFFFFF';
+			}
+
+			applyDateItemStyling(container, itemData, selectedDateIds);
+
+			const dateId = itemData._id;
+			if (!registeredHandlers.has(dateId)) {
+				registeredHandlers.add(dateId);
+
+				$item('#itemContainer').onClick(() => {
+					if (itemData.status === 'full') return;
+
+					const isSelected = selectedDateIds.includes(dateId);
+					if (isSelected) {
+						selectedDateIds = selectedDateIds.filter(id => id !== dateId);
+					} else if (!selectedDateIds.includes(dateId)) {
+						selectedDateIds.push(dateId);
+					}
+
+					applyDateItemStyling($item('#itemContainer'), itemData, selectedDateIds);
+					console.log('Selected dates:', [...selectedDateIds]);
+				});
+			}
+		} catch (error) {
+			console.error('Error setting up repeater item:', error);
+		}
+	});
+
+	repeaterSetupComplete = true;
+}
 
 async function populateDateRepeater() {
 	console.log('🚀🚀🚀 POPULATE DATE REPEATER CALLED - VERSION 2.0');
@@ -146,61 +205,9 @@ async function populateDateRepeater() {
 		
 		// Reset selected dates
 		selectedDateIds = [];
-		
-		// Set up repeater
-		$w('#dateRepeater').onItemReady(($item, itemData, index) => {
-			try {
-				// Set label text
-				$item('#itemLabel').text = itemData.label;
-				
-				// Get container element
-				const container = $item('#itemContainer');
-				
-				if (!container) {
-					console.error('Container element not found for item:', itemData.label);
-					return;
-				}
-				
-				// IMPORTANT: Set initial white background to prevent beige default
-				if (container.style) {
-					container.style.backgroundColor = '#FFFFFF';
-				}
-				
-				// Apply styling function
-				applyDateItemStyling(container, itemData, selectedDateIds);
-				
-				// Make entire container clickable to toggle selection
-				const dateId = itemData._id;
-				$item('#itemContainer').onClick(() => {
-					// Prevent clicking on full dates
-					if (itemData.status === 'full') {
-						return;
-					}
-					
-					const container = $item('#itemContainer');
-					const isSelected = selectedDateIds.includes(dateId);
-					
-					if (isSelected) {
-						// Deselect: remove from array
-						selectedDateIds = selectedDateIds.filter(id => id !== dateId);
-					} else {
-						// Select: add to array
-						if (!selectedDateIds.includes(dateId)) {
-							selectedDateIds.push(dateId);
-						}
-					}
-					
-					// Reapply styling to reflect new selection state
-					applyDateItemStyling(container, itemData, selectedDateIds);
-					
-					console.log('Selected dates:', [...selectedDateIds]);
-				});
-			} catch (error) {
-				console.error('Error setting up repeater item:', error);
-			}
-		});
-		
-		// Populate repeater with data
+
+		// Populate repeater with data; onItemReady was registered once in
+		// setupRepeaterHandlers() at page load.
 		$w('#dateRepeater').data = repeaterData;
 		
 		// Update styling for all items after data is set
