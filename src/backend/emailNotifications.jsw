@@ -3,6 +3,21 @@ import wixCrmBackend from 'wix-crm-backend';
 import { triggeredEmails } from 'wix-crm-backend';
 import { elevate } from 'wix-auth';
 
+/*
+ * elevate() audit (2026-04-23):
+ * - Every elevate() call in this file wraps wixCrmBackend.contacts.createContact
+ *   or wixCrmBackend.contacts.updateContact. No other APIs are elevated.
+ * - These elevations are required to create/update CRM contacts during
+ *   signup and status-email flows (createContact is siteOwner-only by
+ *   default).
+ * - All exported functions in this module are siteOwner-only per
+ *   src/backend/permissions.json, so anonymous callers cannot invoke them
+ *   directly. Public access happens transitively via submitSpecialtyProfile
+ *   in formSubmissions.jsw.
+ * - Email addresses and profile fields are validated upstream (in
+ *   formSubmissions.jsw) before any elevated call runs here.
+ */
+
 // In-memory cache to prevent duplicate emails within the same execution context
 // Key: `${assignmentId}-${status}`, Value: timestamp
 const recentEmailSends = new Map();

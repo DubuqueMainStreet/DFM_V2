@@ -2,6 +2,21 @@ import wixData from 'wix-data';
 import wixCrmBackend from 'wix-crm-backend';
 import { elevate } from 'wix-auth';
 
+/*
+ * elevate() audit (2026-04-23):
+ * - Every elevate() call in this file wraps wixCrmBackend.contacts.createContact
+ *   or wixCrmBackend.contacts.updateContact.
+ * - These elevations are required because anonymous signup submissions must
+ *   be able to create/update CRM contacts, which is owner-only by default.
+ * - Scope is narrow: only the CRM contact APIs are elevated; wix-data writes
+ *   run with caller permissions (they succeed because the collections'
+ *   permissions allow anonymous inserts for signup flows).
+ * - Inputs are validated at the top of submitSpecialtyProfile /
+ *   manualEntrySpecialtyProfile before any elevated call runs.
+ * - manualEntrySpecialtyProfile is additionally gated to siteOwner-only by
+ *   src/backend/permissions.json.
+ */
+
 /**
  * Backend function to create a specialty profile and weekly assignments
  * This function has elevated permissions to insert into CMS collections
