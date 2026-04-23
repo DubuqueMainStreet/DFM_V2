@@ -61,67 +61,166 @@
         }
         /* Poppins: loaded via Google Fonts link above (no local files) */
 
-        /* ==================== DFM BRAND DESIGN SYSTEM ==================== */
+        /* ==================== DFM BRAND DESIGN SYSTEM ====================
+         * Token contract per docs/MAP_DESIGN_SPEC.md §11. Phase 2 implementation
+         * of the redesign. Legacy aliases (forest/sage/cream/sand/etc.) are
+         * preserved at the bottom of :root so the rest of the stylesheet keeps
+         * working while Phase 2 migrates rules to new names. Do not add new
+         * legacy-alias usages. */
         :root {
-            /* DFM Brand (from logo) */
+            /* §11.1 Palette */
             --dfm-gold: #EBAE1E;
             --dfm-gold-light: #FDCB22;
             --dfm-green: #3EB449;
             --dfm-teal: #1E5C4E;
             --dfm-muted: #759287;
-            --dfm-black: #1a1a1a;
-            --dfm-white: #ffffff;
+            --ink-black: #1A1A1A;
+            --white: #FFFFFF;
+            --surface-cream: #FAF8F5;
+            --surface-sand: #E8E4DC;
+            --surface-mist: #F0F0ED;
 
-            /* Semantic mappings */
-            --color-primary: var(--dfm-green);
+            /* §11.2 Semantic color mappings (components reference these, not raw palette) */
+            --color-ink: var(--dfm-teal);
+            --color-ink-muted: var(--dfm-muted);
+            --color-ink-strong: var(--ink-black);
+            --color-surface-app: var(--surface-cream);
+            --color-surface-raised: var(--white);
+            --color-surface-quiet: var(--surface-mist);
+            --color-surface-rail: var(--surface-sand);
+            --color-action-primary: var(--dfm-green);
+            --color-action-primary-hover: color-mix(in srgb, var(--dfm-green) 88%, var(--dfm-teal));
+            --color-chrome: var(--dfm-teal);
             --color-accent: var(--dfm-gold);
-            --color-text: var(--dfm-teal);
-            --color-text-muted: var(--dfm-muted);
+            --color-accent-soft: var(--dfm-gold-light);
+            --color-divider: var(--surface-sand);
+            --color-border: color-mix(in srgb, var(--dfm-muted) 50%, transparent);
+            --color-border-strong: var(--dfm-teal);
 
-            /* Legacy aliases (for gradual migration) */
+            /* Marker + polygon roles per §2.2, §2.3 */
+            --marker-vendor-farm: var(--dfm-green);
+            --marker-vendor-eat: var(--dfm-gold);
+            --marker-vendor-craft: var(--dfm-teal);
+            --marker-vendor-occasional: var(--dfm-muted);
+            --marker-vendor-default: var(--dfm-muted);
+            --marker-poi-info: var(--dfm-teal);
+            --marker-poi-amenity: var(--dfm-muted);
+            --marker-poi-utility: var(--dfm-gold);
+            --marker-poi-event: var(--dfm-teal);
+            --marker-poi-merch: var(--dfm-green);
+            --marker-user-core: var(--dfm-teal);
+            --marker-user-halo: var(--dfm-gold-light);
+            --marker-empty-stall: var(--dfm-muted);
+
+            /* §11.3 Typography */
+            --font-display-serif: 'TAY Milkbar', 'Fraunces', Georgia, serif;
+            --font-display-script: 'TAY Dreamboat Thin', 'Caveat', 'Shadows Into Light', cursive;
+            --font-body: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: ui-monospace, 'SF Mono', Consolas, monospace;
+            --fs-hero: clamp(1.75rem, 1.2rem + 2vw, 2.125rem);
+            --fs-popup-title: clamp(1.25rem, 1.1rem + 0.4vw, 1.375rem);
+            --fs-sheet-title: clamp(1.375rem, 1.2rem + 0.5vw, 1.5rem);
+            --fs-overline: clamp(0.875rem, 0.8rem + 0.2vw, 1rem);
+            --fs-h2: clamp(1rem, 0.95rem + 0.2vw, 1.0625rem);
+            --fs-body: clamp(0.875rem, 0.85rem + 0.1vw, 0.9375rem);
+            --fs-ui: clamp(0.8125rem, 0.8rem + 0.1vw, 0.875rem);
+            --fs-micro: 0.75rem;
+            --fs-stall: 0.5625rem;
+            --fw-regular: 400;
+            --fw-medium: 500;
+            --fw-semibold: 600;
+            --fw-bold: 700;
+            --lh-tight: 1.2;
+            --lh-body: 1.55;
+            --lh-ui: 1.25;
+            --ls-overline: 0.04em;
+            --ls-ui: 0.01em;
+
+            /* §11.4 Spacing (4-based scale) */
+            --space-3xs: 2px;
+            --space-2xs: 4px;
+            --space-xs: 6px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+            --space-2xl: 32px;
+            --space-3xl: 48px;
+
+            /* §11.5 Radius */
+            --radius-none: 0;
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-pill: 999px;
+
+            /* §11.6 Shadow (teal-tinted elevation) */
+            --shadow-sm: 0 1px 2px rgba(30, 92, 78, 0.06), 0 1px 3px rgba(30, 92, 78, 0.04);
+            --shadow-md: 0 2px 4px rgba(30, 92, 78, 0.07), 0 4px 8px rgba(30, 92, 78, 0.05);
+            --shadow-lg: 0 4px 8px rgba(30, 92, 78, 0.08), 0 8px 24px rgba(30, 92, 78, 0.10);
+            --shadow-glow: 0 0 0 3px rgba(235, 174, 30, 0.35);
+            --shadow-popup: 0 8px 30px rgba(30, 92, 78, 0.15);
+
+            /* §11.7 Motion */
+            --motion-fast: 120ms;
+            --motion-base: 200ms;
+            --motion-slow: 350ms;
+            --motion-slower: 500ms;
+            --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+            --ease-entrance: cubic-bezier(0.0, 0.0, 0.2, 1);
+            --ease-exit: cubic-bezier(0.4, 0.0, 1, 1);
+            --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+            /* §11.8 Z-index */
+            --z-map: 1;
+            --z-overlay: 1000;
+            --z-overlay-raised: 1001;
+            --z-sheet: 1500;
+            --z-loader: 2000;
+            --z-watermark: 2500;
+            --z-popup: 1000;
+
+            /* §11.9 Layout breakpoints (reference values, used by media queries in px) */
+            --bp-compact: 320px;
+            --bp-mobile: 480px;
+            --bp-tablet: 640px;
+            --bp-desktop: 1024px;
+
+            /* §11.10 Texture opacity (wired even though texture files are on HOLD) */
+            --texture-canvas-pebble-opacity: 0.06;
+            --texture-canvas-earthy-opacity: 0.10;
+            --texture-screenprint-earthy-opacity: 0.18;
+            --texture-screenprint-white-opacity: 0.30;
+
+            /* ===== Legacy aliases (DEPRECATED) =====
+             * Do not reference in new code. These map old token names in
+             * existing rules to the new §11 semantic tokens. Phase 3 will strip
+             * them once every rule has migrated. */
+            --dfm-black: var(--ink-black);
+            --dfm-white: var(--white);
+            --color-primary: var(--color-action-primary);
+            --color-text: var(--color-ink);
+            --color-text-muted: var(--color-ink-muted);
             --forest: var(--dfm-teal);
             --sage: var(--dfm-green);
             --moss: #7a9b6d;
             --mint: #c8dcc0;
             --leaf: var(--dfm-green);
-            --cream: #faf8f5;
-            --sand: #e8e4dc;
+            --cream: var(--surface-cream);
+            --sand: var(--surface-sand);
             --clay: var(--dfm-muted);
             --terracotta: #9c6644;
             --soil: #5c4a3d;
             --gold: var(--dfm-gold);
             --rust: #bf5f3f;
             --berry: #8b3a62;
-            --white: var(--dfm-white);
-            --charcoal: var(--dfm-black);
+            --charcoal: var(--ink-black);
             --stone: var(--dfm-muted);
-            --mist: #f0f0ed;
-
-            /* Shadows */
-            --shadow-sm: 0 1px 2px rgba(30, 92, 78, 0.08);
-            --shadow-md: 0 4px 12px rgba(30, 92, 78, 0.12);
-            --shadow-lg: 0 8px 24px rgba(30, 92, 78, 0.16);
-            --shadow-glow: 0 0 20px rgba(62, 180, 73, 0.25);
-
-            /* Typography — Milkbar (H1), Dreamboat / Outdoors Inks (supporting), Poppins (copy) */
-            --font-h1: 'TAY Milkbar', Georgia, serif;
-            --font-display: 'TAY Dreamboat', 'TAY Milkbar', Georgia, serif;
-            --font-display-thin: 'TAY Dreamboat Thin', 'TAY Milkbar', Georgia, serif;
-            --font-display-ink: 'Outdoors Inks', 'TAY Dreamboat', Georgia, serif;
-            --font-body: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
-
-            /* Spacing */
-            --space-xs: 4px;
-            --space-sm: 8px;
-            --space-md: 16px;
-            --space-lg: 24px;
-            --space-xl: 32px;
-
-            /* Borders */
-            --radius-sm: 6px;
-            --radius-md: 12px;
-            --radius-lg: 20px;
-            --radius-pill: 50px;
+            --mist: var(--surface-mist);
+            --font-h1: var(--font-display-serif);
+            --font-display: var(--font-display-serif);
+            --font-display-thin: var(--font-display-script);
+            --font-display-ink: var(--font-display-serif);
         }
 
         /* ==================== RESET & BASE ==================== */
@@ -153,13 +252,21 @@
         }
 
         /* ==================== HEADER / CONTROLS ==================== */
+        /* ==================== TOP BAR (MAP_DESIGN_SPEC.md §5.1 & §5.2) ==================== */
         .controls-panel {
-            background: var(--white);
-            border-bottom: 1px solid var(--sand);
-            box-shadow: var(--shadow-md);
-            z-index: 1000;
-            padding: var(--space-sm) var(--space-md);
+            background: var(--color-surface-app);
+            border-bottom: 1px solid var(--color-divider);
+            box-shadow: var(--shadow-sm);
+            z-index: var(--z-overlay);
+            padding: var(--space-sm) var(--space-lg);
             flex-shrink: 0;
+            /* Canvas-Pebble texture stand-in until textures land — a very soft
+               radial shade that evokes an unbleached-paper surface */
+            background-image: radial-gradient(
+                ellipse at 50% -20%,
+                rgba(30, 92, 78, 0.04) 0%,
+                transparent 60%
+            );
         }
 
         .controls-header {
@@ -173,23 +280,29 @@
             height: 36px;
             width: auto;
             object-fit: contain;
-            display: none; /* Hide on mobile to save space */
+            border-radius: var(--radius-sm);
+            display: block; /* Alt-mark is compact enough to show on mobile per §5.2 */
+            transition: opacity var(--motion-fast) var(--ease-standard);
         }
 
         .brand-logo-link {
             display: flex;
             align-items: center;
             text-decoration: none;
+            border-radius: var(--radius-sm);
+        }
+
+        .brand-logo-link:active .brand-logo {
+            opacity: 0.7; /* Active tap per §5.2 */
         }
 
         @media (min-width: 640px) {
             .brand-logo {
-                display: block;
                 height: 44px;
             }
         }
 
-        /* Date Selector */
+        /* ==================== DATE CHIP (MAP_DESIGN_SPEC.md §5.3) ==================== */
         .date-selector {
             position: relative;
             flex: 0 0 auto;
@@ -197,28 +310,30 @@
 
         .date-select {
             appearance: none;
-            background: var(--forest);
+            background: var(--color-chrome);
             color: var(--white);
             border: none;
-            padding: var(--space-sm) var(--space-lg) var(--space-sm) var(--space-md);
+            padding: var(--space-sm) 36px var(--space-sm) var(--space-lg);
             border-radius: var(--radius-pill);
             font-family: var(--font-body);
-            font-size: 0.9rem;
-            font-weight: 600;
+            font-size: var(--fs-body);
+            font-weight: var(--fw-semibold);
+            letter-spacing: var(--ls-ui);
             cursor: pointer;
             min-width: 160px;
-            transition: all 0.2s ease;
+            min-height: 44px; /* tap target floor per §5.3 */
+            transition: filter var(--motion-fast) var(--ease-standard),
+                        box-shadow var(--motion-fast) var(--ease-standard);
             box-shadow: var(--shadow-sm);
         }
 
         .date-select:hover {
-            background: var(--sage);
+            filter: brightness(1.08);
             box-shadow: var(--shadow-md);
         }
 
         .date-select:focus {
             outline: none;
-            box-shadow: var(--shadow-glow);
         }
 
         .date-selector::after {
@@ -226,7 +341,7 @@
             font-family: 'Font Awesome 6 Free';
             font-weight: 900;
             position: absolute;
-            right: 12px;
+            right: 14px;
             top: 50%;
             transform: translateY(-50%);
             color: var(--white);
@@ -234,7 +349,7 @@
             pointer-events: none;
         }
 
-        /* Search Bar */
+        /* ==================== SEARCH INPUT (MAP_DESIGN_SPEC.md §5.5) ==================== */
         .search-container {
             flex: 1;
             max-width: 400px;
@@ -244,23 +359,26 @@
         .search-input {
             width: 100%;
             padding: var(--space-sm) var(--space-md) var(--space-sm) 40px;
-            border: 2.5px solid var(--clay);
+            min-height: 44px;
+            border: 2px solid var(--color-ink-muted);
             border-radius: var(--radius-pill);
             font-family: var(--font-body);
-            font-size: 0.9rem;
-            background: var(--mist);
-            transition: all 0.2s ease;
+            font-size: var(--fs-body);
+            font-weight: var(--fw-regular);
+            color: var(--color-ink-strong);
+            background: var(--color-surface-quiet);
+            transition: background var(--motion-fast) var(--ease-standard),
+                        border-color var(--motion-fast) var(--ease-standard);
         }
 
         .search-input:focus {
             outline: none;
-            border-color: var(--sage);
-            background: var(--white);
-            box-shadow: var(--shadow-glow);
+            border-color: var(--color-ink);
+            background: var(--color-surface-app);
         }
 
         .search-input::placeholder {
-            color: var(--stone);
+            color: var(--color-ink-muted);
         }
 
         .search-icon {
@@ -268,7 +386,7 @@
             left: 14px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--stone);
+            color: var(--color-ink-muted);
             font-size: 0.9rem;
         }
 
@@ -277,7 +395,7 @@
             right: 10px;
             top: 50%;
             transform: translateY(-50%);
-            background: var(--stone);
+            background: var(--color-ink-muted);
             color: var(--white);
             border: none;
             width: 36px;
@@ -286,22 +404,28 @@
             font-size: 0.85rem;
             cursor: pointer;
             opacity: 0;
-            transition: opacity 0.2s ease;
+            transition: opacity var(--motion-fast) var(--ease-standard),
+                        background var(--motion-fast) var(--ease-standard);
+        }
+
+        .search-clear:hover,
+        .search-clear:focus {
+            background: var(--color-chrome);
         }
 
         .search-container.has-value .search-clear {
             opacity: 1;
         }
 
-        /* ==================== FILTER BUTTONS ==================== */
+        /* ==================== FILTER CHIPS (MAP_DESIGN_SPEC.md §5.4) ==================== */
         .filters-scroll {
             position: relative;
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
-            margin: 0 calc(-1 * var(--space-md));
-            padding: var(--space-xs) var(--space-md);
+            margin: 0 calc(-1 * var(--space-lg));
+            padding: var(--space-xs) var(--space-lg);
             scroll-snap-type: x mandatory;
         }
 
@@ -315,17 +439,17 @@
             pointer-events: none;
             z-index: 1;
             opacity: 0;
-            transition: opacity 0.2s ease;
+            transition: opacity var(--motion-base) var(--ease-standard);
         }
 
         .filters-scroll::before {
             left: 0;
-            background: linear-gradient(to left, transparent, var(--white));
+            background: linear-gradient(to left, transparent, var(--color-surface-app));
         }
 
         .filters-scroll::after {
             right: 0;
-            background: linear-gradient(to right, transparent, var(--white));
+            background: linear-gradient(to right, transparent, var(--color-surface-app));
         }
 
         .filters-scroll.scrolled-left::before {
@@ -349,19 +473,24 @@
         .filter-btn {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--space-xs);
             padding: 10px 16px;
             min-height: 44px;
-            background: var(--white);
-            border: 2px solid var(--clay);
+            background: var(--color-surface-raised);
+            border: 2px solid var(--color-ink-muted);
             border-radius: var(--radius-pill);
             font-family: var(--font-body);
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: var(--charcoal);
+            font-size: var(--fs-ui);
+            font-weight: var(--fw-medium);
+            color: var(--color-ink-strong);
             cursor: pointer;
             white-space: nowrap;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-sm);
+            transition: background var(--motion-fast) var(--ease-standard),
+                        border-color var(--motion-fast) var(--ease-standard),
+                        color var(--motion-fast) var(--ease-standard),
+                        box-shadow var(--motion-fast) var(--ease-standard),
+                        transform var(--motion-fast) var(--ease-standard);
             user-select: none;
             -webkit-user-select: none;
             scroll-snap-align: start;
@@ -369,8 +498,8 @@
         }
 
         .filter-btn:hover {
-            background: var(--mist);
-            border-color: var(--sage);
+            background: var(--color-surface-quiet);
+            border-color: var(--color-border-strong);
             transform: translateY(-1px);
         }
 
@@ -379,8 +508,8 @@
         }
 
         .filter-btn.active {
-            background: var(--forest);
-            border-color: var(--forest);
+            background: var(--color-chrome);
+            border-color: var(--color-chrome);
             color: var(--white);
             box-shadow: var(--shadow-md);
         }
@@ -389,12 +518,73 @@
             font-size: 0.9rem;
         }
 
-        /* Category-specific colors for active state */
-        .filter-btn[data-category="food"].active { background: var(--terracotta); border-color: var(--terracotta); }
-        .filter-btn[data-category="produce"].active { background: var(--leaf); border-color: var(--leaf); }
-        .filter-btn[data-category="artisan"].active { background: var(--berry); border-color: var(--berry); }
-        .filter-btn[data-category="poi"].active { background: var(--sage); border-color: var(--sage); }
-        .filter-btn[data-category="utility"].active { background: var(--clay); border-color: var(--clay); }
+        /* Category-specific active fills per MAP_DESIGN_SPEC.md §5.4
+           (Eat/Baked/Coffee/Parking/Tokens → gold,
+            Farm → green, SNAP/EBT/Info/Restroom → teal,
+            Seating → muted). */
+        .filter-btn[data-category="food"].active,
+        .filter-btn[data-category="eat"].active,
+        .filter-btn[data-category="baked"].active,
+        .filter-btn[data-category="coffee"].active {
+            background: var(--dfm-gold);
+            border-color: var(--dfm-gold);
+            color: var(--ink-black);
+        }
+        .filter-btn[data-category="produce"].active,
+        .filter-btn[data-category="farm"].active {
+            background: var(--dfm-green);
+            border-color: var(--dfm-green);
+            color: var(--white);
+        }
+        .filter-btn[data-category="artisan"].active,
+        .filter-btn[data-category="snap"].active,
+        .filter-btn[data-category="info"].active,
+        .filter-btn[data-category="restroom"].active {
+            background: var(--dfm-teal);
+            border-color: var(--dfm-teal);
+            color: var(--white);
+        }
+        .filter-btn[data-category="poi"].active {
+            background: var(--dfm-teal);
+            border-color: var(--dfm-teal);
+            color: var(--white);
+        }
+        .filter-btn[data-category="utility"].active,
+        .filter-btn[data-category="parking"].active,
+        .filter-btn[data-category="tokens"].active {
+            background: var(--dfm-gold);
+            border-color: var(--dfm-gold);
+            color: var(--ink-black);
+        }
+        .filter-btn[data-category="seating"].active {
+            background: var(--dfm-muted);
+            border-color: var(--dfm-muted);
+            color: var(--white);
+        }
+
+        /* "Clear All" ghost variant per §5.4 */
+        .filter-btn.clear-all-btn {
+            background: transparent;
+            border: 2px dashed var(--color-ink-muted);
+            box-shadow: none;
+        }
+        .filter-btn.clear-all-btn:hover {
+            background: transparent;
+            border-style: solid;
+            border-color: var(--color-chrome);
+            color: var(--color-chrome);
+        }
+
+        /* Disabled filter — zero matches today */
+        .filter-btn:disabled,
+        .filter-btn[aria-disabled="true"] {
+            background: var(--color-surface-quiet);
+            color: var(--color-ink-muted);
+            border-color: var(--color-border);
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
 
         /* Clear All Button */
         .clear-all-btn {
@@ -463,78 +653,89 @@
             color: var(--charcoal);
         }
 
-        /* ==================== INFO MESSAGE ==================== */
+        /* ==================== MAP MESSAGE / TOAST (MAP_DESIGN_SPEC.md §5.16) ==================== */
         .map-message {
             position: absolute;
             top: var(--space-md);
             left: 50%;
-            transform: translateX(-50%);
-            background: var(--dfm-teal);
-            color: var(--dfm-white);
-            padding: var(--space-sm) var(--space-lg);
+            transform: translateX(-50%) translateY(-8px);
+            background: var(--color-chrome);
+            color: var(--white);
+            padding: var(--space-sm) var(--space-xl);
             border-radius: var(--radius-pill);
-            font-size: 0.9rem;
-            font-weight: 500;
+            font-family: var(--font-body);
+            font-size: var(--fs-ui);
+            font-weight: var(--fw-medium);
+            line-height: var(--lh-ui);
             box-shadow: var(--shadow-lg);
-            z-index: 1001;
+            z-index: var(--z-overlay-raised);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s ease;
+            transition: opacity var(--motion-slow) var(--ease-entrance),
+                        transform var(--motion-slow) var(--ease-entrance);
         }
 
         .map-message.visible {
             opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         .map-message .msg-clear-filters {
             display: inline-block;
-            margin-left: 6px;
+            margin-left: var(--space-xs);
             padding: 2px 10px;
             background: rgba(255,255,255,0.25);
             color: inherit;
             border: 1px solid rgba(255,255,255,0.5);
             border-radius: var(--radius-sm);
-            font-size: 0.8rem;
-            font-weight: 600;
+            font-size: var(--fs-micro);
+            font-weight: var(--fw-semibold);
             cursor: pointer;
             text-decoration: none;
+            pointer-events: auto;
+            transition: background var(--motion-fast) var(--ease-standard);
         }
 
         .map-message .msg-clear-filters:hover {
             background: rgba(255,255,255,0.35);
         }
 
-        /* ==================== MAP CONTROL BUTTONS ==================== */
+        /* ==================== FABs (MAP_DESIGN_SPEC.md §5.12 & §5.13) ==================== */
         .fit-market-btn,
         .locate-btn {
             position: absolute;
-            bottom: var(--space-lg);
+            bottom: var(--space-xl);
             width: 52px;
             height: 52px;
             border-radius: 50%;
-            background: var(--white);
+            background: var(--color-surface-raised);
             border: none;
             box-shadow: var(--shadow-lg);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
-            transition: all 0.2s ease;
+            z-index: var(--z-overlay);
+            transition: background var(--motion-fast) var(--ease-standard),
+                        transform var(--motion-fast) var(--ease-standard);
         }
 
         .fit-market-btn {
-            right: calc(var(--space-md) + 58px);
+            right: calc(var(--space-md) + 58px); /* 58px gap to Locate FAB per §5.13 */
         }
 
         .fit-market-btn:hover {
-            background: var(--mist);
+            background: var(--color-surface-quiet);
             transform: scale(1.05);
+        }
+
+        .fit-market-btn:active {
+            transform: scale(0.95);
         }
 
         .fit-market-btn i {
             font-size: 1.15rem;
-            color: var(--charcoal);
+            color: var(--color-chrome);
         }
 
         .locate-btn {
@@ -542,7 +743,7 @@
         }
 
         .locate-btn:hover {
-            background: var(--mist);
+            background: var(--color-surface-quiet);
             transform: scale(1.05);
         }
 
@@ -552,20 +753,29 @@
 
         .locate-btn i {
             font-size: 1.2rem;
-            color: var(--charcoal);
+            color: var(--color-chrome);
         }
 
         .locate-btn.locating i {
-            color: var(--sage);
+            color: var(--color-action-primary);
             animation: pulse 1.5s infinite;
         }
 
         .locate-btn.active {
-            background: var(--forest);
+            background: var(--color-action-primary);
         }
 
         .locate-btn.active i {
             color: var(--white);
+        }
+
+        /* Denied state per §5.12 — user denied geolocation permission */
+        .locate-btn.denied {
+            background: var(--color-surface-raised);
+            box-shadow: var(--shadow-lg), 0 0 0 3px var(--color-accent-soft);
+        }
+        .locate-btn.denied i {
+            color: var(--color-ink-muted);
         }
 
         @keyframes pulse {
@@ -573,24 +783,46 @@
             50% { opacity: 0.5; }
         }
 
-        /* ==================== VENDOR COUNT BADGE ==================== */
+        /* ==================== VENDOR COUNT PILL (MAP_DESIGN_SPEC.md §5.14) ==================== */
         .vendor-count {
             position: absolute;
-            bottom: var(--space-lg);
+            bottom: var(--space-xl);
             left: var(--space-md);
-            background: var(--white);
-            padding: var(--space-sm) var(--space-md);
+            background: var(--color-surface-raised);
+            padding: var(--space-sm) var(--space-lg);
             border-radius: var(--radius-md);
-            border: 1px solid var(--sand);
+            border: 1px solid var(--color-divider);
             box-shadow: var(--shadow-md);
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--charcoal);
-            z-index: 1000;
+            font-family: var(--font-body);
+            font-size: var(--fs-ui);
+            font-weight: var(--fw-semibold);
+            color: var(--color-ink-strong);
+            z-index: var(--z-overlay);
+            transition: background var(--motion-fast) var(--ease-standard);
         }
 
-        .vendor-count span {
-            color: var(--dfm-green);
+        .vendor-count:hover {
+            background: var(--color-surface-quiet);
+        }
+
+        .vendor-count-label {
+            color: var(--color-ink-strong);
+        }
+
+        /* §5.14 — count number pops in dfm-green, switches to dfm-gold while a
+           filter is active. Use a tighter selector so only the nested count span
+           picks up the accent, not the label wrapper. */
+        .vendor-count-label > .vendor-count-num {
+            color: var(--color-action-primary);
+            font-weight: var(--fw-semibold);
+        }
+
+        .vendor-count.is-filtered .vendor-count-num {
+            color: var(--color-accent);
+        }
+
+        .vendor-count.is-empty .vendor-count-label {
+            color: var(--color-ink-muted);
         }
 
         .test-data-badge {
@@ -657,11 +889,16 @@
             background: var(--mist) !important;
         }
 
-        /* Custom Popup Styling */
+        /* ==================== POPUP (MAP_DESIGN_SPEC.md §5.11) ====================
+           Header = --color-chrome (teal) with a faint overlay that stands in for
+           the Screenprint-Earthy texture until the PNG assets land. A 4px
+           category stripe on the left edge carries the vendor-type cue that
+           Phase 1 was painting across the whole header. Body is white with
+           Poppins 14/1.55. Shadow is --shadow-popup (teal-tinted). */
         .leaflet-popup-content-wrapper {
-            background: var(--white);
+            background: var(--color-surface-raised);
             border-radius: var(--radius-md);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+            box-shadow: var(--shadow-popup);
             padding: 0;
             overflow: hidden;
         }
@@ -670,60 +907,105 @@
             margin: 0;
             min-width: 280px;
             max-width: 340px;
-            line-height: 1.5;
+            line-height: var(--lh-body);
+            font-family: var(--font-body);
+            color: var(--color-ink-strong);
         }
 
         .leaflet-popup-tip {
-            background: var(--white);
+            background: var(--color-surface-raised);
             box-shadow: none;
         }
 
         .leaflet-popup-close-button {
-            color: rgba(255,255,255,0.85) !important;
-            font-size: 22px !important;
+            color: rgba(255,255,255,0.92) !important;
+            font-size: 20px !important;
             width: 30px !important;
             height: 30px !important;
             line-height: 30px !important;
             padding: 0 !important;
-            right: 8px !important;
-            top: 8px !important;
+            right: 10px !important;
+            top: 10px !important;
             z-index: 10;
             border-radius: 50%;
-            background: rgba(0,0,0,0.15) !important;
-            transition: background 0.15s ease;
+            background: rgba(0,0,0,0.20) !important;
+            transition: background var(--motion-fast) var(--ease-standard);
         }
 
-        .leaflet-popup-close-button:hover {
-            background: rgba(0,0,0,0.25) !important;
+        .leaflet-popup-close-button:hover,
+        .leaflet-popup-close-button:focus {
+            background: rgba(0,0,0,0.32) !important;
+        }
+
+        .leaflet-popup-close-button:focus-visible {
+            outline: 3px solid var(--color-accent) !important;
+            outline-offset: 2px;
         }
 
         .popup-header {
-            background: var(--forest);
+            position: relative;
+            background: var(--color-chrome);
             color: var(--white);
-            padding: 14px 16px 12px;
+            padding: 14px 40px 12px 20px; /* right pad clears close btn, left pad clears accent stripe */
+            /* Screenprint-Earthy stand-in until textures land: two soft gradients
+               mimicking a printed, slightly uneven pigment */
+            background-image:
+                linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 20% 0%, rgba(235,174,30,0.10) 0%, transparent 55%);
+        }
+
+        /* Category accent stripe — carries the vendor/POI color cue per §5.11 */
+        .popup-header::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            background: var(--popup-accent, var(--color-accent));
         }
 
         .popup-title {
-            font-family: var(--font-body);
-            font-size: 1.05rem;
-            font-weight: 600;
-            line-height: 1.3;
+            font-family: var(--font-display-serif);
+            font-size: var(--fs-popup-title);
+            font-weight: var(--fw-semibold);
+            line-height: var(--lh-tight);
             letter-spacing: 0.01em;
-            margin-bottom: 4px;
-            padding-right: 24px;
+            margin-bottom: 2px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .popup-subtitle {
-            font-family: var(--font-body);
-            font-size: 0.8rem;
-            font-weight: 400;
-            opacity: 1;
+            font-family: var(--font-display-script);
+            font-size: 0.9375rem;
+            font-weight: var(--fw-regular);
+            color: rgba(255,255,255,0.90);
             letter-spacing: 0.01em;
         }
 
-        .popup-body {
-            padding: 12px 16px;
+        /* Featured badge inside popup header per §5.11 header row */
+        .popup-featured-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: var(--color-accent);
+            color: var(--ink-black);
+            border-radius: var(--radius-pill);
             font-family: var(--font-body);
+            font-weight: var(--fw-bold);
+            font-size: var(--fs-micro);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+        }
+        .popup-featured-badge i { font-size: 10px; }
+
+        .popup-body {
+            padding: var(--space-md) var(--space-lg);
+            font-family: var(--font-body);
+            color: var(--color-ink-strong);
         }
 
         .popup-body:empty {
@@ -732,36 +1014,37 @@
 
         .popup-description {
             font-family: var(--font-body);
-            font-size: 0.9rem;
-            font-weight: 400;
-            color: var(--charcoal);
-            line-height: 1.6;
+            font-size: var(--fs-body);
+            font-weight: var(--fw-regular);
+            color: var(--color-ink-strong);
+            line-height: var(--lh-body);
             margin-bottom: var(--space-sm);
         }
 
         .popup-tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 8px;
+            gap: var(--space-xs);
+            margin-top: var(--space-sm);
         }
 
         .popup-tag {
             font-family: var(--font-body);
-            background: var(--mist);
-            color: var(--charcoal);
+            background: var(--color-surface-quiet);
+            color: var(--color-ink-strong);
             padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.78rem;
-            font-weight: 500;
-            border-left: 3px solid var(--tag-accent, var(--stone));
+            border-radius: var(--radius-sm);
+            font-size: var(--fs-ui);
+            font-weight: var(--fw-medium);
+            line-height: var(--lh-ui);
+            border-left: 4px solid var(--tag-accent, var(--color-ink-muted));
         }
 
         .popup-actions {
             display: flex;
             gap: var(--space-sm);
-            padding: 12px 16px 14px;
-            border-top: 1px solid var(--sand);
+            padding: var(--space-md) var(--space-lg) var(--space-lg);
+            border-top: 1px solid var(--color-divider);
         }
 
         .popup-btn {
@@ -770,43 +1053,46 @@
             min-height: 44px;
             border-radius: var(--radius-sm);
             font-family: var(--font-body);
-            font-size: 0.8125rem;
-            font-weight: 600;
+            font-size: var(--fs-ui);
+            font-weight: var(--fw-bold);
             text-align: center;
             text-decoration: none;
             cursor: pointer;
-            transition: background 0.15s ease;
+            transition: background var(--motion-fast) var(--ease-standard),
+                        transform var(--motion-fast) var(--ease-standard);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: var(--space-xs);
         }
 
         .popup-btn-primary,
         .popup-btn-primary:link,
-        .popup-btn-primary:visited,
-        .popup-btn-primary:hover,
-        .popup-btn-primary:focus {
-            background: var(--forest);
+        .popup-btn-primary:visited {
+            background: var(--color-action-primary);
             color: var(--white) !important;
             border: none;
-            font-weight: 700;
         }
 
         .popup-btn-primary:hover,
         .popup-btn-primary:focus {
-            background: var(--sage);
+            background: var(--color-action-primary-hover);
         }
 
         .popup-btn-secondary {
-            background: var(--mist);
-            color: var(--charcoal);
-            border: 1px solid var(--sand);
-            border-left: 3px solid var(--stone);
+            background: var(--color-surface-quiet);
+            color: var(--color-ink-strong);
+            border: 1px solid var(--color-divider);
+            border-left: 3px solid var(--color-ink-muted);
         }
 
-        .popup-btn-secondary:hover {
-            background: var(--sand);
+        .popup-btn-secondary:hover,
+        .popup-btn-secondary:focus {
+            background: var(--color-surface-rail);
+        }
+
+        .popup-btn:active {
+            transform: scale(0.98);
         }
 
         .popup-nav {
@@ -816,68 +1102,131 @@
             gap: var(--space-sm);
             margin-top: var(--space-sm);
             padding-top: var(--space-sm);
-            border-top: 1px solid var(--sand);
+            border-top: 1px solid var(--color-divider);
         }
 
         .popup-nav-btn {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--space-xs);
             padding: 6px 10px;
             font-family: var(--font-body);
-            font-size: 0.8rem;
-            color: var(--forest);
+            font-size: var(--fs-ui);
+            font-weight: var(--fw-medium);
+            color: var(--color-ink);
             background: transparent;
-            border: 1px solid var(--sand);
+            border: 1px solid var(--color-divider);
             border-radius: var(--radius-sm);
             cursor: pointer;
+            transition: background var(--motion-fast) var(--ease-standard);
         }
 
-        .popup-nav-btn:hover {
-            background: var(--mist);
+        .popup-nav-btn:hover,
+        .popup-nav-btn:focus {
+            background: var(--color-surface-quiet);
         }
 
         .popup-nav-count {
             font-family: var(--font-body);
-            font-size: 0.8rem;
-            color: var(--charcoal-muted);
+            font-size: var(--fs-micro);
+            color: var(--color-ink-muted);
         }
 
+        /* Gold focus ring across all interactive chrome per MAP_DESIGN_SPEC.md §7.6.
+           Applied via :focus-visible so mouse clicks don't draw a ring. */
         .filter-btn:focus-visible,
         .date-select:focus-visible,
         .search-input:focus-visible,
         .popup-btn:focus-visible,
+        .popup-nav-btn:focus-visible,
         .locate-btn:focus-visible,
         .fit-market-btn:focus-visible,
-        .popup-nav-btn:focus-visible,
-        .search-clear:focus-visible {
-            outline: 3px solid var(--dfm-gold);
+        .legend-btn:focus-visible,
+        .vendor-count:focus-visible,
+        .search-clear:focus-visible,
+        .brand-logo-link:focus-visible,
+        .active-filter-chip button:focus-visible {
+            outline: 3px solid var(--color-accent);
             outline-offset: 2px;
         }
 
+        /* Skip-to-map link per MAP_DESIGN_SPEC.md §7.1 — visually hidden until
+           focused, jumps a keyboard user past the filters into the map. */
+        .skip-to-map {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: auto;
+            padding: 8px 14px;
+            background: var(--color-chrome);
+            color: var(--white);
+            font-family: var(--font-body);
+            font-size: var(--fs-ui);
+            font-weight: var(--fw-semibold);
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            z-index: var(--z-loader);
+            transform: translateY(-200%);
+            transition: transform var(--motion-base) var(--ease-standard);
+        }
+        .skip-to-map:focus,
+        .skip-to-map:focus-visible {
+            transform: translateY(0);
+            outline: 3px solid var(--color-accent);
+            outline-offset: 2px;
+        }
+
+        /* Reduced-motion override per MAP_DESIGN_SPEC.md §6.3 / §7.9.
+           Kill decorative animations; keep loading state changes functional. */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+            .vendor-marker .marker-pin:hover,
+            .vendor-marker.highlighted .marker-pin {
+                transform: none !important;
+            }
+            .filter-btn:hover,
+            .locate-btn:hover,
+            .fit-market-btn:hover,
+            .legend-btn:hover {
+                transform: none !important;
+            }
+        }
+
+        /* ==================== ACTIVE FILTER TOAST (MAP_DESIGN_SPEC.md §5.6) ==================== */
         .active-filter-chip {
             display: none;
             position: absolute;
             top: var(--space-sm);
             left: 50%;
-            transform: translateX(-50%);
-            background: var(--forest);
+            transform: translateX(-50%) translateY(-12px);
+            opacity: 0;
+            background: var(--color-chrome);
             color: var(--white);
             padding: 6px 14px 6px 12px;
             border-radius: var(--radius-pill);
             font-family: var(--font-body);
-            font-size: 0.8rem;
-            font-weight: 600;
-            z-index: 1001;
+            font-size: var(--fs-ui);
+            font-weight: var(--fw-semibold);
+            z-index: var(--z-overlay-raised);
             box-shadow: var(--shadow-md);
-            gap: 8px;
+            gap: var(--space-sm);
             align-items: center;
             max-width: 90%;
             white-space: nowrap;
+            min-height: 34px;
+            transition: opacity var(--motion-base) var(--ease-entrance),
+                        transform var(--motion-base) var(--ease-entrance);
         }
 
         .active-filter-chip.visible {
             display: inline-flex;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         .active-filter-chip button {
@@ -894,38 +1243,51 @@
             justify-content: center;
             margin-left: 4px;
             flex-shrink: 0;
+            transition: background var(--motion-fast) var(--ease-standard);
         }
 
+        .active-filter-chip button:hover,
+        .active-filter-chip button:focus {
+            background: rgba(255,255,255,0.40);
+        }
+
+        /* ==================== LEGEND (MAP_DESIGN_SPEC.md §5.15) ==================== */
         .legend-btn {
             position: absolute;
-            bottom: calc(var(--space-lg) + 100px);
+            bottom: calc(var(--space-xl) + 68px); /* sits above vendor-count pill */
             left: var(--space-md);
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            background: var(--white);
+            background: var(--color-surface-raised);
             border: none;
             box-shadow: var(--shadow-lg);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: var(--z-overlay);
             font-size: 1.1rem;
-            color: var(--charcoal);
+            color: var(--color-chrome);
+            transition: background var(--motion-fast) var(--ease-standard),
+                        transform var(--motion-fast) var(--ease-standard);
         }
+
+        .legend-btn:hover { background: var(--color-surface-quiet); transform: scale(1.05); }
+        .legend-btn:active { transform: scale(0.95); }
 
         .legend-overlay {
             display: none;
             position: absolute;
-            bottom: calc(var(--space-lg) + 150px);
+            bottom: calc(var(--space-xl) + 120px);
             left: var(--space-md);
-            background: var(--white);
+            background: var(--color-surface-raised);
+            border: 1px solid var(--color-divider);
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-lg);
             padding: 14px 16px;
-            z-index: 1001;
-            min-width: 180px;
+            z-index: var(--z-overlay-raised);
+            min-width: 200px;
             font-family: var(--font-body);
         }
 
@@ -934,10 +1296,23 @@
         }
 
         .legend-overlay h4 {
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: var(--charcoal);
+            font-family: var(--font-display-script);
+            font-size: 1rem;
+            font-weight: var(--fw-regular);
+            margin-bottom: var(--space-sm);
+            color: var(--color-chrome);
+            letter-spacing: 0.01em;
+        }
+
+        .legend-section-heading {
+            font-family: var(--font-body);
+            font-size: var(--fs-micro);
+            font-weight: var(--fw-semibold);
+            color: var(--color-chrome);
+            text-transform: uppercase;
+            letter-spacing: var(--ls-overline);
+            margin-top: var(--space-sm);
+            margin-bottom: var(--space-2xs);
         }
 
         .legend-item {
@@ -945,8 +1320,10 @@
             align-items: center;
             gap: 10px;
             padding: 4px 0;
-            font-size: 0.8rem;
-            color: var(--charcoal);
+            font-family: var(--font-body);
+            font-size: var(--fs-ui);
+            font-weight: var(--fw-medium);
+            color: var(--color-ink-strong);
         }
 
         .legend-dot {
@@ -959,7 +1336,8 @@
         }
 
         /* ==================== MARKER STYLES ==================== */
-        /* Reset Leaflet divIcon wrapper — eliminate default background/border */
+        /* Implements MAP_DESIGN_SPEC.md §2.2. Reset Leaflet's default divIcon
+           chrome so the marker-pin div is the only visual. */
         .leaflet-marker-icon.vendor-marker,
         .leaflet-marker-icon.empty-stall-marker {
             background: transparent !important;
@@ -976,11 +1354,13 @@
         .vendor-marker .marker-pin {
             border-radius: 50%;
             border: 2.5px solid var(--white);
-            box-shadow: 0 0 0 1px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.3);
+            /* Teal-tinted elevation per §11.6 */
+            box-shadow: 0 1px 2px rgba(30, 92, 78, 0.25), 0 2px 6px rgba(30, 92, 78, 0.22);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            transition: transform var(--motion-fast) var(--ease-standard),
+                        box-shadow var(--motion-fast) var(--ease-standard);
             will-change: transform;
         }
 
@@ -992,17 +1372,60 @@
             color: var(--white);
         }
 
+        /* Focused marker (popup open on it): scale 1.22 + gold-light halo
+           per §2.2 "Vendor — focused" row */
         .vendor-marker.highlighted .marker-pin {
-            transform: scale(1.2);
-            box-shadow: 0 0 0 4px rgba(62, 180, 73, 0.3), 0 2px 8px rgba(0,0,0,0.3);
+            transform: scale(1.22);
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--dfm-gold-light) 55%, transparent),
+                        0 2px 10px rgba(30, 92, 78, 0.30);
         }
 
+        /* Dimmed (another popup open elsewhere) */
         .vendor-marker.dimmed .marker-pin {
             opacity: 0.35;
         }
 
+        /* Featured / "new this week" per §2.2 — 3px gold ring always visible */
+        .vendor-marker.featured .marker-pin {
+            box-shadow: 0 0 0 3px var(--dfm-gold),
+                        0 2px 6px rgba(30, 92, 78, 0.25);
+        }
+        .vendor-marker.featured.highlighted .marker-pin {
+            transform: scale(1.22);
+            box-shadow: 0 0 0 3px var(--dfm-gold),
+                        0 0 0 7px color-mix(in srgb, var(--dfm-gold-light) 55%, transparent),
+                        0 2px 10px rgba(30, 92, 78, 0.30);
+        }
+        .vendor-marker.featured .marker-pin::after {
+            content: "\2605"; /* ★ tiny gold star NE corner per §2.2 */
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 14px;
+            height: 14px;
+            background: var(--dfm-gold);
+            color: var(--ink-black);
+            font-size: 10px;
+            line-height: 14px;
+            text-align: center;
+            border-radius: 50%;
+            border: 1.5px solid var(--white);
+            box-shadow: 0 1px 2px rgba(30, 92, 78, 0.25);
+            pointer-events: none;
+        }
+        .vendor-marker.featured .marker-pin {
+            position: relative;
+            overflow: visible;
+        }
+
         .empty-stall-marker .marker-pin {
             opacity: 0.7;
+            border-radius: var(--radius-sm); /* rounded square per §2.2 empty-stall row */
+            background: var(--marker-empty-stall) !important;
+            font-family: var(--font-body);
+            font-weight: var(--fw-bold);
+            font-size: var(--fs-stall);
+            letter-spacing: 0.02em;
         }
 
         /* User Location */
@@ -1231,6 +1654,7 @@
     </style>
 </head>
 <body>
+    <a href="#map" class="skip-to-map">Skip to map</a>
     <div class="app-container">
         <!-- Controls Panel -->
         <div class="controls-panel">
@@ -1247,50 +1671,50 @@
 
                 <div class="search-container" id="search-container">
                     <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
-                    <input type="text" class="search-input" id="search-input" placeholder="Search vendors..." aria-label="Search vendors by name or product" enterkeyhint="search">
+                    <input type="text" class="search-input" id="search-input" placeholder="Search vendors&hellip;" aria-label="Search vendors by name or product" enterkeyhint="search">
                     <button class="search-clear" id="search-clear" aria-label="Clear search"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                 </div>
             </div>
 
             <div class="filters-scroll">
                 <div class="filters-grid" id="filters-grid">
-                    <!-- Vendor Type Filters -->
-                    <button class="filter-btn" data-type="vendorType" data-value="On-site Prepared Food Vendor" data-category="food">
-                        <i class="fa-solid fa-utensils"></i> Ready to Eat
+                    <!-- Filter chip labels + accessible names per MAP_DESIGN_SPEC.md §8.2 -->
+                    <button class="filter-btn" data-type="vendorType" data-value="On-site Prepared Food Vendor" data-category="food" aria-label="Filter: ready-to-eat food vendors">
+                        <i class="fa-solid fa-utensils" aria-hidden="true"></i> Eat
                     </button>
-                    <button class="filter-btn" data-type="vendorType" data-value="Grower/Producer/Processor" data-category="produce">
-                        <i class="fa-solid fa-carrot"></i> Farm Fresh
+                    <button class="filter-btn" data-type="vendorType" data-value="Grower/Producer/Processor" data-category="produce" aria-label="Filter: farm-fresh growers">
+                        <i class="fa-solid fa-carrot" aria-hidden="true"></i> Farm
                     </button>
-                    <button class="filter-btn" data-type="keyword" data-value="bakery bread cookie pie cake sweet pastry" data-category="food">
-                        <i class="fa-solid fa-cake-candles"></i> Baked Goods
+                    <button class="filter-btn" data-type="keyword" data-value="bakery bread cookie pie cake sweet pastry" data-category="baked" aria-label="Filter: baked goods">
+                        <i class="fa-solid fa-cake-candles" aria-hidden="true"></i> Baked
                     </button>
-                    <button class="filter-btn" data-type="keyword" data-value="coffee espresso latte tea chai" data-category="food">
-                        <i class="fa-solid fa-mug-saucer"></i> Coffee & Tea
+                    <button class="filter-btn" data-type="keyword" data-value="coffee espresso latte tea chai" data-category="coffee" aria-label="Filter: coffee and tea">
+                        <i class="fa-solid fa-mug-saucer" aria-hidden="true"></i> Coffee
                     </button>
-                    <button class="filter-btn" data-type="keyword" data-value="snap ebt dufb double up food bucks" data-category="utility">
-                        <i class="fa-solid fa-credit-card"></i> SNAP/EBT
+                    <button class="filter-btn" data-type="keyword" data-value="snap ebt dufb double up food bucks" data-category="snap" aria-label="Filter: vendors that accept SNAP or EBT">
+                        <i class="fa-solid fa-credit-card" aria-hidden="true"></i> SNAP / EBT
                     </button>
                     
                     <!-- POI Filters -->
-                    <button class="filter-btn" data-type="poiType" data-value="Information" data-category="poi">
-                        <i class="fa-solid fa-circle-info"></i> Info
+                    <button class="filter-btn" data-type="poiType" data-value="Information" data-category="info" aria-label="Filter: information points">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Info
                     </button>
-                    <button class="filter-btn" data-type="poiType" data-value="Restroom" data-category="poi">
-                        <i class="fa-solid fa-restroom"></i> Restrooms
+                    <button class="filter-btn" data-type="poiType" data-value="Restroom" data-category="restroom" aria-label="Filter: restrooms">
+                        <i class="fa-solid fa-restroom" aria-hidden="true"></i> Restroom
                     </button>
-                    <button class="filter-btn" data-type="poiType" data-value="SeatingArea" data-category="poi">
-                        <i class="fa-solid fa-chair"></i> Seating
+                    <button class="filter-btn" data-type="poiType" data-value="SeatingArea" data-category="seating" aria-label="Filter: seating areas">
+                        <i class="fa-solid fa-chair" aria-hidden="true"></i> Seating
                     </button>
-                    <button class="filter-btn" data-type="poiType" data-value="PublicParkingArea" data-category="utility">
-                        <i class="fa-solid fa-square-parking"></i> Parking
+                    <button class="filter-btn" data-type="poiType" data-value="PublicParkingArea" data-category="parking" aria-label="Filter: public parking">
+                        <i class="fa-solid fa-square-parking" aria-hidden="true"></i> Parking
                     </button>
-                    <button class="filter-btn" data-type="poiType" data-value="Market Tokens" data-category="utility">
-                        <i class="fa-solid fa-coins"></i> Tokens
+                    <button class="filter-btn" data-type="poiType" data-value="Market Tokens" data-category="tokens" aria-label="Filter: market token booth">
+                        <i class="fa-solid fa-coins" aria-hidden="true"></i> Tokens
                     </button>
                     
                     <!-- Clear All -->
-                    <button class="filter-btn clear-all-btn" id="clear-all-btn">
-                        <i class="fa-solid fa-rotate-left"></i> Clear
+                    <button class="filter-btn clear-all-btn" id="clear-all-btn" aria-label="Clear all filters">
+                        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Clear
                     </button>
                 </div>
             </div>
@@ -1303,7 +1727,7 @@
             <!-- Loading Overlay -->
             <div class="map-loader" id="map-loader">
                 <div class="loader-spinner"></div>
-                <span class="loader-text">Loading market map...</span>
+                <span class="loader-text">Loading market map&hellip;</span>
             </div>
 
             <!-- Info Message -->
@@ -1315,9 +1739,9 @@
                 <button type="button" id="active-filter-clear" aria-label="Clear active filter"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </div>
 
-            <!-- Vendor Count -->
-            <div class="vendor-count" id="vendor-count">
-                <span id="vendor-count-num">0</span> vendors today
+            <!-- Vendor count pill (copy + filtered variants per MAP_DESIGN_SPEC.md §5.14 / §8.3) -->
+            <div class="vendor-count" id="vendor-count" role="status" aria-live="polite">
+                <span class="vendor-count-label" id="vendor-count-label">Loading market&hellip;</span>
             </div>
 
             <!-- Legend -->
@@ -1325,24 +1749,23 @@
                 <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
             </button>
             <div class="legend-overlay" id="legend-overlay" role="complementary" aria-label="Map legend">
-                <h4>Map Legend</h4>
-                <div class="legend-item"><div class="legend-dot" style="background:#3EB449"></div> Farm Fresh / Produce</div>
-                <div class="legend-item"><div class="legend-dot" style="background:#EBAE1E"></div> Ready-to-Eat Food</div>
-                <div class="legend-item"><div class="legend-dot" style="background:#1E5C4E"></div> Crafters / Artisans</div>
-                <div class="legend-item"><div class="legend-dot" style="background:#7a9b6d"></div> Occasional Vendors</div>
-                <div class="legend-item"><div class="legend-dot" style="background:#759287"></div> Points of Interest</div>
-                <div class="legend-item" style="margin-top:8px;font-weight:600">Icon categories (auto-matched)</div>
-                <div class="legend-item"><i class="fa-solid fa-carrot" aria-hidden="true"></i> Produce / Farm Goods</div>
-                <div class="legend-item"><i class="fa-solid fa-bread-slice" aria-hidden="true"></i> Bakery / Pantry</div>
-                <div class="legend-item"><i class="fa-solid fa-utensils" aria-hidden="true"></i> Prepared Food</div>
-                <div class="legend-item"><i class="fa-solid fa-gem" aria-hidden="true"></i> Artisan Crafts</div>
+                <h4>Map legend</h4>
+                <div class="legend-section-heading">Vendor types</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#3EB449"></div> Farm fresh</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#EBAE1E"></div> Ready to eat</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#1E5C4E"></div> Crafters &amp; artisans</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#759287"></div> Occasional vendors</div>
+                <div class="legend-section-heading">On the map</div>
+                <div class="legend-item"><i class="fa-solid fa-star" aria-hidden="true" style="color:var(--dfm-gold)"></i> Featured this week</div>
+                <div class="legend-item"><i class="fa-solid fa-square-parking" aria-hidden="true" style="color:var(--dfm-gold)"></i> Parking &amp; tokens</div>
+                <div class="legend-item"><i class="fa-solid fa-circle-info" aria-hidden="true" style="color:var(--dfm-teal)"></i> Info &amp; restrooms</div>
             </div>
 
             <!-- Map controls: Fit market + Locate -->
             <button class="fit-market-btn" id="fit-market-btn" title="Fit map to market" aria-label="Fit map to market area" style="display: none;">
                 <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
             </button>
-            <button class="locate-btn" id="locate-btn" title="Find my location" aria-label="Find my location on map">
+            <button class="locate-btn" id="locate-btn" title="Find my location" aria-label="Find my location on the map">
                 <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
             </button>
 
@@ -1399,12 +1822,16 @@
         let IS_DESIGN_PREVIEW = DESIGN_PREVIEW_PARAMS.enabled;
 
         // ==================== CONFIGURATION ====================
+        // Vendor-category marker fill per MAP_DESIGN_SPEC.md §2.2. Hex values
+        // are the resolved --marker-vendor-* tokens; kept literal so Leaflet
+        // can render them in inline style attributes. Keep in sync with the
+        // --marker-vendor-* tokens in :root.
         const VENDOR_TYPE_COLORS = {
-            "Grower/Producer/Processor": "#3EB449",
-            "On-site Prepared Food Vendor": "#EBAE1E",
-            "Crafter/Artisan": "#1E5C4E",
-            "Occasional Vendor": "#7a9b6d",
-            "Default": "#759287"
+            "Grower/Producer/Processor": "#3EB449", // --marker-vendor-farm (dfm-green)
+            "On-site Prepared Food Vendor": "#EBAE1E", // --marker-vendor-eat (dfm-gold)
+            "Crafter/Artisan": "#1E5C4E", // --marker-vendor-craft (dfm-teal)
+            "Occasional Vendor": "#759287", // --marker-vendor-occasional (dfm-muted)
+            "Default": "#759287" // --marker-vendor-default (dfm-muted)
         };
 
         const VENDOR_TYPE_FALLBACK_ICONS = {
@@ -1557,16 +1984,19 @@
             return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         }
 
+        // POI color + icon per MAP_DESIGN_SPEC.md §2.2. `ring` tags the POI as
+        // a featured-tier marker that paints a gold outline (e.g. Special
+        // Event). Keep hex values in sync with --marker-poi-* tokens.
         const POI_CONFIG = {
-            "Information": { color: "#3EB449", icon: "fa-circle-info" },
-            "Restroom": { color: "#1E5C4E", icon: "fa-restroom" },
-            "SeatingArea": { color: "#3EB449", icon: "fa-chair" },
-            "PublicParkingArea": { color: "#EBAE1E", icon: "fa-square-parking" },
-            "VendorParkingArea": { color: "#759287", icon: "fa-square-parking" },
-            "Market Tokens": { color: "#EBAE1E", icon: "fa-coins" },
-            "Special Event": { color: "#8b3a62", icon: "fa-star" },
-            "Market Merchandise": { color: "#3EB449", icon: "fa-bag-shopping" },
-            "Default": { color: "#759287", icon: "fa-location-dot" }
+            "Information":        { color: "#1E5C4E", icon: "fa-circle-info" },     // --marker-poi-info
+            "Restroom":           { color: "#1E5C4E", icon: "fa-restroom" },        // --marker-poi-info
+            "SeatingArea":        { color: "#759287", icon: "fa-chair" },           // --marker-poi-amenity
+            "PublicParkingArea":  { color: "#EBAE1E", icon: "fa-square-parking" },  // --marker-poi-utility
+            "VendorParkingArea":  { color: "#759287", icon: "fa-square-parking" },  // --marker-poi-amenity
+            "Market Tokens":      { color: "#EBAE1E", icon: "fa-coins" },           // --marker-poi-utility
+            "Special Event":      { color: "#1E5C4E", icon: "fa-star", ring: true }, // --marker-poi-event + gold ring
+            "Market Merchandise": { color: "#3EB449", icon: "fa-bag-shopping" },    // --marker-poi-merch
+            "Default":            { color: "#759287", icon: "fa-location-dot" }
         };
 
         // ==================== STATE ====================
@@ -1584,7 +2014,7 @@
         const iconDebugLogCache = new Set();
 
         // DOM References
-        let mapLoader, mapMessage, dateSelect, searchInput, searchContainer, vendorCountEl;
+        let mapLoader, mapMessage, dateSelect, searchInput, searchContainer, vendorCountEl, vendorCountPill;
 
         // ==================== INITIALIZATION ====================
         document.addEventListener('DOMContentLoaded', () => {
@@ -1594,7 +2024,8 @@
             dateSelect = document.getElementById('date-select');
             searchInput = document.getElementById('search-input');
             searchContainer = document.getElementById('search-container');
-            vendorCountEl = document.getElementById('vendor-count-num');
+            vendorCountEl = document.getElementById('vendor-count-label');
+            vendorCountPill = document.getElementById('vendor-count');
 
             initMap();
             setupEventListeners();
@@ -1654,12 +2085,27 @@
 
             map.on('popupopen', (e) => {
                 const el = e.popup.getElement();
-                const header = el && el.querySelector('.popup-header');
                 const closeBtn = el && el.querySelector('.leaflet-popup-close-button');
-                if (header && closeBtn) {
-                    const bgColor = header.getAttribute('data-header-color') || header.style.backgroundColor || header.style.background || '';
-                    const closeColor = getContrastTextColor(bgColor);
-                    closeBtn.style.setProperty('color', closeColor, 'important');
+                // Popup header is always --color-chrome (teal) per §5.11, so
+                // the close glyph is always white. Keeps contrast consistent.
+                if (closeBtn) {
+                    closeBtn.style.setProperty('color', '#ffffff', 'important');
+                    closeBtn.setAttribute('aria-label', 'Close vendor details');
+                }
+                // Mark popup as a dialog for assistive tech per §7.4 /
+                // MAP_DESIGN_SPEC.md. The popup title doubles as the accessible
+                // name through aria-labelledby.
+                const contentWrap = el && el.querySelector('.leaflet-popup-content-wrapper');
+                const titleEl = el && el.querySelector('.popup-title');
+                if (contentWrap) {
+                    contentWrap.setAttribute('role', 'dialog');
+                    contentWrap.setAttribute('aria-modal', 'false');
+                    if (titleEl) {
+                        if (!titleEl.id) {
+                            titleEl.id = 'popup-title-' + Math.random().toString(36).slice(2, 9);
+                        }
+                        contentWrap.setAttribute('aria-labelledby', titleEl.id);
+                    }
                 }
                 const nav = el && el.querySelector('.popup-nav');
                 if (!nav) return;
@@ -1897,7 +2343,7 @@
                 case "mapDataError":
                     if (IS_DESIGN_PREVIEW) break;
                     hideLoader();
-                    showMessage(payload?.message || "Unable to load map data. Please try again.");
+                        showMessage(payload?.message || "We couldn't load the market today. Pull down to refresh, or try again in a moment.");
                     setTimeout(hideMessage, 5000);
                     break;
                 case "locationResult":
@@ -2011,11 +2457,21 @@
                     stallIdToFeatureMap.set(key, feature);
 
                     // For Point geometry: only render an empty-stall marker (no L.geoJSON default pin).
-                    // For Polygon geometry: render the outline shape.
+                    // For Polygon geometry: render the outline per MAP_DESIGN_SPEC.md §2.3.
+                    // Unassigned: sand fill 35%, muted stroke 60%.
+                    // Assigned: same fill, teal stroke 80% (claim the stall visually).
                     if (feature.geometry?.type === "Polygon") {
+                        const isAssigned = stallsWithVendors.has(key);
                         L.geoJSON(feature, {
-                            style: { fillColor: "#d4c4a0", weight: 1, opacity: 0.3, color: '#b8a88a', fillOpacity: 0.1 },
-                            interactive: false
+                            style: {
+                                fillColor: "#E8E4DC", // --color-surface-rail / --surface-sand
+                                fillOpacity: 0.35,
+                                weight: 1,
+                                color: isAssigned ? "#1E5C4E" : "#759287", // --dfm-teal or --dfm-muted
+                                opacity: isAssigned ? 0.80 : 0.60
+                            },
+                            interactive: false,
+                            className: isAssigned ? 'stall-polygon stall-polygon-assigned' : 'stall-polygon'
                         }).addTo(stallLayerGroup);
                     }
 
@@ -2027,7 +2483,12 @@
                             icon: createEmptyStallIcon(key),
                             zIndexOffset: 0
                         });
-                        marker.bindPopup(`<div class="popup-header"><div class="popup-title">Stall ${escapeHtml(key)}</div><div class="popup-subtitle">Available</div></div>`);
+                        // Empty-stall variant per MAP_DESIGN_SPEC.md §5.11: header only,
+                        // muted accent stripe, copy from §8.4 Copy Voice Guide.
+                        marker.bindPopup(`<div class="popup-header" style="--popup-accent:#759287">
+                            <div class="popup-title">Stall ${escapeHtml(key)}</div>
+                            <div class="popup-subtitle">Seat's warm, vendor TBA.</div>
+                        </div>`);
                         marker.addTo(stallLayerGroup);
                         bounds.push(latlng);
                     }
@@ -2143,52 +2604,94 @@
                 initialZoomDone = true;
             }
 
-            // Update vendor count
-            vendorCountEl.textContent = vendorsOnDate.length;
+            renderVendorCount();
 
             // Show message if no vendors
             if (vendorsOnDate.length === 0 && selectedDate) {
-                showMessage("No vendors scheduled for this date");
+                // Copy per MAP_DESIGN_SPEC.md §8.6 — warm, specific, actionable
+                showMessage("No vendors are scheduled for this date.");
             } else {
                 hideMessage();
             }
         }
 
+        // Vendor count copy per MAP_DESIGN_SPEC.md §8.3 — default / singular /
+        // zero / filtered variants. Called from loadMapData and from
+        // _applyMarkerStyles so the pill stays in sync with filter state.
+        function renderVendorCount() {
+            if (!vendorCountEl || !vendorCountPill) return;
+            const total = (vendorsOnDate || []).length;
+            const hasFilter = !!(currentFilter || searchTerm);
+
+            vendorCountPill.classList.remove('is-filtered', 'is-empty');
+
+            if (total === 0) {
+                vendorCountEl.textContent = 'No vendors today';
+                vendorCountPill.classList.add('is-empty');
+                return;
+            }
+
+            if (hasFilter) {
+                let matching = 0;
+                for (const v of vendorsOnDate) {
+                    if (itemMatchesFilter(v, 'vendor')) matching++;
+                }
+                vendorCountEl.innerHTML = `<span class="vendor-count-num">${matching}</span> of ${total} vendors`;
+                vendorCountPill.classList.add('is-filtered');
+                return;
+            }
+
+            const word = total === 1 ? 'vendor' : 'vendors';
+            vendorCountEl.innerHTML = `<span class="vendor-count-num">${total}</span> ${word} today`;
+        }
+
         // ==================== ICON CREATION ====================
+        // Marker dims per §2.2: default 36, featured 38. Focused scales via CSS.
         function createVendorIcon(vendor, highlighted = false, dimmed = false) {
             const bg = VENDOR_TYPE_COLORS[vendor.vendorType] || VENDOR_TYPE_COLORS.Default;
             const fa = determineVendorIcon(vendor);
-            const size = 36;
-            const extraClass = highlighted ? ' highlighted' : (dimmed ? ' dimmed' : '');
+            const isFeatured = !!(vendor && (vendor.featured === true || vendor.isFeatured === true));
+            const size = isFeatured ? 38 : 36;
+            const classes = ['vendor-marker'];
+            if (highlighted) classes.push('highlighted');
+            else if (dimmed) classes.push('dimmed');
+            if (isFeatured) classes.push('featured');
 
             return L.divIcon({
-                className: 'vendor-marker' + extraClass,
+                className: classes.join(' '),
                 html: `<div class="marker-pin" style="width:${size}px;height:${size}px;background:${bg}"><i class="fa-solid ${fa}" style="font-size:14px"></i></div>`,
-                iconSize: [44, 44],
-                iconAnchor: [22, 22],
-                popupAnchor: [0, -22]
+                iconSize: [size + 8, size + 8],
+                iconAnchor: [(size + 8) / 2, (size + 8) / 2],
+                popupAnchor: [0, -((size + 8) / 2)]
             });
         }
 
+        // Empty stall marker per §2.2: 24px rounded square, --marker-empty-stall
+        // fill at 70%. Stall ID in Poppins 700 / 9px via CSS (see .empty-stall-marker).
         function createEmptyStallIcon(stallId) {
             const size = 24;
             return L.divIcon({
                 className: 'vendor-marker empty-stall-marker',
-                html: `<div class="marker-pin" style="width:${size}px;height:${size}px;background:#9a9a9a;font-size:9px;color:#fff;font-weight:600">${escapeHtml(stallId)}</div>`,
+                html: `<div class="marker-pin" style="width:${size}px;height:${size}px;color:#fff">${escapeHtml(stallId)}</div>`,
                 iconSize: [size, size],
                 iconAnchor: [size / 2, size / 2],
                 popupAnchor: [0, -(size / 2) - 4]
             });
         }
 
+        // POI marker per §2.2. `config.ring === true` adds the featured gold
+        // ring (used by Special Event POI).
         function createPoiIcon(props, highlighted = false, dimmed = false) {
             const config = POI_CONFIG[props.poiType] || POI_CONFIG.Default;
             const size = 30;
-            const extraClass = highlighted ? ' highlighted' : (dimmed ? ' dimmed' : '');
+            const classes = ['vendor-marker'];
+            if (highlighted) classes.push('highlighted');
+            else if (dimmed) classes.push('dimmed');
+            if (config.ring) classes.push('featured');
 
             return L.divIcon({
-                className: 'vendor-marker' + extraClass,
-                html: `<div class="marker-pin" style="width:${size}px;height:${size}px;background:${config.color}"><i class="fa-solid ${config.icon}" style="font-size:12px"></i></div>`,
+                className: classes.join(' '),
+                html: `<div class="marker-pin" style="width:${size}px;height:${size}px;background:${config.color}"><i class="fa-solid ${config.icon}" style="font-size:13px"></i></div>`,
                 iconSize: [size, size],
                 iconAnchor: [size / 2, size / 2],
                 popupAnchor: [0, -(size / 2) - 4]
@@ -2352,22 +2855,32 @@
         }
 
         function buildVendorPopup(vendor, stalls) {
-            const color = VENDOR_TYPE_COLORS[vendor.vendorType] || '#3EB449';
-            const textColor = getContrastTextColor(color);
+            // Header chrome is always teal per MAP_DESIGN_SPEC.md §5.11. The
+            // vendor-category color becomes a left-edge accent stripe (see
+            // .popup-header::before) plus the tag-accent for any tag chips.
+            const accent = VENDOR_TYPE_COLORS[vendor.vendorType] || VENDOR_TYPE_COLORS.Default;
             const title = escapeHtml(vendor.title);
             const vendorType = escapeHtml(vendor.vendorType || 'Vendor');
             const stallsLabel = stalls.map(escapeHtml).join(', ');
-            let html = `<div class="popup-header" data-header-color="${color}" style="background:${color};color:${textColor}">
+            const featuredBadge = (vendor.featured || vendor.isFeatured)
+                ? '<span class="popup-featured-badge" aria-label="Featured vendor"><i class="fa-solid fa-star" aria-hidden="true"></i> Featured</span>'
+                : '';
+            let html = `<div class="popup-header" data-header-color="${accent}" style="--popup-accent:${accent}">
+                ${featuredBadge}
                 <div class="popup-title">${title}</div>
-                <div class="popup-subtitle">${vendorType} • Stalls: ${stallsLabel}</div>
+                <div class="popup-subtitle">${vendorType} &middot; Stall ${stallsLabel}</div>
             </div>`;
 
             html += '<div class="popup-body">';
-            if (vendor.description) {
-                html += `<p class="popup-description">${escapeHtml(vendor.description)}</p>`;
-            }
+            // Description fallback per MAP_DESIGN_SPEC.md §8.4 — warm, on-brand,
+            // keeps the popup layout consistent even when a vendor hasn't filled
+            // in their bio yet.
+            const description = vendor.description
+                ? escapeHtml(vendor.description)
+                : 'A friendly face at the Dubuque Farmers&rsquo; Market.';
+            html += `<p class="popup-description">${description}</p>`;
             if (vendor.arraystring) {
-                html += `<div class="popup-tags" style="--tag-accent:${color}">`;
+                html += `<div class="popup-tags" style="--tag-accent:${accent}">`;
                 vendor.arraystring.split(/[,;]/).slice(0, 5).forEach(tag => {
                     const trimmed = tag.trim();
                     if (trimmed) html += `<span class="popup-tag">${escapeHtml(trimmed)}</span>`;
@@ -2390,11 +2903,11 @@
 
         function buildPoiPopup(props) {
             const config = POI_CONFIG[props.poiType] || POI_CONFIG.Default;
-            const textColor = getContrastTextColor(config.color);
+            const accent = config.color;
             const title = escapeHtml(props.title || 'Point of Interest');
             const poiType = escapeHtml(props.poiType || '');
             const description = escapeHtml(props.description || '');
-            return `<div class="popup-header" data-header-color="${config.color}" style="background:${config.color};color:${textColor}">
+            return `<div class="popup-header" data-header-color="${accent}" style="--popup-accent:${accent}">
                 <div class="popup-title">${title}</div>
                 <div class="popup-subtitle">${poiType}</div>
             </div>
@@ -2499,6 +3012,9 @@
             } else if (!hasFilter) {
                 hideMessage();
             }
+
+            // Sync the vendor-count pill copy with filter state per §5.14 / §8.3
+            renderVendorCount();
         }
 
         function clearFilters() {
@@ -2531,15 +3047,22 @@
             }
         }
 
+        // Returns the visible text of the currently active filter chip, or '' if
+        // none is active or we're filtering by search term only.
+        function currentFilterDisplayName() {
+            if (!currentFilter) return '';
+            const activeBtn = document.querySelector('.filter-btn.active');
+            if (!activeBtn) return '';
+            return activeBtn.textContent.trim().replace(/\s+/g, ' ');
+        }
+
         function updateActiveFilterChip() {
             const chip = document.getElementById('active-filter-chip');
             const label = document.getElementById('active-filter-label');
             if (!chip || !label) return;
 
             if (currentFilter) {
-                const activeBtn = document.querySelector('.filter-btn.active');
-                const text = activeBtn ? activeBtn.textContent.trim().replace(/\s+/g, ' ') : 'Filtered';
-                label.textContent = text;
+                label.textContent = currentFilterDisplayName() || 'Filtered';
                 chip.classList.add('visible');
             } else if (searchTerm) {
                 label.textContent = 'Search: "' + searchTerm + '"';
@@ -2589,7 +3112,14 @@
         }
 
         function showNoResultsMessage() {
-            mapMessage.innerHTML = 'No vendors or places match. <button type="button" class="msg-clear-filters">Clear filters</button>';
+            // Copy per MAP_DESIGN_SPEC.md §8.3 — specific "No X vendors today."
+            // with a `Clear filter` action inline. Falls back to the generic
+            // version if we don't know what the filter label is.
+            const filterLabel = currentFilterDisplayName();
+            const msg = filterLabel
+                ? 'No ' + escapeHtml(filterLabel) + ' vendors today. <button type="button" class="msg-clear-filters">Clear filter</button>'
+                : 'Nothing matches. <button type="button" class="msg-clear-filters">Clear filters</button>';
+            mapMessage.innerHTML = msg;
             mapMessage.classList.add('visible');
         }
 
@@ -2650,8 +3180,9 @@
                 locationRequestTimeoutId = null;
             }
             if (btn) btn.classList.remove('locating', 'active');
-            showMessage(payload && payload.message ? payload.message : "Could not get location");
-            setTimeout(hideMessage, 3000);
+            // Location error copy per MAP_DESIGN_SPEC.md §8.6
+            showMessage(payload && payload.message ? payload.message : "We can't see your location. Check the map permission in your phone settings.");
+            setTimeout(hideMessage, 3500);
         }
 
         function toggleGeolocation() {
@@ -2677,14 +3208,15 @@
                 locationRequestTimeoutId = setTimeout(() => {
                     locationRequestTimeoutId = null;
                     btn.classList.remove('locating');
-                    showMessage("Could not get location");
-                    setTimeout(hideMessage, 3000);
+                    // Timeout copy per MAP_DESIGN_SPEC.md §8.6
+                    showMessage("Finding your location is taking a while. Tap the crosshair again to retry.");
+                    setTimeout(hideMessage, 3500);
                 }, 15000);
                 return;
             }
 
             if (!navigator.geolocation) {
-                showMessage("Geolocation not supported");
+                showMessage("Your phone doesn't support location. Tap a vendor on the map to open their details.");
                 return;
             }
 
@@ -2706,7 +3238,7 @@
                                 iconAnchor: [8, 8]
                             }),
                             zIndexOffset: 1000
-                        }).addTo(map).bindPopup("You are here");
+                        }).addTo(map).bindPopup("You're here");
 
                         userAccuracyCircle = L.circle(latlng, {
                             radius: radius,
@@ -2723,8 +3255,8 @@
                 (err) => {
                     console.warn("Geolocation error:", err);
                     btn.classList.remove('locating', 'active');
-                    showMessage("Could not get location");
-                    setTimeout(hideMessage, 3000);
+                    showMessage("We can't see your location. Check the map permission in your phone settings.");
+                    setTimeout(hideMessage, 3500);
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
@@ -2781,7 +3313,7 @@
                 const state = DESIGN_PREVIEW_PARAMS.state;
                 if (state === 'error') {
                     hideLoader();
-                    showMessage('Unable to load market data. Pull to refresh or try again in a minute.');
+                    showMessage("We couldn't load the market today. Pull down to refresh, or try again in a moment.");
                     return;
                 }
                 if (state === 'offline') {
@@ -2912,7 +3444,7 @@
                 return;
             }
             if (state === 'error') {
-                showMessage('Unable to load market data. Pull to refresh or try again in a minute.');
+                showMessage("We couldn't load the market today. Pull down to refresh, or try again in a moment.");
                 return;
             }
             if (state === 'offline') {
