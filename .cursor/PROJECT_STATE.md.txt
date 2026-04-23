@@ -1,32 +1,146 @@
-# 📂 Project State
-*AI Instruction: Read this file at the start of every session to understand context.*
+# Project State
 
-## 🎯 Current Objective
+*AI Instruction: Read this file at the start of every session to understand context.*  
+*Last Updated: April 23, 2026*
+
+## Current Objective — 2026 Season Launch (May 2) — 9 days out
+
 - [x] Musician Signup Form code complete
+- [x] Volunteer Signup Form code complete
+- [x] Non-Profit Signup Form code complete
+- [x] Admin Dashboard (Specialty Requests) code complete
+- [x] Market Calendar code complete
+- [x] Interactive Leaflet Map code complete
+- [x] Fix `diagnosticCheck.jsw` `approved.length` bug (verified Apr 23, 2026)
+- [x] Fix `dataParse.gtlkj.js` / `importData.jsw` field-name mismatch (`count` → `totalCount`, Apr 23, 2026)
+- [x] Remove stale OneDrive/ tree from repo (Apr 23, 2026)
 - [ ] Complete CMS configuration (add `title` field to `MarketDates2026`, run population script)
-- [ ] Test form submission flow
+- [ ] Test form submission flow end-to-end
 - [ ] Verify reference field displays (names and dates, not UUIDs)
+- [ ] **CRITICAL: Secure `post_sendMissingApprovalEmailsBackend` HTTP endpoint (currently unauthenticated)**
+- [ ] **CRITICAL: Tighten `permissions.json` (currently wildcard anonymous on all web methods)**
+- [ ] **CRITICAL: Update all 2025 references to 2026 on live site (hero, dates, copy)**
+- [ ] **CRITICAL: Add ManageMyMarket (MMM) vendor application links throughout site**
+- [ ] Add Vendor Handbook download + summary callouts
+- [ ] Add Vendor Application Checklist page/section
+- [ ] Content refresh on all template pages (HOME, ABOUT, GET INVOLVED, EVENTS, CONTACT, DONATE)
+- [ ] Switch MAP page `USE_TEST_DATA_DEFAULT` from `true` to `false` before launch
+- [ ] Mobile responsiveness audit
+- [ ] Fix NFP `onItemReady` duplicate-handler pattern
 
-## 🏗️ Active Tech Stack
-- **Platform:** Wix Velo
+## Active Tech Stack
+- **Platform:** Wix Velo (JavaScript, React 16.14.0)
 - **Repository:** https://github.com/DubuqueMainStreet/DFM_V2.git
-- **Git Integration:** ✅ Enabled and syncing automatically
+- **Git Integration:** Enabled — commit + push = auto-sync to Wix
 - **Wix Site ID:** b8f4ee52-de89-4690-9bca-ea948bbea938
-- **Key Files:** 
-  - `src/pages/SIGNUP-MUSICIAN.ais9x.js` - ✅ Complete musician signup form
-  - `src/backend/formUtils.web.js` - ✅ Backend utility functions
-  - `src/backend/populateDateTitles.web.js` - ✅ Date title population script
-  - `src/pages/TEST-POPULATE-DATES.ais9x.js` - ✅ Script runner page
+- **Season:** May 2 – Oct 31, 2026 (27 Saturdays)
 
-## 📝 Recent Decisions / "Vibe"
-- One-to-Many form pattern: Parent `SpecialtyProfiles` → Children `WeeklyAssignments` via `MarketDates2026` reference
-- Backend code deployment: ✅ Autonomous via Git Integration (commit → push → auto-sync) - WORKING
-- Form architecture: Validation → Upload → Parent Insert → Child Batch Insert
-- Unified schema: Using `organizationName`, `contactEmail`, `contactPhone` for all signup types
-- Musician-specific fields: `musicianType`, `techNeeds`, `preferredLocation`, `duration`, `genre`
-- Reference field display: Using `title` field for readable displays (fixes "Untitled" issue)
+## Documentation Map
 
-## ⚠️ Active Issues
+| What | Where |
+|------|-------|
+| Full system context | `ARCHITECT_HANDOFF.md` (root) |
+| All docs index | `docs/INDEX.md` |
+| Strategic roadmap | `2026-Roadmap.md` (root) |
+
+**Consolidated docs (12 files in `docs/`):** ADMIN_DASHBOARD, SIGNUP_FORMS, CMS_DATA_MODEL, EMAIL_AND_CRM, MAP_GUIDE, MARKET_CALENDAR, TESTING, WIX_PLATFORM_NOTES, PUBLISHING, BACKLOG, DFM_2025_SURVEY_TRENDS, INDEX.
+
+## Quick Reference
+
+**Collection Names (camelCase, always):**
+```
+SpecialtyProfiles    WeeklyAssignments    MarketDates2026
+Vendors              StallLayouts         POIs
+MarketAttendance
+```
+
+**Critical Patterns:**
+- Always `.limit(1000)` on queries (Wix default is 50)
+- Always `elevate()` for CRM operations
+- Always fetch full record before `wixData.update()`
+- Reference collections need a `title` field or display "Untitled"
+- `$w.onReady()` wrapping on all frontend code
+- No DOM access (`window`, `document`, `alert` do not exist)
+
+## Key Files
+- `src/pages/SIGNUP-Music.ais9x.js` — Musician signup form
+- `src/pages/SIGNUP- Volunteer.zab9v.js` — Volunteer signup form
+- `src/pages/SIGNUP- NFP.owt61.js` — Non-profit signup form
+- `src/pages/Specialty Requests.k6g1g.js` — Admin dashboard (~2,857 lines)
+- `src/pages/Market Calendar.rhmek.js` — Calendar with coverage tracking
+- `src/pages/MAP.mggqp.js` — Interactive Leaflet map
+- `src/backend/formSubmissions.jsw` — Form submission + CRM
+- `src/backend/emailNotifications.jsw` — Status emails + CRM
+- `src/backend/availabilityStatus.jsw` — Per-date availability
+- `src/backend/populateDateTitles.web.js` — Date title population script
+
+## Recent Decisions
+- One-to-Many pattern: Parent `SpecialtyProfiles` -> Children `WeeklyAssignments` via `MarketDates2026` reference
+- Form architecture: Validation -> Upload -> Parent Insert -> Child Batch Insert
+- Unified schema: `organizationName`, `contactEmail`, `contactPhone` for all signup types
+- Reference field display: Using `title` field for readable displays
+
+## Plugin & Tool Usage
+
+### Context7 (MCP: `plugin-context7-plugin-context7`)
+Use when working with Wix Velo, wix-data, wix-crm-backend, or Leaflet.js and you need accurate, up-to-date API docs.
+
+**Flow (always two steps):**
+1. `resolve-library-id` — Pass the library name (e.g., "wix-data") to get its Context7 ID
+2. `query-docs` — Pass the resolved ID + your specific question to get docs and code examples
+
+**When to use:**
+- Implementing or debugging any Wix API call (wix-data, wix-crm-backend, wix-auth, triggered emails)
+- Working with Leaflet.js map features
+- Unsure about function signatures, parameters, or return types
+- Max 3 calls per question
+
+**Pre-resolved library names for this project:**
+- `wix-data` — CMS queries, insert, update, remove
+- `wix-crm-backend` — Contact creation, triggered emails, elevate
+- `wix-auth` — elevate() for backend permissions
+- `leaflet` — Map rendering, markers, popups, layers
+
+### Supabase (MCP: `plugin-supabase-supabase`)
+Available but **NOT used** for this project. DFM uses Wix CMS, not Supabase. Ignore unless explicitly asked.
+
+### Subagents
+- **explore** — Fast codebase search. Use for finding files by pattern, searching code for keywords, or answering "where is X?" questions. Specify thoroughness: quick, medium, or very thorough.
+- **generalPurpose** — Multi-step research tasks. Use for complex questions that require reading multiple files and synthesizing answers.
+- **shell** — Terminal commands. Use for git operations, npm commands, or any shell task.
+
+Launch multiple subagents in parallel when investigating different areas of the codebase simultaneously.
+
+## Active Issues
+
+**Security (P0 — launch-blocking):**
+- **Unauthenticated HTTP endpoint:** `src/backend/http-functions.js` `post_sendMissingApprovalEmailsBackend` can trigger mass email with no auth or rate limit
+- **Wildcard permissions:** `src/backend/permissions.json` allows `anonymous` invoke on every web method (imports, diagnostics, manual entry)
+
+**Content / configuration:**
 - **CMS Configuration:** Need to add `title` field to `MarketDates2026` and run population script
 - **Field Types:** Verify `musicianType` and `preferredLocation` are Text fields (not Tag)
 - **Reference Display:** `dateRef` shows UUIDs until `title` field is populated in `MarketDates2026`
+- **Live Site Stale:** Homepage still says "2025" — must update before season opens
+- **No MMM Links:** No ManageMyMarket application links anywhere on the public site
+- **No Vendor Handbook:** Handbook needs download button and summary callouts
+- **Template Pages:** 28 pages have zero custom logic — content is Wix Editor only
+- **MAP Test Mode:** `USE_TEST_DATA_DEFAULT = true` must be flipped to `false` before launch
+
+**Code:**
+- **NFP Signup:** `onItemReady` re-registered on each `populateDateRepeater` call (possible duplicate handlers) — port `repeaterSetupComplete` pattern from SIGNUP-Music
+- **ADMIN-Schedule-Management:** `loadAssignments` query lacks `.limit(1000)` and can silently truncate
+- **Stub page:** `SIGNUP - Special Event.holpu.js` is empty Velo boilerplate; remove or implement
+- **Duplicate admin:** `ADMIN-Schedule-Management.ais9x.js` overlaps with `Specialty Requests.k6g1g.js`; decide which to keep
+
+**Fixed:**
+- ~~Bug — diagnosticCheck.jsw line 403 uses `approved.length`~~ (verified fixed Apr 23, 2026)
+- ~~Bug — dataParse.gtlkj.js `count` → `totalCount`~~ (fixed Apr 23, 2026)
+
+## MCP Plugins Available
+| Server | Tools | Status |
+|--------|-------|--------|
+| `plugin-context7-plugin-context7` | `resolve-library-id`, `query-docs` | Active — use for Wix Velo and Leaflet docs |
+| `user-context7` | Runtime tools | Active — library documentation |
+| `user-vercel` | `mcp_auth` + deployment tools (after auth) | Needs authentication |
+| `plugin-supabase-supabase` | 24 tools (DB, edge functions, etc.) | Available but NOT used — project uses Wix CMS |

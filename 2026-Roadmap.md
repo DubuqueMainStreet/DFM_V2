@@ -2,58 +2,107 @@
 
 Strategic project plan for polishing the Wix site and integrating with ManageMyMarket (MMM).
 
-## Immediate Updates (Jan - Feb)
+**Last Updated:** April 23, 2026  
+**Season Opens:** May 2, 2026  
+**Days Until Launch:** 9
 
-**Focus:** Updating dates (May 2 opener), Hero text, and checking MMM links.
+---
 
-- [ ] Update season dates throughout site: May 2, 2026 – Oct 31, 2026
-- [ ] Update market opener date (May 2, 2026) in hero section and key pages
-- [ ] Refresh hero text with community-focused, welcoming tone
-- [ ] Verify all MMM links are current and functional
-- [ ] Test MMM login links for vendors
-- [ ] Check MMM application links for vendors, musicians, and non-profits
-- [ ] Update location references to Upper Main District (Iowa St, 11th, 12th, 13th)
-- [ ] Review and fix any broken external links
+## Phase 1: Critical Updates (March 1–15) — URGENT
 
-## Content Refresh (March)
+**Focus:** Fix everything a visitor sees TODAY. The live site still says "2025."
 
-**Focus:** Vendor Handbook summary, Musician application routing, FAQ updates.
+- [ ] **Update all 2025 references to 2026** (hero section, body copy, any date mentions)
+- [ ] Update market opener date to **May 2, 2026** in hero section and key pages
+- [ ] Update hero text — remove 2025 "new seating fixtures" announcement, replace with 2026 season messaging
+- [ ] Refresh hero copy with community-focused, welcoming tone + clear "Every Saturday 7am–12pm, May–October" CTA
+- [ ] Verify all existing external links are not broken
+- [ ] Update location references to **Upper Main District (Iowa St, 11th–13th)**
+- [ ] Add ManageMyMarket (MMM) vendor application links to GET INVOLVED page
+- [ ] Add MMM application links to a prominent homepage section
+- [ ] Test all MMM links work correctly (vendor login, new applications, musician/NFP)
 
-- [ ] Create Vendor Handbook summary page with key highlights
-- [ ] Add direct link to full Vendor Handbook (MMM or external)
-- [ ] Set up musician application routing/funnel
-- [ ] Set up non-profit application routing/funnel
-- [ ] Update FAQ section with 2026 season information
-- [ ] Add FAQ entries for common vendor questions
-- [ ] Add FAQ entries for guest/market-goer questions
-- [ ] Review and update all copy for community-focused, welcoming tone
-- [ ] Ensure navigation clearly separates Guest, Vendor, and Musician/Non-Profit paths
+## Phase 2: Content & Vendor Resources (March 15–31)
 
-## Technical Integration (April)
+**Focus:** Vendor Handbook, application checklist, and content that drives visitors to MMM.
 
-**Focus:** Finalize Custom Leaflet Map & Mobile Optimization, testing the "Market Status" Velo script.
+### Vendor Application Flow
+- [ ] Create "Become a Vendor" section/page with step-by-step application checklist:
+  1. Visit ManageMyMarket.com
+  2. Create an account / Log in
+  3. Complete your vendor profile
+  4. Select your market dates
+  5. Upload required documents (insurance, licenses)
+  6. Submit and await approval
+- [ ] Add clear CTAs: "Apply Now" buttons linking to MMM
+- [ ] Add separate paths for: Vendors, Musicians, Non-Profits, Volunteers
 
-- [ ] Finalize Custom Leaflet Map & Mobile Optimization
-- [ ] Test map functionality and mobile responsiveness
-- [ ] Implement touch event handling and "Find My Location" feature
-- [ ] Ensure large tap targets for mobile users
-- [ ] Develop and test "Market Status" Velo script
-- [ ] Integrate Market Status display on homepage/key pages
-- [ ] Test vendor grouping logic for contiguous stalls (pill markers)
-- [ ] Implement category filtering with postMessage communication
-- [ ] Test CSV import process for MarketAttendance collection
-- [ ] Test cross-browser compatibility
-- [ ] Perform accessibility check on embedded elements
-- [ ] Optimize page load times with embedded content
+### Vendor Handbook
+- [ ] Upload Vendor Handbook PDF to Wix Media Manager
+- [ ] Add download button on GET INVOLVED or dedicated page
+- [ ] Add 3–5 key callout highlights from the handbook (market hours, rules, setup/teardown, etc.)
 
-## Live Launch (May 2)
+### Content Refresh
+- [ ] HOME page — update hero, sections, CTAs for 2026
+- [ ] ABOUT US — refresh story, add 2026 season info
+- [ ] GET INVOLVED — comprehensive rewrite with MMM links, handbook, checklist
+- [ ] EVENTS — update with 2026 event schedule or "Coming Soon"
+- [ ] CONTACT — verify contact info is current
+- [ ] DONATE — refresh donation messaging for 2026
+- [ ] FAQ section — add vendor questions, market-goer questions, 2026 specifics
+- [ ] Ensure navigation clearly separates Guest, Vendor, and Musician/NFP/Volunteer paths
 
-**Focus:** Final mobile check, social links.
+## Phase 3: Technical & Map (April 1–20)
 
-- [ ] Complete mobile responsiveness audit
+**Focus:** Finalize map for production, fix bugs, mobile optimization.
+
+### Map Launch Prep
+- [ ] Switch `USE_TEST_DATA_DEFAULT` from `true` to `false` in `MAP.mggqp.js`
+- [ ] Import real stall layouts into `StallLayouts` collection
+- [ ] Import real POIs into `POIs` collection
+- [ ] Test map with real CMS data end-to-end
+- [ ] Test mobile responsiveness and touch interactions
+- [ ] Test "Find My Location" geolocation feature
+- [ ] Verify vendor popups display correctly with real data
+- [ ] Cross-browser testing (Chrome, Safari, Firefox, Edge)
+
+### CMS Configuration
+- [ ] Add `title` field to `MarketDates2026` collection in Wix CMS
+- [ ] Run `populateDateTitles.web.js` to populate title fields
+- [ ] Run `fixSaturdayDates.jsw` to ensure 27 Saturdays are present
+- [ ] Verify `musicianType` and `preferredLocation` are Text fields (not Tag)
+- [ ] Test reference field displays show names/dates, not UUIDs
+
+### Form Testing
+- [ ] Test Musician signup → CRM → Email end-to-end
+- [ ] Test Volunteer signup → CRM → Email end-to-end
+- [ ] Test NFP signup → CRM → Email end-to-end
+- [ ] Test Admin dashboard approve/reject workflow
+- [ ] Verify email notifications send correctly
+
+### Bug Fixes (Done in Code)
+- [x] Fix `diagnosticCheck.jsw` line 403: `approved.items.length` → `approved.length` (verified Apr 23, 2026)
+- [x] Fix `importData.jsw` / `dataParse.gtlkj.js` field-name mismatch — page now uses `result.totalCount` (Apr 23, 2026)
+
+## Phase 4: Launch Readiness (April 20–May 1)
+
+**Focus:** Final polish, mobile audit, social links, security.
+
+### Security Hardening (P0, launch-blocking)
+- [ ] Secure `post_sendMissingApprovalEmailsBackend` with secret-header auth (Wix Secrets Manager)
+- [ ] Replace wildcard `permissions.json` with per-file owner-only overrides on imports, diagnostics, manual entry
+- [ ] Strip stack traces from HTTP error responses
+- [ ] Restrict map iframe `postMessage` target to production Wix origin instead of `"*"`
+- [ ] Add `escapeHtml()` to vendor/POI popup strings in `vendor-map-full-ui.html`
+
+### Mobile + Cross-browser
+- [ ] Complete mobile responsiveness audit (all pages)
 - [ ] Test all functionality on mobile devices (iOS and Android)
-- [ ] Verify touch interactions work properly
+- [ ] Verify touch interactions on map work properly
 - [ ] Check mobile navigation menu functionality
+- [ ] Desktop Firefox + Safari map test (never verified)
+
+### Content + integration
 - [ ] Update and verify all social media links
 - [ ] Test social sharing functionality
 - [ ] Final content review for typos and accuracy
@@ -65,41 +114,12 @@ Strategic project plan for polishing the Wix site and integrating with ManageMyM
 
 ---
 
-## Pre-Season Testing (Before 2026 Data)
-
-**Focus:** Test map functionality before vendor applications are complete.
-
-### Standalone Test Mode
-- [ ] Open `test-data/map-standalone-test.html` directly in browser (no Wix needed)
-- [ ] Click "Load Sample Data" to verify map rendering
-- [ ] Test filter buttons (Produce, Ready to Eat, Coffee)
-- [ ] Test search functionality
-- [ ] Test "Find My Location" geolocation button
-- [ ] Verify vendor popups display correctly
-- [ ] Test on mobile device (responsive design)
-
-### Wix Collection Setup (Required for Live Map)
-- [ ] Create `StallLayouts` collection in Wix CMS
-- [ ] Create `POIs` collection in Wix CMS
-- [ ] Import sample stall layouts from `test-data/sample-stall-layouts.json`
-- [ ] Import sample POIs from `test-data/sample-pois.json`
-- [ ] Create sample vendors in `Vendors` collection
-- [ ] Create sample attendance records for test date
-
-### Test Data Files Available
-- `test-data/sample-stall-layouts.json` - 15 sample stall positions
-- `test-data/sample-pois.json` - Parking, restrooms, info booth, seating
-- `test-data/sample-vendors.json` - 8 sample vendors with types/descriptions
-- `test-data/sample-attendance.json` - Sample attendance for May 2, 2026
-- `test-data/map-standalone-test.html` - Standalone test page (no Wix)
-
----
-
 ## Notes
 
-- **Season:** May 2, 2026 – Oct 31, 2026
+- **Season:** May 2, 2026 – Oct 31, 2026 (27 Saturdays)
 - **Location:** Upper Main District (Iowa St, 11th, 12th, 13th)
 - **Key Principle:** Wix site serves as a "concierge" that frames MMM tools and provides information
 - **Technical Stack:** Wix Studio + Velo (Frontend) + Node.js (Backend JSW)
 - **Map Strategy:** Custom Leaflet.js implementation in HTML iFrame (`#mapFrame`) with mobile-first design
 - **Data Flow:** CSV Exports from MMM → Processed by backend → Stored in Wix Collections → Fetched by Velo → Sent to iFrame via postMessage
+- **Vendor Applications:** All handled through ManageMyMarket.com — site directs visitors there

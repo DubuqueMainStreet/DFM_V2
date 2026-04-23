@@ -102,7 +102,7 @@ $w.onReady(function () {
         try {
             const result = await testVendorsCollectionQuery();
             if (result.success) {
-                statusElement.html = `<b>Test Query Success!</b><br>Items found: ${result.count}<br>First item (sample): ${JSON.stringify(result.firstItem, null, 2)?.substring(0, 400) || 'N/A'}...`;
+                statusElement.html = `<b>Test Query Success!</b><br>Items found: ${result.totalCount}<br>First item (sample): ${JSON.stringify(result.firstItem, null, 2)?.substring(0, 400) || 'N/A'}...`;
             } else {
                 statusElement.html = `<b>Test Query FAILED:</b><br>${result.message || 'Unknown error'}<br>See browser and site logs.`;
                  if(result.errorObj) console.error("Test Query Full Error Object:", result.errorObj);
