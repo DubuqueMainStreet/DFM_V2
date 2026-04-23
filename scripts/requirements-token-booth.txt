@@ -1,0 +1,6 @@
+# pip install -r scripts/requirements-token-booth.txt
+openpyxl>=3.1.0
+pymupdf>=1.24.0
+rapidocr-onnxruntime>=1.0.0
+onnxruntime>=1.16.0
+matplotlib>=3.8.0

@@ -1,0 +1,110 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "TABLES - JUBECK",
+        "poiType": "SeatingArea",
+        "description": "TABLES - JUBECK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.66750276001707,
+          42.50369417227883
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "COPPER KETTLE",
+        "poiType": "Information",
+        "description": "COPPER KETTLE"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.66760734776521,
+          42.50432669962233
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "MUSIC - FOOD COURT",
+        "poiType": "Special Event",
+        "description": "MUSIC - FOOD COURT"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.66721927595437,
+          42.50488055281747
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "NFP BOOTH",
+        "poiType": "Information",
+        "description": "NFP BOOTH"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.66786551472161,
+          42.50455437397706
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "RESTROOMS - CITY HALL",
+        "poiType": "Restroom",
+        "description": "RESTROOMS - CITY HALL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.66802843922088,
+          42.50516284746323
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "ATM - IOWA ST. MARKET",
+        "poiType": "Information",
+        "description": "ATM - IOWA ST. MARKET"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.66796714145778,
+          42.50489443082611
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "title": "TABLES - J BLOCK",
+        "poiType": "SeatingArea",
+        "description": "TABLES - J BLOCK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.6683143173232,
+          42.5052342157312
+        ]
+      }
+    }
+  ]
+}

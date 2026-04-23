@@ -40,3 +40,11 @@ jsconfig.json
 
 # OneDrive sync folder
 OneDrive/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Regeneratable analysis outputs (produced by scripts/analyze_token_booth.py)
+scripts/output/token_booth_*
+scripts/output/zip_observations.csv
