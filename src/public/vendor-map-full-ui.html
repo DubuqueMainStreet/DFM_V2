@@ -1777,8 +1777,8 @@
     <!-- Design preview watermark + dev toolbar. Hard-gated: only rendered when
          JS detects ?designPreview=1 and adds the .design-preview class to <body>. -->
     <div class="design-preview-watermark" id="design-preview-watermark" role="status" aria-live="polite">
-        <i class="fa-solid fa-palette" aria-hidden="true"></i>
-        <span>Design preview</span>
+        <i class="fa-solid fa-palette" aria-hidden="true" id="design-preview-icon"></i>
+        <span id="design-preview-label">Design preview</span>
         <button type="button" id="design-preview-dismiss" aria-label="Hide design preview badge">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
@@ -1796,13 +1796,17 @@
 
     <script>
         // ==================== DESIGN PREVIEW GATE ====================
-        // Activated ONLY when the iframe URL contains ?designPreview=1.
-        // When active, the iframe ignores postMessage data from the parent and
-        // renders a curated fixture from src/public/designPreviewData.js.
+        // Activated in three ways:
+        //   1. ?designPreview=1 on the iframe or parent URL (explicit preview)
+        //   2. `enableDesignPreview` postMessage from the parent page
+        //   3. Auto-fallback when no CMS data arrives (e.g. collections empty)
+        // When active, the iframe renders a curated fixture from
+        // src/public/designPreviewData.js instead of CMS data.
         // Optional query params:
         //   &state=default|loading|empty|error|offline|locdenied|longtext
-        //   &devtoolbar=1   (shows the state-switcher toolbar)
-        //   &nowatermark=1  (hides the "Design preview" badge)
+        //   &devtoolbar=1         (shows the state-switcher toolbar)
+        //   &nowatermark=1        (hides the watermark badge)
+        //   &noPreviewFallback=1  (disable auto-fallback when CMS is empty)
         const DESIGN_PREVIEW_PARAMS = (() => {
             try {
                 const params = new URLSearchParams(window.location.search);
@@ -1810,9 +1814,10 @@
                 const state = (params.get('state') || 'default').toLowerCase();
                 const devToolbar = params.get('devtoolbar') === '1' || enabled;
                 const noWatermark = params.get('nowatermark') === '1';
-                return { enabled, state, devToolbar, noWatermark };
+                const autoFallback = params.get('noPreviewFallback') !== '1';
+                return { enabled, state, devToolbar, noWatermark, autoFallback };
             } catch (e) {
-                return { enabled: false, state: 'default', devToolbar: false, noWatermark: false };
+                return { enabled: false, state: 'default', devToolbar: false, noWatermark: false, autoFallback: true };
             }
         })();
         // Mutable because the parent page (MAP.mggqp.js) can also flip this on
@@ -1820,6 +1825,15 @@
         // ?designPreview=1 — the iframe's own URL doesn't inherit parent query
         // params in Wix, so we support both activation paths.
         let IS_DESIGN_PREVIEW = DESIGN_PREVIEW_PARAMS.enabled;
+        // Set true when preview was activated by auto-fallback (empty CMS),
+        // not by explicit URL/postMessage — used to pick the right watermark
+        // copy and suppress the dev toolbar.
+        let PREVIEW_IS_AUTO_FALLBACK = false;
+        // Watchdog timer that triggers auto-fallback if the parent never sends
+        // map data within AUTO_FALLBACK_MS.
+        const AUTO_FALLBACK_MS = 4000;
+        let autoFallbackTimer = null;
+        let receivedMapData = false;
 
         // ==================== CONFIGURATION ====================
         // Vendor-category marker fill per MAP_DESIGN_SPEC.md §2.2. Hex values
@@ -2293,6 +2307,40 @@
                 return;
             }
             sendToParent({ type: "iframeReady" });
+            // Start the watchdog. If the parent never publishes data (e.g. the
+            // Wix page is not yet wired up, or the CMS collections are empty
+            // and it returns nothing), fall back to the placeholder fixture so
+            // the map stays demo-ready.
+            if (DESIGN_PREVIEW_PARAMS.autoFallback) {
+                autoFallbackTimer = setTimeout(() => {
+                    if (!receivedMapData && !IS_DESIGN_PREVIEW) {
+                        activateAutoPreviewFallback('no-data');
+                    }
+                }, AUTO_FALLBACK_MS);
+            }
+        }
+
+        // Flip the iframe into preview mode using the placeholder fixture.
+        // Keeps the watermark visible so the operator can tell real CMS data
+        // isn't loading, and skips the dev toolbar (it would confuse QR-code
+        // visitors on the live site).
+        function activateAutoPreviewFallback(reason) {
+            if (IS_DESIGN_PREVIEW) return;
+            IS_DESIGN_PREVIEW = true;
+            PREVIEW_IS_AUTO_FALLBACK = true;
+            DESIGN_PREVIEW_PARAMS.devToolbar = false;
+            // Reset the preview state to default so we don't inherit anything
+            // strange that might have been set by query params.
+            if (!['default', 'longtext'].includes(DESIGN_PREVIEW_PARAMS.state)) {
+                DESIGN_PREVIEW_PARAMS.state = 'default';
+            }
+            const label = document.getElementById('design-preview-label');
+            if (label) {
+                label.textContent = reason === 'empty-cms'
+                    ? 'Sample data · CMS is empty'
+                    : 'Sample data · CMS offline';
+            }
+            bootstrapDesignPreview();
         }
 
         // ==================== MESSAGE HANDLING ====================
@@ -2308,6 +2356,7 @@
 
             switch (type) {
                 case "enableDesignPreview":
+                    if (autoFallbackTimer) { clearTimeout(autoFallbackTimer); autoFallbackTimer = null; }
                     if (!IS_DESIGN_PREVIEW) {
                         IS_DESIGN_PREVIEW = true;
                         if (payload && typeof payload.state === 'string') {
@@ -2327,6 +2376,26 @@
                     break;
                 case "loadMapData":
                     if (IS_DESIGN_PREVIEW) break;
+                    receivedMapData = true;
+                    if (autoFallbackTimer) { clearTimeout(autoFallbackTimer); autoFallbackTimer = null; }
+                    // If the CMS returns with nothing (no stalls + no vendors),
+                    // flip to placeholder data so the map stays demo-worthy
+                    // while collections are empty. Bail out of this handler
+                    // because activateAutoPreviewFallback takes over rendering.
+                    {
+                        const incomingStalls = (payload.allStallLayouts || []).length;
+                        const incomingVendors = (payload.vendorsOnDate || []).length;
+                        const incomingPois = (payload.allPois || []).length;
+                        if (
+                            DESIGN_PREVIEW_PARAMS.autoFallback &&
+                            incomingStalls === 0 &&
+                            incomingVendors === 0 &&
+                            incomingPois === 0
+                        ) {
+                            activateAutoPreviewFallback('empty-cms');
+                            break;
+                        }
+                    }
                     showLoader();
                     allStallLayouts = payload.allStallLayouts || [];
                     allPois = payload.allPois || [];
@@ -2342,6 +2411,12 @@
                     break;
                 case "mapDataError":
                     if (IS_DESIGN_PREVIEW) break;
+                    receivedMapData = true;
+                    if (autoFallbackTimer) { clearTimeout(autoFallbackTimer); autoFallbackTimer = null; }
+                    if (DESIGN_PREVIEW_PARAMS.autoFallback) {
+                        activateAutoPreviewFallback('no-data');
+                        break;
+                    }
                     hideLoader();
                         showMessage(payload?.message || "We couldn't load the market today. Pull down to refresh, or try again in a moment.");
                     setTimeout(hideMessage, 5000);
