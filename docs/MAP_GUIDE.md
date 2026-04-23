@@ -120,3 +120,68 @@ Accuracy circle is capped at 45m display radius to avoid dominating the market a
 | Clustering at low zoom | Low | Not started |
 | Favorites/starred vendors | Low | Not started |
 | Light/dark theme toggle | Low | Not started |
+
+---
+
+## Known Limitations
+
+1. **Geolocation in iframe** — Browser Permissions Policy blocks `navigator.geolocation` in cross-origin iframes. Handled via parent-posted `locationResult` (see Geolocation Workaround above).
+2. **Map tile CDN dependency** — Tiles load from CartoDB/OSM over HTTPS. No offline fallback; a network failure will leave the map blank apart from vendor markers.
+3. **Query result caps** — CMS queries use `.limit(1000)` for stalls, POIs, dates, and attendance. Close to the ~1,350 expected assignment rows for the 2026 season; switch to pagination if the dataset grows.
+4. **Browser support** — ES6+ modern browsers only. IE11 is not supported.
+
+### Cross-browser test status
+
+- [x] Chrome / Edge (Chromium)
+- [x] Safari (iOS)
+- [ ] Firefox (desktop) — needs verification
+- [ ] Safari (desktop) — needs verification
+
+---
+
+## Wix Editor Deployment
+
+The Wix-side setup is a one-time configuration of the HTML embed that hosts the iframe.
+
+### Required elements on the MAP page
+
+1. **HTML component** with ID `#mapFrame`
+   - Source: `/vendor-map-full-ui.html` (from the site `public/` folder)
+   - Size: 100% width and height, margins 0
+
+2. **No legacy UI elements** — the following should NOT be on the page (all UI now lives inside the iframe):
+   - `#datepicker1` (date picker)
+   - `#searchInput` (search input)
+   - `#clearAllButton` (clear filters button)
+   - Per-category filter buttons (`#readyToEatButton`, `#farmFreshProduceButton`, `#bakedGoodsSweetsButton`, etc.)
+
+After editing the HTML component, publish via `npx wix publish` or the Wix Editor.
+
+### Customizing filters
+
+Filter buttons are declared in `vendor-map-full-ui.html` with three possible matching rules via `data-type`:
+
+| `data-type` | Description | Example `data-value` |
+|-------------|-------------|----------------------|
+| `vendorType` | Match vendor type exactly | `"Grower/Producer/Processor"` |
+| `keyword` | Search space-separated keywords against name/description | `"coffee espresso latte tea"` |
+| `poiType` | Match POI type | `"Restroom"` |
+
+---
+
+## Troubleshooting
+
+**Map not loading**
+1. Confirm `#mapFrame` exists and its Source is `/vendor-map-full-ui.html`.
+2. Open the browser console for iframe errors (look for CORS or tile failures).
+3. Check Network tab for 404 on the HTML file.
+
+**Dates not populating**
+1. Verify `MarketDates2026` has rows with `title` populated.
+2. Check the Velo site console for query errors.
+3. Confirm permissions allow anonymous `wix-data` reads on the collection.
+
+**Vendors not showing for a date**
+1. Verify `MarketAttendance` has records whose `marketDate` matches the selected date.
+2. Confirm `vendorRef` references resolve and `stallId` matches a `StallLayouts` row.
+3. If the map shows "0 vendors", toggle `?testData=1` in the URL — if it renders, the issue is data, not code.
