@@ -29,6 +29,22 @@ let isMapIframeReady = false;
 let currentlyLoadingDate = null;
 let staticDataCache = null;
 
+// Pagination helper — Wix queries return max 1000 rows per page. At 2026
+// season scale (~27 market dates × ~50 vendors + growth) single-page queries
+// can silently truncate. This walks every page via hasNext/next.
+async function fetchAllItems(queryBuilder, { pageSize = 1000, maxPages = 20 } = {}) {
+    const items = [];
+    let page = await queryBuilder.limit(pageSize).find();
+    items.push(...(page.items || []));
+    let pages = 1;
+    while (page.hasNext && page.hasNext() && pages < maxPages) {
+        page = await page.next();
+        items.push(...(page.items || []));
+        pages++;
+    }
+    return items;
+}
+
 $w.onReady(function () {
     htmlComponent = $w(HTML_COMPONENT_ID);
 
@@ -128,12 +144,11 @@ async function sendMarketDatesToIframe() {
     }
 
     try {
-        const datesResult = await wixData.query(MARKET_DATES_COLLECTION)
-            .ascending("date")
-            .limit(1000)
-            .find();
+        const dateItems = await fetchAllItems(
+            wixData.query(MARKET_DATES_COLLECTION).ascending("date")
+        );
 
-        const dateOptions = (datesResult.items || []).map(item => {
+        const dateOptions = dateItems.map(item => {
             const d = item.date ? new Date(item.date) : null;
             if (!d) return null;
             const value = formatDateToYYYYMMDD(d);
@@ -192,9 +207,11 @@ async function loadAndSendDataToMap(dateStringYYYYMMDD) {
         }
 
         if (!staticDataCache) {
-            const stallsResult = await wixData.query(STALL_LAYOUTS_COLLECTION).limit(1000).find();
-            const poisResult = await wixData.query(POIS_COLLECTION).limit(1000).find();
-            staticDataCache = { allStallLayouts: stallsResult.items, allPOIs: poisResult.items };
+            const [allStallLayouts, allPOIs] = await Promise.all([
+                fetchAllItems(wixData.query(STALL_LAYOUTS_COLLECTION)),
+                fetchAllItems(wixData.query(POIS_COLLECTION))
+            ]);
+            staticDataCache = { allStallLayouts, allPOIs };
         }
 
         let vendorsForDateArray = [];
@@ -203,12 +220,14 @@ async function loadAndSendDataToMap(dateStringYYYYMMDD) {
             const queryDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
             const queryEndDate = new Date(queryDate.getTime() + (24 * 60 * 60 * 1000));
 
-            const attendanceResult = await wixData.query(MARKET_ATTENDANCE_COLLECTION)
-                .between("marketDate", queryDate, queryEndDate)
-                .include("vendorRef").limit(1000).find();
+            const attendanceItems = await fetchAllItems(
+                wixData.query(MARKET_ATTENDANCE_COLLECTION)
+                    .between("marketDate", queryDate, queryEndDate)
+                    .include("vendorRef")
+            );
 
             const vendorsForDateMap = new Map();
-            for (const attendance of attendanceResult.items) {
+            for (const attendance of attendanceItems) {
                 if (attendance.vendorRef && attendance.stallId) {
                     const vendorDetails = attendance.vendorRef;
                     const cleanedStall = attendance.stallId.trim().toUpperCase();
