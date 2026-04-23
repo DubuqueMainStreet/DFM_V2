@@ -6,9 +6,11 @@ import wixLocation from 'wix-location-frontend';
 import wixWindowFrontend from 'wix-window-frontend';
 import { getTestStallLayouts, getTestPOIs, getTestVendorsForDate, getTestMarketDates } from 'public/marketTestData';
 
-// Set to true to use mock data when CMS is empty. Set to false when you have real data.
-// You can also use ?testData=1 in the URL to force test mode regardless of this setting.
-const USE_TEST_DATA_DEFAULT = true;
+// Production: CMS-backed. Test mode can still be forced via `?testData=1` in
+// the URL. Before flipping this in a deploy, run `await window.checkMapData()`
+// on the dataParse admin page to verify the four map collections are
+// populated (see docs/MAP_GUIDE.md → "Pre-flip checklist").
+const USE_TEST_DATA_DEFAULT = false;
 
 function isTestDataMode() {
     const urlParam = wixLocation.query && (wixLocation.query.testData === "1" || wixLocation.query.testData === "true");
