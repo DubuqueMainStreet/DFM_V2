@@ -1646,15 +1646,44 @@
             });
         }
 
+        // postMessage origin hardening. Wix hosts iframes under several
+        // domains (site origin, editor, preview), so we allowlist via
+        // pattern match rather than a single literal. The first valid
+        // inbound message captures the parent origin; subsequent
+        // outbound messages use it instead of "*".
+        const ALLOWED_PARENT_ORIGIN_PATTERNS = [
+            /^https:\/\/(www\.)?dubuquefarmersmarket\.org$/i,
+            /^https:\/\/[^/]*\.wixsite\.com$/i,
+            /^https:\/\/[^/]*\.filesusr\.com$/i,
+            /^https:\/\/[^/]*\.wix\.com$/i,
+            /^https:\/\/editor\.wix\.com$/i,
+            /^https:\/\/[^/]*\.editorx\.com$/i
+        ];
+        function isAllowedOrigin(origin) {
+            if (!origin || origin === 'null') return false;
+            return ALLOWED_PARENT_ORIGIN_PATTERNS.some(re => re.test(origin));
+        }
+        let capturedParentOrigin = null;
+        function sendToParent(message) {
+            if (!window.parent || window.parent === window) return;
+            // First message (iframeReady) must use "*" because we have not
+            // yet received anything from the parent to learn its origin.
+            const target = capturedParentOrigin || "*";
+            try { window.parent.postMessage(message, target); } catch (e) { /* swallow */ }
+        }
+
         function sendReadyMessage() {
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ type: "iframeReady" }, "*");
-            }
+            sendToParent({ type: "iframeReady" });
         }
 
         // ==================== MESSAGE HANDLING ====================
         window.addEventListener("message", (event) => {
             if (!event.data || !event.data.type) return;
+            if (!isAllowedOrigin(event.origin)) {
+                // Silently drop messages from unexpected origins.
+                return;
+            }
+            if (!capturedParentOrigin) capturedParentOrigin = event.origin;
 
             const { type, payload } = event.data;
 
@@ -1695,12 +1724,10 @@
 
         function requestDataForDate(dateStr) {
             showLoader();
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ 
-                    type: "requestDateData", 
-                    payload: { date: dateStr } 
-                }, "*");
-            }
+            sendToParent({
+                type: "requestDateData",
+                payload: { date: dateStr }
+            });
         }
 
         // ==================== DATE DROPDOWN ====================
@@ -2427,7 +2454,7 @@
                     userLocationMarker.setOpacity(0.5);
                     return;
                 }
-                window.parent.postMessage({ type: "requestLocation" }, "*");
+                sendToParent({ type: "requestLocation" });
                 btn.classList.add('locating');
                 locationRequestTimeoutId = setTimeout(() => {
                     locationRequestTimeoutId = null;

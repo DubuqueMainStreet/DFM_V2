@@ -45,6 +45,12 @@ async function fetchAllItems(queryBuilder, { pageSize = 1000, maxPages = 20 } = 
     return items;
 }
 
+// NOTE on postMessage origin: the Velo `$w('#HtmlComponent').postMessage(...)`
+// and `.onMessage(...)` APIs are Wix-managed wrappers, not raw
+// window.postMessage. Wix handles the cross-origin hop (parent ↔ iframe)
+// internally, so we don't pass a targetOrigin here. Origin hardening for
+// messages in the other direction (iframe → parent) lives in
+// src/public/vendor-map-full-ui.html via an origin allowlist.
 $w.onReady(function () {
     htmlComponent = $w(HTML_COMPONENT_ID);
 
