@@ -22,6 +22,7 @@
 | **`CMS_DATA_MODEL.md`** | All collections, field schemas, reference display fixes, setup checklist | 8 former docs |
 | **`EMAIL_AND_CRM.md`** | Email notifications, CRM integration, template setup, gotchas | 3 former docs |
 | **`MAP_GUIDE.md`** | Interactive map architecture, geolocation, performance, deployment, troubleshooting, UX backlog | 4 former docs |
+| **`MAP_DESIGN_SPEC.md`** | Mobile-first art direction + UX spec for the map; brand tokens, wireframes, component inventory, motion, a11y, copy voice, QR journey. Phase 1 deliverable before the May 2 redesign build. Includes `?designPreview=1` preview-mode instructions | — |
 | **`MARKET_CALENDAR.md`** | Calendar dashboard UI, coverage logic, setup | 2 former docs |
 | **`TESTING.md`** | Consolidated testing checklists for all features | 2 former docs |
 | **`WIX_PLATFORM_NOTES.md`** | Wix Velo rules, repo structure, git workflow, MCP plugins | 4 former docs |
@@ -40,4 +41,4 @@
 
 ---
 
-**Total: 12 documents in `docs/`** (consolidated from 46 root-level files)
+**Total: 13 documents in `docs/`** (consolidated from 46 root-level files)

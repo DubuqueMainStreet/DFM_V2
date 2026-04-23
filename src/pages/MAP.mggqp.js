@@ -17,6 +17,26 @@ function isTestDataMode() {
     return urlParam || USE_TEST_DATA_DEFAULT;
 }
 
+// Design preview mode: self-contained fixture-only render for UI/UX review
+// before real 2026 rosters are finalized. Activated via `?designPreview=1` on
+// the PARENT page URL (not the iframe URL — Wix HtmlComponent doesn't inherit
+// query params). When active, we skip every CMS query and every `loadMapData`
+// postMessage, and just tell the iframe to bootstrap its own
+// src/public/designPreviewData.js fixture. The state query param is forwarded
+// so testers can share links like `?designPreview=1&state=empty`.
+// See docs/MAP_DESIGN_SPEC.md for what this mode is expected to render.
+function isDesignPreviewMode() {
+    return !!(wixLocation.query && wixLocation.query.designPreview === "1");
+}
+
+function getDesignPreviewState() {
+    if (!wixLocation.query) return "default";
+    const raw = wixLocation.query.state;
+    if (!raw) return "default";
+    const allowed = ["default", "loading", "empty", "error", "offline", "locdenied", "longtext"];
+    return allowed.indexOf(String(raw).toLowerCase()) >= 0 ? String(raw).toLowerCase() : "default";
+}
+
 const MARKET_DATES_COLLECTION = "MarketDates2026";
 const MARKET_ATTENDANCE_COLLECTION = "MarketAttendance";
 const STALL_LAYOUTS_COLLECTION = "StallLayouts";
@@ -62,15 +82,27 @@ $w.onReady(function () {
         switch (type) {
             case "iframeReady":
                 isMapIframeReady = true;
+                if (isDesignPreviewMode()) {
+                    htmlComponent.postMessage({
+                        type: "enableDesignPreview",
+                        payload: {
+                            state: getDesignPreviewState(),
+                            devToolbar: true
+                        }
+                    });
+                    return;
+                }
                 await sendMarketDatesToIframe();
                 await sendInitialDataToIframe();
                 break;
             case "requestDateData":
+                if (isDesignPreviewMode()) return;
                 if (payload && payload.date) {
                     await loadAndSendDataToMap(payload.date);
                 }
                 break;
             case "requestLocation":
+                if (isDesignPreviewMode()) return;
                 handleLocationRequest();
                 break;
         }

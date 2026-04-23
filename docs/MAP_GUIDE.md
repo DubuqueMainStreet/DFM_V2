@@ -3,6 +3,8 @@
 **Status:** Code complete, running in test data mode  
 **Files:** `src/pages/MAP.mggqp.js`, `src/public/vendor-map-full-ui.html` (~2,494 lines)
 
+**Related docs:** [`MAP_DESIGN_SPEC.md`](./MAP_DESIGN_SPEC.md) — mobile-first art direction + UX spec (Phase 1 deliverable). Run the `?designPreview=1` mode described there to exercise every UI state with fake rosters before real 2026 assignments are finalized.
+
 ---
 
 ## Architecture
@@ -77,6 +79,43 @@ import on the dataParse page:
 
 Only once `result.ready === true` should you flip
 `USE_TEST_DATA_DEFAULT` to `false` and publish.
+
+---
+
+## Design Preview Mode (`?designPreview=1`)
+
+Separate from test data mode. Used during the Phase 1 UX/UI review (see
+[`MAP_DESIGN_SPEC.md`](./MAP_DESIGN_SPEC.md)) to exercise every marker style,
+popup, vendor/POI type, and edge-case state against real stall geometry while
+the 2026 rosters are still being finalized.
+
+- Append `?designPreview=1` to the **parent** page URL (e.g.
+  `dubuquefarmersmarket.org/map?designPreview=1`). `MAP.mggqp.js` detects this
+  and short-circuits every CMS query, then tells the iframe to render the
+  curated fixture in `src/public/designPreviewData.js`.
+- A gold "Design preview" watermark appears in the bottom-right; a state
+  switcher toolbar sits top-right.
+- State query param (`&state=`):
+  - `default` — full fixture (~31 vendors covering all 4 vendor types + 8 POIs)
+  - `loading` — stuck loading skeleton
+  - `empty` — no vendors on selected date
+  - `error` — map-level error banner
+  - `offline` — simulated tile CDN outage veil
+  - `locdenied` — geolocation denial toast
+  - `longtext` — first vendor gets a 300+ char description
+- `&nowatermark=1` hides the badge for clean screenshots.
+- The iframe can also be opened directly (standalone, outside Wix) via
+  `src/public/vendor-map-full-ui.html?designPreview=1` — same URL parameters.
+
+Regenerate the fixture after changing vendor types, POI types, or stall
+geometry:
+
+```bash
+npm run generate-design-preview
+```
+
+Production safety: nothing here executes without `?designPreview=1` on the
+parent URL. The fixture file is only network-loaded on demand.
 
 ---
 

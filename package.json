@@ -10,6 +10,7 @@
     "postinstall": "patch-package && wix sync-types",
     "dev": "npx wix dev",
     "lint": "eslint .",
-    "generate-map-test-data": "node scripts/generateMarketTestData.js"
+    "generate-map-test-data": "node scripts/generateMarketTestData.js",
+    "generate-design-preview": "node scripts/generateDesignPreviewFixture.js"
   }
 }

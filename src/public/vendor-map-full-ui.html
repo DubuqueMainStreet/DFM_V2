@@ -1105,6 +1105,129 @@
                 top: var(--space-lg);
             }
         }
+
+        /* ==================== DESIGN PREVIEW MODE (?designPreview=1) ==================== */
+        /* Everything in this block only renders when JS adds the .design-preview
+           class to <body>. Hard-gated so nothing here can leak to real visitors. */
+        .design-preview-watermark {
+            position: fixed;
+            bottom: 14px;
+            right: 14px;
+            z-index: 2500;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px 6px 12px;
+            background: var(--dfm-gold);
+            color: var(--dfm-black);
+            font-family: var(--font-body);
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border-radius: var(--radius-pill);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            pointer-events: auto;
+        }
+        body.design-preview .design-preview-watermark {
+            display: inline-flex;
+        }
+        .design-preview-watermark i {
+            font-size: 0.85rem;
+        }
+        .design-preview-watermark button {
+            background: rgba(0, 0, 0, 0.15);
+            border: none;
+            color: inherit;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 4px;
+        }
+        .design-preview-watermark button:hover {
+            background: rgba(0, 0, 0, 0.28);
+        }
+        .design-preview-watermark.hidden {
+            display: none !important;
+        }
+
+        .design-preview-toolbar {
+            position: fixed;
+            top: 64px;
+            right: 12px;
+            z-index: 2500;
+            display: none;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 6px;
+            background: rgba(26, 26, 26, 0.92);
+            color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+            font-family: var(--font-body);
+            font-size: 0.72rem;
+            max-width: min(380px, calc(100vw - 24px));
+        }
+        body.design-preview.design-preview-has-toolbar .design-preview-toolbar {
+            display: flex;
+        }
+        .design-preview-toolbar .dp-tb-label {
+            align-self: center;
+            padding: 0 6px;
+            opacity: 0.7;
+        }
+        .design-preview-toolbar button {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-family: inherit;
+            font-size: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            min-height: 32px;
+        }
+        .design-preview-toolbar button:hover {
+            background: rgba(255, 255, 255, 0.18);
+        }
+        .design-preview-toolbar button.active {
+            background: var(--dfm-gold);
+            color: var(--dfm-black);
+            border-color: var(--dfm-gold);
+            font-weight: 700;
+        }
+        .design-preview-toolbar button:focus-visible {
+            outline: 3px solid var(--dfm-gold);
+            outline-offset: 2px;
+        }
+
+        /* Simulated tile-unreachable dim layer for &state=offline. */
+        .design-preview-offline-veil {
+            position: absolute;
+            inset: 0;
+            z-index: 450;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(117, 146, 135, 0.25),
+                rgba(117, 146, 135, 0.25) 14px,
+                rgba(117, 146, 135, 0.35) 14px,
+                rgba(117, 146, 135, 0.35) 28px
+            );
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dfm-teal);
+            font-family: var(--font-body);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -1228,7 +1351,53 @@
         </div>
     </div>
 
+    <!-- Design preview watermark + dev toolbar. Hard-gated: only rendered when
+         JS detects ?designPreview=1 and adds the .design-preview class to <body>. -->
+    <div class="design-preview-watermark" id="design-preview-watermark" role="status" aria-live="polite">
+        <i class="fa-solid fa-palette" aria-hidden="true"></i>
+        <span>Design preview</span>
+        <button type="button" id="design-preview-dismiss" aria-label="Hide design preview badge">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+    </div>
+    <div class="design-preview-toolbar" id="design-preview-toolbar" role="toolbar" aria-label="Design preview state">
+        <span class="dp-tb-label">State</span>
+        <button type="button" data-dp-state="default" class="active">default</button>
+        <button type="button" data-dp-state="loading">loading</button>
+        <button type="button" data-dp-state="empty">empty</button>
+        <button type="button" data-dp-state="error">error</button>
+        <button type="button" data-dp-state="offline">offline</button>
+        <button type="button" data-dp-state="locdenied">loc denied</button>
+        <button type="button" data-dp-state="longtext">long text</button>
+    </div>
+
     <script>
+        // ==================== DESIGN PREVIEW GATE ====================
+        // Activated ONLY when the iframe URL contains ?designPreview=1.
+        // When active, the iframe ignores postMessage data from the parent and
+        // renders a curated fixture from src/public/designPreviewData.js.
+        // Optional query params:
+        //   &state=default|loading|empty|error|offline|locdenied|longtext
+        //   &devtoolbar=1   (shows the state-switcher toolbar)
+        //   &nowatermark=1  (hides the "Design preview" badge)
+        const DESIGN_PREVIEW_PARAMS = (() => {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const enabled = params.get('designPreview') === '1';
+                const state = (params.get('state') || 'default').toLowerCase();
+                const devToolbar = params.get('devtoolbar') === '1' || enabled;
+                const noWatermark = params.get('nowatermark') === '1';
+                return { enabled, state, devToolbar, noWatermark };
+            } catch (e) {
+                return { enabled: false, state: 'default', devToolbar: false, noWatermark: false };
+            }
+        })();
+        // Mutable because the parent page (MAP.mggqp.js) can also flip this on
+        // via an `enableDesignPreview` postMessage when the parent URL has
+        // ?designPreview=1 — the iframe's own URL doesn't inherit parent query
+        // params in Wix, so we support both activation paths.
+        let IS_DESIGN_PREVIEW = DESIGN_PREVIEW_PARAMS.enabled;
+
         // ==================== CONFIGURATION ====================
         const VENDOR_TYPE_COLORS = {
             "Grower/Producer/Processor": "#3EB449",
@@ -1673,6 +1842,10 @@
         }
 
         function sendReadyMessage() {
+            if (IS_DESIGN_PREVIEW) {
+                bootstrapDesignPreview();
+                return;
+            }
             sendToParent({ type: "iframeReady" });
         }
 
@@ -1688,13 +1861,26 @@
             const { type, payload } = event.data;
 
             switch (type) {
+                case "enableDesignPreview":
+                    if (!IS_DESIGN_PREVIEW) {
+                        IS_DESIGN_PREVIEW = true;
+                        if (payload && typeof payload.state === 'string') {
+                            DESIGN_PREVIEW_PARAMS.state = payload.state.toLowerCase();
+                        }
+                        DESIGN_PREVIEW_PARAMS.devToolbar = (payload && payload.devToolbar) || DESIGN_PREVIEW_PARAMS.devToolbar;
+                        bootstrapDesignPreview();
+                    }
+                    break;
                 case "mapLoading":
+                    if (IS_DESIGN_PREVIEW) break;
                     showLoader();
                     break;
                 case "setMarketDates":
+                    if (IS_DESIGN_PREVIEW) break;
                     populateDateDropdown(payload.dates);
                     break;
                 case "loadMapData":
+                    if (IS_DESIGN_PREVIEW) break;
                     showLoader();
                     allStallLayouts = payload.allStallLayouts || [];
                     allPois = payload.allPois || [];
@@ -1709,6 +1895,7 @@
                     hideLoader();
                     break;
                 case "mapDataError":
+                    if (IS_DESIGN_PREVIEW) break;
                     hideLoader();
                     showMessage(payload?.message || "Unable to load map data. Please try again.");
                     setTimeout(hideMessage, 5000);
@@ -1724,6 +1911,10 @@
 
         function requestDataForDate(dateStr) {
             showLoader();
+            if (IS_DESIGN_PREVIEW) {
+                loadDesignPreviewForDate(dateStr);
+                return;
+            }
             sendToParent({
                 type: "requestDateData",
                 payload: { date: dateStr }
@@ -2537,6 +2728,204 @@
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
+        }
+
+        // ==================== DESIGN PREVIEW BOOTSTRAP ====================
+        // Everything below runs only when IS_DESIGN_PREVIEW === true. The parent
+        // page (src/pages/MAP.mggqp.js) is expected to skip all postMessage data
+        // publishing when the iframe URL has designPreview=1, so this mode is
+        // fully self-contained.
+
+        function bootstrapDesignPreview() {
+            document.body.classList.add('design-preview');
+            if (DESIGN_PREVIEW_PARAMS.devToolbar) {
+                document.body.classList.add('design-preview-has-toolbar');
+            }
+            if (DESIGN_PREVIEW_PARAMS.noWatermark) {
+                const badge = document.getElementById('design-preview-watermark');
+                if (badge) badge.classList.add('hidden');
+            }
+
+            wireDesignPreviewToolbar();
+
+            const dismissBtn = document.getElementById('design-preview-dismiss');
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', () => {
+                    const badge = document.getElementById('design-preview-watermark');
+                    if (badge) badge.classList.add('hidden');
+                });
+            }
+
+            if (DESIGN_PREVIEW_PARAMS.state === 'loading') {
+                showLoader();
+                return;
+            }
+
+            loadDesignPreviewFixture();
+        }
+
+        function loadDesignPreviewFixture() {
+            const apply = () => {
+                const data = window.__DFM_DESIGN_PREVIEW;
+                if (!data) {
+                    console.error('[DesignPreview] designPreviewData.js did not expose __DFM_DESIGN_PREVIEW');
+                    hideLoader();
+                    showMessage('Design preview fixture missing. Run npm run generate-design-preview.');
+                    return;
+                }
+
+                populateDateDropdown(data.marketDates || []);
+                selectedDate = data.defaultDate || (data.marketDates && data.marketDates[0] && data.marketDates[0].value) || '';
+                if (selectedDate && dateSelect) dateSelect.value = selectedDate;
+
+                const state = DESIGN_PREVIEW_PARAMS.state;
+                if (state === 'error') {
+                    hideLoader();
+                    showMessage('Unable to load market data. Pull to refresh or try again in a minute.');
+                    return;
+                }
+                if (state === 'offline') {
+                    applyDesignPreviewOfflineVeil();
+                }
+
+                loadDesignPreviewForDate(selectedDate);
+
+                if (state === 'locdenied') {
+                    setTimeout(() => {
+                        onLocationErrorFromParent({ code: 1, message: 'Permission denied' });
+                    }, 400);
+                }
+            };
+
+            if (window.__DFM_DESIGN_PREVIEW) {
+                apply();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = 'designPreviewData.js';
+            script.async = false;
+            script.onload = apply;
+            script.onerror = () => {
+                hideLoader();
+                showMessage('Could not load design preview data.');
+            };
+            document.head.appendChild(script);
+        }
+
+        function loadDesignPreviewForDate(dateStr) {
+            showLoader();
+            const data = window.__DFM_DESIGN_PREVIEW;
+            if (!data) {
+                hideLoader();
+                showMessage('Design preview fixture missing.');
+                return;
+            }
+
+            allStallLayouts = data.stallLayouts || [];
+            allPois = data.pois || [];
+
+            const state = DESIGN_PREVIEW_PARAMS.state;
+            if (state === 'empty') {
+                vendorsOnDate = [];
+            } else if (state === 'longtext') {
+                vendorsOnDate = (data.vendorsForDate(dateStr) || []).map((v, i) => {
+                    if (i === 0) {
+                        return Object.assign({}, v, {
+                            description: 'This vendor has an intentionally long description so we can verify that the popup, bottom sheet, and screen reader output all handle 300+ characters of marketing copy without breaking the grid, clipping the image, or pushing the close button off screen on a narrow iPhone SE viewport. Test long text wrapping here.'
+                        });
+                    }
+                    return v;
+                });
+            } else {
+                vendorsOnDate = data.vendorsForDate ? (data.vendorsForDate(dateStr) || []) : [];
+            }
+            selectedDate = dateStr;
+
+            const testBadge = document.getElementById('test-data-badge');
+            if (testBadge) {
+                testBadge.classList.remove('visible');
+                testBadge.setAttribute('aria-hidden', 'true');
+            }
+
+            renderMap();
+            hideLoader();
+        }
+
+        function applyDesignPreviewOfflineVeil() {
+            if (document.getElementById('design-preview-offline-veil')) return;
+            const mapWrap = document.querySelector('.map-wrapper');
+            if (!mapWrap) return;
+            const veil = document.createElement('div');
+            veil.id = 'design-preview-offline-veil';
+            veil.className = 'design-preview-offline-veil';
+            veil.textContent = 'Preview: simulated offline — tiles unreachable';
+            mapWrap.appendChild(veil);
+        }
+
+        function wireDesignPreviewToolbar() {
+            const toolbar = document.getElementById('design-preview-toolbar');
+            if (!toolbar) return;
+            const buttons = toolbar.querySelectorAll('button[data-dp-state]');
+            const syncActive = () => {
+                buttons.forEach(b => {
+                    if (b.getAttribute('data-dp-state') === DESIGN_PREVIEW_PARAMS.state) {
+                        b.classList.add('active');
+                    } else {
+                        b.classList.remove('active');
+                    }
+                });
+            };
+            syncActive();
+            buttons.forEach(btn => {
+                const btnState = btn.getAttribute('data-dp-state');
+                btn.addEventListener('click', () => {
+                    DESIGN_PREVIEW_PARAMS.state = btnState;
+                    syncActive();
+                    switchDesignPreviewState(btnState);
+                    // Update the URL without reloading so the state is
+                    // bookmarkable when the iframe is opened directly. Safe to
+                    // call when embedded (it updates the iframe's URL only).
+                    try {
+                        const params = new URLSearchParams(window.location.search);
+                        if (btnState === 'default') {
+                            params.delete('state');
+                        } else {
+                            params.set('state', btnState);
+                        }
+                        const qs = params.toString();
+                        const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+                        window.history.replaceState({}, '', newUrl);
+                    } catch (e) { /* swallow */ }
+                });
+            });
+        }
+
+        function switchDesignPreviewState(state) {
+            hideMessage();
+            const veil = document.getElementById('design-preview-offline-veil');
+            if (veil) veil.remove();
+            hideLoader();
+
+            if (state === 'loading') {
+                showLoader();
+                return;
+            }
+            if (state === 'error') {
+                showMessage('Unable to load market data. Pull to refresh or try again in a minute.');
+                return;
+            }
+            if (state === 'offline') {
+                applyDesignPreviewOfflineVeil();
+            }
+
+            loadDesignPreviewForDate(selectedDate || (allMarketDates[0] && allMarketDates[0].value) || '');
+
+            if (state === 'locdenied') {
+                setTimeout(() => {
+                    onLocationErrorFromParent({ code: 1, message: 'Permission denied' });
+                }, 400);
+            }
         }
     </script>
 </body>
