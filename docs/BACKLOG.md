@@ -23,6 +23,9 @@ Items not blocking the 2026 season launch but worth tracking.
 - [ ] Admin notes field per assignment
 - [ ] Search by name/email/organization
 
+### Consolidation (post-2026 launch)
+- [ ] Deprecate `src/pages/ADMIN-Schedule-Management.ais9x.js` — duplicates a subset of the richer `Specialty Requests.k6g1g.js` admin. Remove the page from the Wix Editor (or redirect it), then delete the file. Marked as DEPRECATED in its header comment; do not add features there.
+
 ### Filter Summary Display
 When filters are active, show a summary bar below the filter controls:
 ```

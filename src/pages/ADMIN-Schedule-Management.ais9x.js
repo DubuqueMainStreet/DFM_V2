@@ -1,6 +1,27 @@
 import wixData from 'wix-data';
 import { sendStatusNotificationEmail } from 'backend/emailNotifications.jsw';
 
+/*
+ * DEPRECATED (post-2026 launch).
+ *
+ * This page duplicates functionality that has since been expanded and
+ * centralized in `src/pages/Specialty Requests.k6g1g.js` (tabbed admin
+ * dashboard with filtering, manual entry, bulk operations, status
+ * notifications, and email backfill). Both pages coexist today because
+ * this file is still bound to a live Wix page.
+ *
+ * Action plan, post-launch:
+ *   1. Confirm `Specialty Requests` covers every use case staff use here
+ *      (per-type filtering, date filter, status transitions, location
+ *      assignment for musicians, manual-entry).
+ *   2. Remove the ADMIN-Schedule-Management page from the Wix Editor
+ *      (or redirect it to Specialty Requests).
+ *   3. Delete this file and its page assets from the repo.
+ *
+ * Tracked in docs/BACKLOG.md → Admin Dashboard → Consolidation.
+ * Do NOT add new features here — add them to Specialty Requests instead.
+ */
+
 // Global state
 let currentType = 'Musician';
 let currentAssignments = [];
