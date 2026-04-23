@@ -7,9 +7,39 @@ import {
     clearAttendanceForDateRange, 
     testVendorsCollectionQuery 
 } from 'backend/importData'; 
+import { checkMapDataCollections } from 'backend/diagnosticCheck';
 
 $w.onReady(function () {
     console.log("Admin page ready.");
+    console.log("Map data sanity check: call await window.checkMapData() in console to verify MarketDates2026 / StallLayouts / POIs / MarketAttendance before flipping USE_TEST_DATA_DEFAULT.");
+
+    // Console-invokable sanity check (no UI wiring required).
+    // Usage: `await window.checkMapData()` from the browser console on this page.
+    if (typeof window !== 'undefined') {
+        window.checkMapData = async () => {
+            console.log('🔍 Running map data sanity check...');
+            try {
+                const result = await checkMapDataCollections();
+                console.log('Ready for production data:', result.ready);
+                console.table(result.summary.map(s => ({
+                    collection: s.collection,
+                    count: s.count,
+                    hasRequiredFields: s.hasRequiredFields,
+                    error: s.error || ''
+                })));
+                if (result.issues && result.issues.length) {
+                    console.warn('Issues found:');
+                    result.issues.forEach(i => console.warn('  • ' + i));
+                } else {
+                    console.log('✅ All four map collections look populated.');
+                }
+                return result;
+            } catch (err) {
+                console.error('Map data sanity check failed:', err && err.message);
+                throw err;
+            }
+        };
+    }
 
     // --- Vendor Roster Import ---
     $w("#importVendorRosterButton").onClick(async () => {

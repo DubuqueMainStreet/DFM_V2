@@ -436,3 +436,93 @@ export async function checkDateAvailability(dateId) {
 		return { error: error.message };
 	}
 }
+
+/**
+ * MAP DATA SANITY CHECK — run before flipping USE_TEST_DATA_DEFAULT to false.
+ *
+ * Counts rows in the four collections the interactive map depends on and
+ * returns a structured summary. Use from the admin dataParse page:
+ *     await checkMapDataCollections()
+ *
+ * Returns:
+ *   {
+ *     ready: boolean,               // true if every collection meets the minimum
+ *     summary: {collection, count, sample, hasRequiredFields}[],
+ *     issues: string[]
+ *   }
+ */
+export async function checkMapDataCollections() {
+	const checks = [
+		{
+			collection: 'MarketDates2026',
+			minimumCount: 20,
+			requiredFields: ['title', 'date'],
+			sampleSize: 3,
+		},
+		{
+			collection: 'StallLayouts',
+			minimumCount: 10,
+			requiredFields: ['stallId'],
+			sampleSize: 2,
+		},
+		{
+			collection: 'POIs',
+			minimumCount: 1,
+			requiredFields: [],
+			sampleSize: 2,
+		},
+		{
+			collection: 'MarketAttendance',
+			minimumCount: 1,
+			requiredFields: ['dateRef'],
+			sampleSize: 2,
+		},
+	];
+
+	const summary = [];
+	const issues = [];
+
+	for (const check of checks) {
+		try {
+			const result = await wixData.query(check.collection).limit(1000).find();
+			const count = result.items.length;
+			const sample = result.items.slice(0, check.sampleSize).map(item => {
+				const picked = { _id: item._id };
+				check.requiredFields.forEach(f => { picked[f] = item[f]; });
+				return picked;
+			});
+			const hasRequiredFields = check.requiredFields.length === 0
+				|| result.items.every(item =>
+					check.requiredFields.every(f => item[f] !== undefined && item[f] !== null && item[f] !== ''));
+
+			if (count < check.minimumCount) {
+				issues.push(`${check.collection}: only ${count} rows (expected >= ${check.minimumCount})`);
+			}
+			if (!hasRequiredFields) {
+				issues.push(`${check.collection}: some rows missing required fields [${check.requiredFields.join(', ')}]`);
+			}
+
+			summary.push({
+				collection: check.collection,
+				count,
+				hasMore: Boolean(result.hasNext && result.hasNext()),
+				requiredFields: check.requiredFields,
+				hasRequiredFields,
+				sample,
+			});
+		} catch (err) {
+			issues.push(`${check.collection}: query failed — ${err && err.message}`);
+			summary.push({
+				collection: check.collection,
+				error: err && err.message,
+			});
+		}
+	}
+
+	return {
+		ready: issues.length === 0,
+		checkedAt: new Date().toISOString(),
+		summary,
+		issues,
+	};
+}
