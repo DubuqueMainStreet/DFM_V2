@@ -71,6 +71,7 @@ Showing: Musicians | May 2nd | Pending (12 results)  [Clear All]
 ---
 
 ## Signup Forms
+- [ ] Remove the unused "SIGNUP - Special Event" page from the Wix Editor. The Velo file `src/pages/SIGNUP - Special Event.holpu.js` is a no-op stub with a deprecation marker — once the page itself is deleted in the Editor, re-pull the site and the file will disappear.
 - [ ] Fix NFP form duplicate `onItemReady` handler registration
 - [ ] Email format validation
 - [ ] Phone number format validation
