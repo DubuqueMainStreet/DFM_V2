@@ -120,12 +120,52 @@ Consolidated testing checklists for all features.
 - [ ] Firefox
 - [ ] Edge
 
+### Pre-launch Cross-Browser QA Matrix (2026 season)
+
+Run this checklist end-to-end on every listed browser/device before
+flipping the site to production. Record tester name, date, and "PASS /
+FAIL / SKIPPED" in the rightmost column. Any FAIL blocks launch.
+
+| # | Check | iOS Safari (latest) | Android Chrome (latest) | Desktop Safari (macOS) | Desktop Firefox | Desktop Chrome | Desktop Edge |
+|---|---|---|---|---|---|---|---|
+| 1 | Map iframe loads without console errors |   |   |   |   |   |   |
+| 2 | Date dropdown populates with 2026 Saturdays |   |   |   |   |   |   |
+| 3 | Switching dates updates vendor markers |   |   |   |   |   |   |
+| 4 | Vendor popup title/description render without HTML artifacts |   |   |   |   |   |   |
+| 5 | Category filter buttons highlight selected state |   |   |   |   |   |   |
+| 6 | Search box filters vendors live |   |   |   |   |   |   |
+| 7 | "Locate me" works (permission prompt → blue dot + accuracy ring) |   |   |   |   |   |   |
+| 8 | Denying location shows friendly error (no silent failure) |   |   |   |   |   |   |
+| 9 | Tap on marker opens popup (no accidental scroll-to-popup on mobile) |   |   |   |   |   |   |
+| 10 | Prev/Next vendor navigation in popup |   |   |   |   |   |   |
+| 11 | Directions link opens Google Maps in a new tab |   |   |   |   |   |   |
+| 12 | `?testData=1` URL override still shows the red "Test Data" badge |   |   |   |   |   |   |
+| 13 | Pinch-zoom and two-finger pan work (mobile only) |   |   |   |   |   |   |
+| 14 | Fit-market button re-frames the market bounds |   |   |   |   |   |   |
+| 15 | Reduced-motion: animations respect `prefers-reduced-motion` |   |   |   |   |   |   |
+| 16 | No mixed-content warnings in DevTools |   |   |   |   |   |   |
+
+Coverage goals per the [2026-Roadmap.md](../2026-Roadmap.md): primary
+audience is mobile Safari + Chrome. Desktop Firefox/Edge are secondary
+but must not throw console errors.
+
+### Known browser-specific gotchas
+
+- **iOS Safari:** historically blocks `navigator.geolocation` inside
+  iframes. Parent-handled geolocation via `wixWindowFrontend` mitigates
+  this — verify the blue dot actually appears (see
+  `docs/MAP_GUIDE.md → Geolocation Workaround`).
+- **Firefox:** does not allow `L.marker` CSS to inherit `will-change`;
+  flag any jitter on marker hover.
+- **Desktop Safari:** occasional 1px rendering glitch on the map legend
+  backdrop — cosmetic, not a blocker.
+
 ---
 
 ## Backend / CMS
 
 ### Data Integrity
-- [ ] All queries use `.limit(1000)` (not default 50)
+- [ ] All queries use `.limit(1000)` or paginate via `hasNext()/next()` (not default 50)
 - [ ] `wixData.update()` fetches full record first
 - [ ] Status values are consistent ("Pending", "Approved", "Rejected")
 - [ ] `MarketDates2026` has `title` field populated (27 records)
