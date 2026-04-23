@@ -86,3 +86,47 @@ Showing: Musicians | May 2nd | Pending (12 results)  [Clear All]
 - [ ] Analytics tracking (filter usage, search terms, popular vendors)
 - [ ] Pagination for collections exceeding 1000 records
 - [ ] Split `Specialty Requests.k6g1g.js` (~2,857 lines) into smaller modules
+
+## Tooling / dependencies (post-launch)
+
+- [ ] **React 16 devDep**: `package.json` pins `react@16.14.0` as a
+      devDependency. No direct import from repo source uses React;
+      `npm ls react` shows only this top-level entry. Historically this
+      was required as a peer by an older `@wix/cli` version. Verify
+      whether `@wix/cli@^1.1.165` still needs it by (a) removing the
+      entry, (b) running `npm install && npx wix dev && npm run lint`,
+      (c) checking for peer-dep warnings. If clean, drop it. Otherwise
+      keep it and add a `// required by @wix/cli peer` annotation via a
+      `README` bullet (strict JSON can't carry inline comments).
+- [ ] **ESLint 9 + flat config**: currently on `eslint@^8.25.0`. ESLint
+      8 is end-of-life. Migration:
+      1. Replace `.eslintrc*` with a single `eslint.config.js` flat
+         config.
+      2. Update `@wix/eslint-plugin-cli` to a version compatible with
+         ESLint 9 (check the plugin's changelog first — if it doesn't
+         support flat config yet, delay).
+      3. Run `npx @eslint/migrate-config .eslintrc*` as a starting
+         point, then fix any plugin-specific diffs.
+      4. Verify `npm run lint` still passes on every Velo page.
+
+## Testing (post-launch)
+
+Velo page code can't run under Jest (Wix runtime-only), but pure helpers
+and Node scripts can. Proposed first iteration:
+
+- [ ] Add Vitest to devDependencies (modern, ESM-friendly, no config
+      overhead) and a `npm run test` script.
+- [ ] Unit-test pure helpers in `src/backend/formUtils.web.js`:
+      - `validateEmail('foo@bar.com')` → `true`
+      - `validateEmail('not-an-email')` → `false`
+      - `validateEmail('')` / `null` / `undefined` → `false`
+      - `formatDate(new Date('2026-05-02'))` matches `"May 2, 2026"`.
+- [ ] Unit-test pure helpers extracted from
+      `scripts/generateMarketTestData.js`:
+      - Date label formatting ("May 2nd").
+      - Vendor-to-stall assignment mapping round-trips.
+- [ ] Unit-test the `featureToLatLng` helper (post-launch: lift it out
+      of the iframe HTML into a shared `src/public/mapGeometry.js` so
+      it's importable from tests).
+- [ ] Convert `docs/TESTING.md` manual checklists into a dated
+      pre-release QA spreadsheet with pass/fail columns.
