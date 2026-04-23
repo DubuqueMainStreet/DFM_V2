@@ -5,7 +5,6 @@ import { manualEntrySpecialtyProfile } from 'backend/formSubmissions.jsw';
 import { getDateAvailability } from 'backend/availabilityStatus.jsw';
 import { checkAssignmentsStatus } from 'backend/diagnosticCheck.jsw';
 import { checkApprovedAssignmentsEmailStatus, sendMissingApprovalEmails } from 'backend/emailDiagnostic.jsw';
-import wixFetch from 'wix-fetch';
 
 // ============================================
 // EMAIL NOTIFICATIONS ENABLED - VERSION 2.0
@@ -80,8 +79,7 @@ async function initializeDashboard() {
 					console.warn(`⚠️ WARNING: ${withoutContacts + unsubscribed} approved assignment(s) may not have received emails!`);
 					console.warn(`💡 To send missing emails:`);
 					console.warn(`   1. Add a button with ID "#btnSendMissingEmails" in Wix Editor, OR`);
-					console.warn(`   2. Call: await sendMissingApprovalEmails()`);
-					console.warn(`   3. Or use backend HTTP function: await wixFetch.fetch('/_functions/sendMissingApprovalEmailsBackend', {method: 'POST'})`);
+					console.warn(`   2. Call: await sendMissingEmails() in console (invokes the owner-only backend web module)`);
 				}
 			}
 			console.log('📧📧📧 EMAIL DIAGNOSTIC COMPLETE 📧📧📧\n');
@@ -98,64 +96,27 @@ async function initializeDashboard() {
 			return result;
 		}
 		
+		// Call the backend web module directly. Access is gated by `src/backend/permissions.json`
+		// (owner-only on `sendMissingApprovalEmails`) — the previous wix-fetch path went through
+		// the public HTTP function, which is now secret-gated for external callers only.
 		async function sendMissingEmails(assignmentIds = null) {
 			console.log('📧 Sending missing approval emails...');
 			try {
-				// Use wix-fetch to call the backend HTTP function (works from site page)
-				const response = await wixFetch.fetch('/_functions/sendMissingApprovalEmailsBackend', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						assignmentIds: assignmentIds
-					})
-				});
-				
-				// Check response status before parsing
-				if (!response.ok) {
-					const text = await response.text();
-					console.error('HTTP function returned error:', response.status, text.substring(0, 200));
-					throw new Error(`HTTP function returned status ${response.status}`);
-				}
-				
-				// Check content type before parsing JSON
-				const contentType = response.headers.get('content-type') || '';
-				if (!contentType.includes('application/json')) {
-					const text = await response.text();
-					console.error('HTTP function returned non-JSON:', contentType, text.substring(0, 200));
-					throw new Error(`HTTP function returned non-JSON content: ${contentType}`);
-				}
-				
-				const result = await response.json();
-				console.log('📊 Email sending results:', result);
-				
-				if (result.error) {
+				const result = await sendMissingApprovalEmails(assignmentIds);
+				if (result && result.error) {
 					console.error('❌ Error:', result.error);
 					return result;
 				}
-				
-				const successCount = result.success?.length || 0;
-				const failedCount = result.failed?.length || 0;
-				const skippedCount = result.skipped?.length || 0;
-				
+				const successCount = result?.success?.length || 0;
+				const failedCount = result?.failed?.length || 0;
+				const skippedCount = result?.skipped?.length || 0;
 				console.log(`✅ Successfully sent: ${successCount}`);
 				console.log(`⏭️ Skipped: ${skippedCount}`);
 				console.log(`❌ Failed: ${failedCount}`);
-				
 				return result;
 			} catch (error) {
-				console.error('❌ Error calling backend HTTP function:', error);
-				console.log('⚠️ Falling back to direct function call...');
-				// Fallback to direct call if fetch fails
-				try {
-					const result = await sendMissingApprovalEmails(assignmentIds);
-					console.log('📊 Results:', result);
-					return result;
-				} catch (fallbackError) {
-					console.error('❌ Fallback also failed:', fallbackError);
-					throw fallbackError;
-				}
+				console.error('❌ sendMissingEmails failed:', error && error.message);
+				throw error;
 			}
 		}
 		
@@ -337,39 +298,13 @@ function setupSendMissingEmailsButton() {
 			console.log('Send missing emails button clicked');
 			showLoading(true, 'Sending approval emails...');
 			try {
-				// Use wix-fetch to call backend HTTP function (more reliable)
-				const response = await wixFetch.fetch('/_functions/sendMissingApprovalEmailsBackend', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({})
-				});
-				
-				// Check response status before parsing
-				if (!response.ok) {
-					const text = await response.text();
-					console.error('HTTP function returned error:', response.status, text);
-					throw new Error(`HTTP function returned status ${response.status}: ${text.substring(0, 100)}`);
-				}
-				
-				// Check content type before parsing JSON
-				const contentType = response.headers.get('content-type') || '';
-				if (!contentType.includes('application/json')) {
-					const text = await response.text();
-					console.error('HTTP function returned non-JSON:', contentType, text.substring(0, 200));
-					throw new Error(`HTTP function returned non-JSON content: ${contentType}`);
-				}
-				
-				const result = await response.json();
-				
-				if (result.error) {
-					showError(`Failed to send some emails: ${result.error}`);
+				const result = await sendMissingApprovalEmails();
+				if (result && result.error) {
+					showError(`Failed: ${result.error}`);
 				} else {
-					const successCount = result.success?.length || 0;
-					const failedCount = result.failed?.length || 0;
-					const skippedCount = result.skipped?.length || 0;
-					
+					const successCount = result?.success?.length || 0;
+					const failedCount = result?.failed?.length || 0;
+					const skippedCount = result?.skipped?.length || 0;
 					if (successCount > 0) {
 						showSuccess(`Successfully sent ${successCount} email(s)${failedCount > 0 ? `, ${failedCount} failed` : ''}${skippedCount > 0 ? `, ${skippedCount} skipped (duplicates)` : ''}`);
 					} else if (failedCount > 0) {
@@ -379,30 +314,8 @@ function setupSendMissingEmailsButton() {
 					}
 				}
 			} catch (error) {
-				console.error('Error sending missing emails via HTTP function:', error);
-				console.log('Falling back to direct function call...');
-				// Fallback to direct function call
-				try {
-					const result = await sendMissingApprovalEmails();
-					if (result.error) {
-						showError(`Failed: ${result.error}`);
-					} else {
-						const successCount = result.success?.length || 0;
-						const failedCount = result.failed?.length || 0;
-						const skippedCount = result.skipped?.length || 0;
-						
-						if (successCount > 0) {
-							showSuccess(`Successfully sent ${successCount} email(s)${failedCount > 0 ? `, ${failedCount} failed` : ''}${skippedCount > 0 ? `, ${skippedCount} skipped` : ''}`);
-						} else if (failedCount > 0) {
-							showError(`Failed to send ${failedCount} email(s)`);
-						} else {
-							showSuccess('All emails were skipped');
-						}
-					}
-				} catch (fallbackError) {
-					console.error('Fallback also failed:', fallbackError);
-					showError(`Error: ${error.message}. Fallback also failed: ${fallbackError.message}`);
-				}
+				console.error('sendMissingApprovalEmails failed:', error && error.message);
+				showError(`Error: ${error && error.message ? error.message : 'request failed'}`);
 			} finally {
 				showLoading(false);
 			}

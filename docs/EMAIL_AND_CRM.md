@@ -174,6 +174,50 @@ CRM contact creation prefers `contactName`, falls back to `organizationName`. Ad
 
 ---
 
+## HTTP Function: `sendMissingApprovalEmailsBackend`
+
+A Wix HTTP function at `POST /_functions/sendMissingApprovalEmailsBackend`
+lets an operator re-send approval emails for assignments that were approved
+but never received a triggered email (usually because contact creation
+failed at the time).
+
+**Authentication:** Requires an `x-admin-token` header whose value matches
+the `ADMIN_BACKFILL_TOKEN` secret in Wix Secrets Manager. Without the
+header (or with a wrong value) the endpoint returns `403`.
+
+### One-time setup
+
+Set the secret via the Wix Dashboard → Secrets Manager, or via the CLI:
+
+```bash
+wix secrets set ADMIN_BACKFILL_TOKEN <long-random-hex>
+```
+
+Rotate the value any time; the next request will pick up the new secret.
+
+### Usage
+
+```bash
+curl -X POST https://www.dubuquefarmersmarket.org/_functions/sendMissingApprovalEmailsBackend \
+  -H "Content-Type: application/json" \
+  -H "x-admin-token: <token>" \
+  -d '{"assignmentIds": null}'
+```
+
+Omit `assignmentIds` (or pass `null`) to retry all currently-approved
+assignments that are missing emails. Pass an array to target specific
+WeeklyAssignment IDs.
+
+### In-site admin dashboard
+
+The Specialty Requests dashboard (`src/pages/Specialty Requests.k6g1g.js`)
+calls `sendMissingApprovalEmails` directly via the backend web module —
+it does not hit the HTTP function. Access to that web module is gated by
+`src/backend/permissions.json` (owner-only), which is the in-browser
+equivalent of the HTTP token check.
+
+---
+
 ## Troubleshooting
 
 | Issue | Fix |
